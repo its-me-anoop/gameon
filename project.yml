@@ -10,8 +10,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    TARGETED_DEVICE_FAMILY: "1"
-    CURRENT_PROJECT_VERSION: 1
+    CURRENT_PROJECT_VERSION: 2
     MARKETING_VERSION: 1.0.0
 targets:
   Gravitile:
@@ -40,6 +39,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.flutterly.gravitile
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # iPhone-only: keeps ASC from demanding iPad screenshots.
+        TARGETED_DEVICE_FAMILY: "1"
   GravitileTests:
     type: bundle.unit-test
     platform: iOS

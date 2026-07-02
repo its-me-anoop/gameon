@@ -10,8 +10,7 @@
     <string>automatic</string>
     <key>manageAppVersionAndBuildNumber</key>
     <true/>
-    <!-- Set to your Apple Developer Team ID before exporting -->
     <key>teamID</key>
-    <string>YOUR_TEAM_ID</string>
+    <string>K6623R3GP5</string>
 </dict>
 </plist>

@@ -52,6 +52,28 @@ final class GravitileUITests: XCTestCase {
                       || app.staticTexts["movesRemaining"].firstMatch.exists)
     }
 
+    /// Manual helper: holds the paywall open (with live StoreKit-config
+    /// prices) so marketing/review screenshots can be captured externally.
+    /// Run with TEST_RUNNER_GRAVITILE_HOLD=1; skipped otherwise.
+    func testHoldPaywallForScreenshot() throws {
+        guard ProcessInfo.processInfo.environment["GRAVITILE_HOLD"] == "1" else {
+            throw XCTSkip("screenshot helper — enable with TEST_RUNNER_GRAVITILE_HOLD=1")
+        }
+        let app = launch()
+        app.buttons["settingsLink"].tap()
+        let plusRow = app.buttons["Unlock Plus"].firstMatch
+        XCTAssertTrue(plusRow.waitForExistence(timeout: 5))
+        plusRow.tap()
+        XCTAssertTrue(app.buttons["buyPlus"].waitForExistence(timeout: 10))
+        // Give StoreKit a beat to resolve the localized price, then attach
+        // a screenshot to the result bundle for external extraction.
+        sleep(4)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "paywall"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testPaywallReachableFromSettings() {
         let app = launch()
         app.buttons["settingsLink"].tap()
