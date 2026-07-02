@@ -20,6 +20,10 @@ targets:
     sources: [Gravitile]
     dependencies:
       - package: GravitileKit
+    entitlements:
+      path: Gravitile/Gravitile.entitlements
+      properties:
+        com.apple.developer.game-center: true
     info:
       path: Gravitile/Info.plist
       properties:
@@ -37,7 +41,10 @@ targets:
   GravitileTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [GravitileTests]
+    sources:
+      - GravitileTests
+      - path: Gravitile/Gravitile.storekit
+        buildPhase: resources
     dependencies:
       - target: Gravitile
     settings:
@@ -64,6 +71,7 @@ schemes:
       storeKitConfiguration: Gravitile/Gravitile.storekit
     test:
       config: Debug
+      storeKitConfiguration: Gravitile/Gravitile.storekit
       targets:
         - GravitileTests
         - GravitileUITests

@@ -1,83 +1,77 @@
 {
-  "identifier" : "A1B2C3D4",
-  "nonRenewingSubscriptions" : [
-
-  ],
-  "products" : [
+  "identifier": "8355F130-5721-485B-A7A6-2EDC6F5A6F82",
+  "nonRenewingSubscriptions": [],
+  "products": [
     {
-      "displayPrice" : "2.99",
-      "familyShareable" : true,
-      "internalID" : "6E1A0001",
-      "localizations" : [
+      "displayPrice": "2.99",
+      "familyShareable": true,
+      "internalID": "B52DF2BD-E255-4272-B263-B46A232F7D9D",
+      "localizations": [
         {
-          "description" : "Daily archive, unlimited undo, and more.",
-          "displayName" : "Gravitile Plus",
-          "locale" : "en_US"
+          "description": "Daily archive, unlimited undo, and more.",
+          "displayName": "Gravitile Plus",
+          "locale": "en_US"
         }
       ],
-      "productID" : "com.flutterly.gravitile.plus",
-      "referenceName" : "Gravitile Plus",
-      "type" : "NonConsumable"
+      "productID": "com.flutterly.gravitile.plus",
+      "referenceName": "Gravitile Plus",
+      "type": "NonConsumable"
     },
     {
-      "displayPrice" : "0.99",
-      "familyShareable" : false,
-      "internalID" : "6E1A0002",
-      "localizations" : [
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "36085E90-D484-4B8E-AA4D-D68AFD7B905C",
+      "localizations": [
         {
-          "description" : "A small thank-you to the developer.",
-          "displayName" : "Nice Tip",
-          "locale" : "en_US"
+          "description": "A small thank-you to the developer.",
+          "displayName": "Nice Tip",
+          "locale": "en_US"
         }
       ],
-      "productID" : "com.flutterly.gravitile.tip.small",
-      "referenceName" : "Nice Tip",
-      "type" : "Consumable"
+      "productID": "com.flutterly.gravitile.tip.small",
+      "referenceName": "Nice Tip",
+      "type": "Consumable"
     },
     {
-      "displayPrice" : "2.99",
-      "familyShareable" : false,
-      "internalID" : "6E1A0003",
-      "localizations" : [
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "F187B9BE-2835-4F91-B022-83DFE776E80D",
+      "localizations": [
         {
-          "description" : "A generous thank-you to the developer.",
-          "displayName" : "Generous Tip",
-          "locale" : "en_US"
+          "description": "A generous thank-you to the developer.",
+          "displayName": "Generous Tip",
+          "locale": "en_US"
         }
       ],
-      "productID" : "com.flutterly.gravitile.tip.medium",
-      "referenceName" : "Generous Tip",
-      "type" : "Consumable"
+      "productID": "com.flutterly.gravitile.tip.medium",
+      "referenceName": "Generous Tip",
+      "type": "Consumable"
     },
     {
-      "displayPrice" : "9.99",
-      "familyShareable" : false,
-      "internalID" : "6E1A0004",
-      "localizations" : [
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "F49D7F08-77D8-4D04-A5F0-86E377062DE7",
+      "localizations": [
         {
-          "description" : "A heroic thank-you to the developer.",
-          "displayName" : "Heroic Tip",
-          "locale" : "en_US"
+          "description": "A heroic thank-you to the developer.",
+          "displayName": "Heroic Tip",
+          "locale": "en_US"
         }
       ],
-      "productID" : "com.flutterly.gravitile.tip.large",
-      "referenceName" : "Heroic Tip",
-      "type" : "Consumable"
+      "productID": "com.flutterly.gravitile.tip.large",
+      "referenceName": "Heroic Tip",
+      "type": "Consumable"
     }
   ],
-  "settings" : {
-    "_failTransactionsEnabled" : false,
-    "_locale" : "en_US",
-    "_storefront" : "USA",
-    "_storeKitErrors" : [
-
-    ]
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
   },
-  "subscriptionGroups" : [
-
-  ],
-  "version" : {
-    "major" : 3,
-    "minor" : 0
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
   }
 }

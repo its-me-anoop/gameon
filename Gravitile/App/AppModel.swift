@@ -9,6 +9,7 @@ final class AppModel {
     let haptics: HapticsService
     let sounds: SoundService
     let store = StoreService()
+    let gameCenter = GameCenterService()
     private let persistence: PersistenceService
     private let now: () -> Date
 
@@ -17,7 +18,14 @@ final class AppModel {
     init(persistence: PersistenceService = PersistenceService(), now: @escaping () -> Date = { Date() }) {
         self.persistence = persistence
         self.now = now
-        persisted = persistence.load()
+        if ProcessInfo.processInfo.arguments.contains("-gravitile-reset") {
+            // UI tests launch with a clean slate.
+            let fresh = PersistedState()
+            persistence.save(fresh)
+            persisted = fresh
+        } else {
+            persisted = persistence.load()
+        }
         haptics = HapticsService()
         sounds = SoundService()
         haptics.isEnabled = persisted.settings.hapticsOn
@@ -83,9 +91,11 @@ final class AppModel {
             )
             if puzzleNumber == todayPuzzleNumber {
                 persisted.streak.recordCompletion(puzzleNumber: puzzleNumber, on: now())
+                gameCenter.submitStreak(persisted.streak)
             }
             persisted.dailyGame = nil
         }
+        gameCenter.submit(game: game)
         save()
     }
 

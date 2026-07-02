@@ -29,6 +29,10 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       onlyGenerateCoverageForSpecifiedTargets = "NO">
+      <StoreKitConfigurationFileReference
+         identifier = "../../Gravitile/Gravitile.storekit">
+      </StoreKitConfigurationFileReference>
+
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"

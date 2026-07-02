@@ -4,6 +4,7 @@ import XCTest
 final class GravitileUITests: XCTestCase {
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments = ["-gravitile-reset"]
         app.launch()
         return app
     }

@@ -26,6 +26,7 @@
 		5C5CEB97E56B393F15E1A66A /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F484F5EE4F339C8F95392C58 /* HUDView.swift */; };
 		5C771ACF8379AB3B56D1D8F4 /* Unbounded-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */; };
 		637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AAD23A57F87D744C4F104B /* DailyScreen.swift */; };
+		6AA0C08A585D081538C2DF90 /* Gravitile.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 07AFA388A975DF746C3A84E3 /* Gravitile.storekit */; };
 		70D22CC3C09507B5FD84A54D /* Unbounded.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */; };
 		7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */ = {isa = PBXBuildFile; fileRef = BBA685458A62BAB7C0CED357 /* fanfare.wav */; };
 		7D9F3AAFE9FFFBD86DC61C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3C236B91544628708A1928 /* PersistenceService.swift */; };
@@ -33,10 +34,12 @@
 		8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD9E32F3D56261309546552 /* StreakTests.swift */; };
 		9F5E400912545F6479F5EBD0 /* AnimationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89433D6D1BE9C1B7ADF81B38 /* AnimationPlanner.swift */; };
 		A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */; };
+		B638FA3F3BB8DC56C520A5B9 /* GameCenterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D125B2774AF7E398DA3610 /* GameCenterService.swift */; };
 		B83996B18768972748CA852B /* merge4.wav in Resources */ = {isa = PBXBuildFile; fileRef = 03973293FFFBD6BB3007497A /* merge4.wav */; };
 		B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7431D4D021A345983288F612 /* BoardView.swift */; };
 		BF014CB6BD964C0B74EE1AAD /* HapticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070AD2BA84FDD1C349F8918 /* HapticsService.swift */; };
 		C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */; };
+		C83FA83820B6B8AB2FC23B64 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E969DCB31090727B05D1C /* StoreTests.swift */; };
 		D1819C9393DEA3F3F19ACEDD /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146127D215B2EC3AD6D1B728 /* RootView.swift */; };
 		D3A7D3E19545A0189C7F7820 /* GravitileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93A29F95D9F8E13ADFA8F1E8 /* GravitileApp.swift */; };
 		DB26DE239E292FC051B3BF73 /* gameover.wav in Resources */ = {isa = PBXBuildFile; fileRef = 54C6AFF597D99D987D11EBF8 /* gameover.wav */; };
@@ -79,6 +82,8 @@
 		4DD9E32F3D56261309546552 /* StreakTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakTests.swift; sourceTree = "<group>"; };
 		54183085EF203B6659B68285 /* merge2.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge2.wav; sourceTree = "<group>"; };
 		54C6AFF597D99D987D11EBF8 /* gameover.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = gameover.wav; sourceTree = "<group>"; };
+		590E969DCB31090727B05D1C /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
+		5ACD0EE04279D7BBC52F89D4 /* Gravitile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gravitile.entitlements; sourceTree = "<group>"; };
 		5EC3651BC4594892DDAAABFE /* slide.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = slide.wav; sourceTree = "<group>"; };
 		5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
@@ -100,6 +105,7 @@
 		C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GravitileUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Unbounded-OFL.txt"; sourceTree = "<group>"; };
 		E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
+		E6D125B2774AF7E398DA3610 /* GameCenterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterService.swift; sourceTree = "<group>"; };
 		ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Unbounded.ttf; sourceTree = "<group>"; };
 		F079EA5A536E2DD9F585C87D /* merge3.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge3.wav; sourceTree = "<group>"; };
 		F484F5EE4F339C8F95392C58 /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
@@ -170,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */,
+				590E969DCB31090727B05D1C /* StoreTests.swift */,
 				4DD9E32F3D56261309546552 /* StreakTests.swift */,
 			);
 			path = GravitileTests;
@@ -219,6 +226,7 @@
 		C8CCE7E530C2D879D95D1A9E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				E6D125B2774AF7E398DA3610 /* GameCenterService.swift */,
 				A070AD2BA84FDD1C349F8918 /* HapticsService.swift */,
 				7D3C236B91544628708A1928 /* PersistenceService.swift */,
 				E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */,
@@ -262,6 +270,7 @@
 		F220C043258D366A32FC5E02 /* Gravitile */ = {
 			isa = PBXGroup;
 			children = (
+				5ACD0EE04279D7BBC52F89D4 /* Gravitile.entitlements */,
 				07AFA388A975DF746C3A84E3 /* Gravitile.storekit */,
 				1BF2CB1FE02C2163BCBFB241 /* Info.plist */,
 				12FF2A47216CA99101390C6D /* App */,
@@ -301,6 +310,7 @@
 			buildConfigurationList = 1D259454CC40A20A158F964C /* Build configuration list for PBXNativeTarget "GravitileTests" */;
 			buildPhases = (
 				43BEAC5820AB68C9FC9689D6 /* Sources */,
+				36296553E58F4FBB205D030F /* Resources */,
 			);
 			buildRules = (
 			);
@@ -373,6 +383,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		36296553E58F4FBB205D030F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6AA0C08A585D081538C2DF90 /* Gravitile.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DA575D280E5539B59E5455B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -400,6 +418,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */,
+				C83FA83820B6B8AB2FC23B64 /* StoreTests.swift in Sources */,
 				8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -412,6 +431,7 @@
 				31293381AF995C005A8EE43D /* AppModel.swift in Sources */,
 				B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */,
 				637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */,
+				B638FA3F3BB8DC56C520A5B9 /* GameCenterService.swift in Sources */,
 				5B2D7315D75392F48DFF4C92 /* GameScreen.swift in Sources */,
 				A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */,
 				D3A7D3E19545A0189C7F7820 /* GravitileApp.swift in Sources */,
@@ -526,6 +546,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Gravitile/Gravitile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Gravitile/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -577,6 +598,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Gravitile/Gravitile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Gravitile/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

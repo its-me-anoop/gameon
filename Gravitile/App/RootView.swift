@@ -13,6 +13,9 @@ struct RootView: View {
         }
         .tint(Theme.accent)
         .preferredColorScheme(.dark)
+        .onAppear {
+            appModel.gameCenter.authenticate()
+        }
     }
 
     @ViewBuilder
