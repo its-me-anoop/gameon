@@ -30,6 +30,7 @@ targets:
         CFBundleDisplayName: Gravitile
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIRequiresFullScreen: true
         UIAppFonts: [Unbounded.ttf]
         ITSAppUsesNonExemptEncryption: false
         UIStatusBarStyle: UIStatusBarStyleLightContent
