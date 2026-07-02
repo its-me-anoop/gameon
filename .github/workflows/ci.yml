@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  engine-tests:
+    name: Engine tests (GravitileKit)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache SPM build
+        uses: actions/cache@v4
+        with:
+          path: GravitileKit/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('GravitileKit/Package.swift') }}
+      - name: Run engine tests
+        run: swift test --package-path GravitileKit
+
+  app-tests:
+    name: App build + tests (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Pick a simulator
+        id: sim
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-7]" | head -1 | sed -E 's/^ *([^(]*[^ (]) *\(.*/\1/')
+          echo "device=${DEVICE:-iPhone 16}" >> "$GITHUB_OUTPUT"
+          echo "Using simulator: ${DEVICE:-iPhone 16}"
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Gravitile.xcodeproj \
+            -scheme Gravitile \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -100
