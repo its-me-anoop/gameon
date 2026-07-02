@@ -69,6 +69,81 @@ public enum MoveResolver {
         return (newBoard, moves)
     }
 
+    /// Runs the full pipeline for one swipe. Returns nil when the swipe is
+    /// illegal (the slide phase changes nothing); in that case no state —
+    /// including the RNG and tile counter — is consumed.
+    public static func resolveMove(
+        board: Board, swipe: Direction, gravity: Direction,
+        rng: inout SplitMix64, nextTileID: inout Int
+    ) -> MoveResult? {
+        let slide = slide(board, toward: swipe, nextTileID: &nextTileID)
+        guard slide.changed else {
+            // Roll back IDs consumed by a no-op slide (there are none: an
+            // unchanged slide performs no merges), keeping inputs untouched.
+            return nil
+        }
+
+        let newGravity = gravity.rotatedClockwise
+        var phases: [CascadePhase] = []
+        var (current, initialFalls) = fall(slide.board, gravity: newGravity)
+        phases.append(CascadePhase(falls: initialFalls, merges: [], round: 0))
+
+        var round = 1
+        var cascadePoints = 0
+        while let (merged, merges) = cascadeRound(
+            current, gravity: newGravity, round: round, nextTileID: &nextTileID
+        ) {
+            cascadePoints += merges.reduce(0) { $0 + $1.points }
+            let (settled, falls) = fall(merged, gravity: newGravity)
+            phases.append(CascadePhase(falls: falls, merges: merges, round: round))
+            current = settled
+            round += 1
+        }
+
+        var spawnEvent: SpawnEvent?
+        if let (withSpawn, event) = spawn(
+            on: current, gravity: newGravity, rng: &rng, nextTileID: &nextTileID
+        ) {
+            current = withSpawn
+            spawnEvent = event
+        }
+
+        let slidePoints = slide.merges.reduce(0) { $0 + $1.points }
+        return MoveResult(
+            swipe: swipe,
+            slide: slide,
+            newGravity: newGravity,
+            phases: phases,
+            spawn: spawnEvent,
+            scoreDelta: slidePoints + cascadePoints,
+            finalBoard: current
+        )
+    }
+
+    /// Spawns one tile (90% value 2, 10% value 4) in a seeded-random column
+    /// that has room. The tile enters at the opposite-gravity edge and rests
+    /// at the deepest empty cell; spawn landings never merge.
+    static func spawn(
+        on board: Board, gravity: Direction, rng: inout SplitMix64, nextTileID: inout Int
+    ) -> (Board, SpawnEvent)? {
+        let lines = Board.lines(toward: gravity)
+        let openLines = lines.filter { line in line.contains { board[$0] == nil } }
+        guard !openLines.isEmpty else { return nil }
+
+        let line = openLines[Int(rng.next() % UInt64(openLines.count))]
+        let value = rng.next() % 10 < 9 ? 2 : 4
+        let tile = Tile(id: nextTileID, value: value)
+        nextTileID += 1
+
+        // Settled boards have all tiles packed toward the gravity edge, so the
+        // first empty cell walking from the edge is where the spawn rests.
+        let restIndex = line.firstIndex { board[$0] == nil }!
+        var newBoard = board
+        newBoard[line[restIndex]] = tile
+        let event = SpawnEvent(tile: tile, enteredAt: line.last!, restedAt: line[restIndex])
+        return (newBoard, event)
+    }
+
     /// One cascade round: along each gravity line, merge adjacent equal pairs
     /// (edge-nearest first, each tile in at most one merge). Returns nil when
     /// the board is already stable. Boards passed in must be settled (no gaps
