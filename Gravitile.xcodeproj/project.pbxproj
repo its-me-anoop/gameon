@@ -31,6 +31,7 @@
 		7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */ = {isa = PBXBuildFile; fileRef = BBA685458A62BAB7C0CED357 /* fanfare.wav */; };
 		7D9F3AAFE9FFFBD86DC61C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3C236B91544628708A1928 /* PersistenceService.swift */; };
 		84181807B9284A4DA33ED83F /* ParticleBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35184532B02783D26F1413D3 /* ParticleBurstView.swift */; };
+		8A8FA56CE57C58C6B9F045A7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A5705875316B8AC5B1EABF3F /* PrivacyInfo.xcprivacy */; };
 		8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD9E32F3D56261309546552 /* StreakTests.swift */; };
 		9F5E400912545F6479F5EBD0 /* AnimationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89433D6D1BE9C1B7ADF81B38 /* AnimationPlanner.swift */; };
 		A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */; };
@@ -98,6 +99,7 @@
 		9680C6D8F8153E6F2576500E /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
 		9AA96A4FE6B2A7105134A92B /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		A070AD2BA84FDD1C349F8918 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
+		A5705875316B8AC5B1EABF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A84A244D85F634BE5623F4FF /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		B16951E6477320C328C1ED34 /* GravitileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GravitileUITests.swift; sourceTree = "<group>"; };
 		BBA685458A62BAB7C0CED357 /* fanfare.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = fanfare.wav; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				2129DFDBBAF07E2C41A723BF /* Assets.xcassets */,
+				A5705875316B8AC5B1EABF3F /* PrivacyInfo.xcprivacy */,
 				0AF4C71AC9422B8AA08B09A3 /* Fonts */,
 				D6CA42D0D53CB008708291D9 /* Sounds */,
 			);
@@ -400,6 +403,7 @@
 			files = (
 				1824788065F95A07C77E6AFD /* Assets.xcassets in Resources */,
 				0AB09EDA6722E278F0995E60 /* Gravitile.storekit in Resources */,
+				8A8FA56CE57C58C6B9F045A7 /* PrivacyInfo.xcprivacy in Resources */,
 				5C771ACF8379AB3B56D1D8F4 /* Unbounded-OFL.txt in Resources */,
 				70D22CC3C09507B5FD84A54D /* Unbounded.ttf in Resources */,
 				7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */,
@@ -513,7 +517,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -532,7 +536,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -682,7 +686,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -695,7 +699,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

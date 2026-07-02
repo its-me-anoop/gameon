@@ -10,8 +10,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 5
-    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 6
+    MARKETING_VERSION: "1.0"
 targets:
   Gravitile:
     type: application
@@ -29,6 +29,9 @@ targets:
         CFBundleDisplayName: Gravitile
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
+        # actool doesn't inject this into hand-authored plists; without it
+        # submission fails validation (ITMS-90713 Invalid Binary).
+        CFBundleIconName: AppIcon
         UILaunchScreen:
           UIColorName: LaunchBackground
         # iPhone locks portrait; iPad supports every orientation and
