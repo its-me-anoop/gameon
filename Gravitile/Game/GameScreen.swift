@@ -55,6 +55,8 @@ struct GameScreen: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)
             }
+            // iPad: keep the board thumb-scale instead of wall-sized.
+            .frame(maxWidth: 620, maxHeight: 980)
 
             if showTutorial {
                 TutorialOverlay(game: viewModel.game) {

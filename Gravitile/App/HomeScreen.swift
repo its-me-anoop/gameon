@@ -69,6 +69,7 @@ struct HomeScreen: View {
                 .padding(.bottom, 18)
             }
             .padding(.horizontal, 28)
+            .frame(maxWidth: 620, maxHeight: 900)
         }
     }
 
