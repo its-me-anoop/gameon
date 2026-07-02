@@ -61,7 +61,7 @@ final class GravitileUITests: XCTestCase {
         }
         let app = launch()
         app.buttons["settingsLink"].tap()
-        let plusRow = app.buttons["Unlock Plus"].firstMatch
+        let plusRow = app.descendants(matching: .any)["Unlock Plus"].firstMatch
         XCTAssertTrue(plusRow.waitForExistence(timeout: 5))
         plusRow.tap()
         XCTAssertTrue(app.buttons["buyPlus"].waitForExistence(timeout: 10))
@@ -74,10 +74,33 @@ final class GravitileUITests: XCTestCase {
         add(attachment)
     }
 
+    /// Manual helper: captures home + game in landscape (for iPad layout
+    /// verification). Run with TEST_RUNNER_GRAVITILE_LANDSCAPE=1.
+    func testLandscapeScreenshots() throws {
+        guard ProcessInfo.processInfo.environment["GRAVITILE_LANDSCAPE"] == "1" else {
+            throw XCTSkip("layout helper — enable with TEST_RUNNER_GRAVITILE_LANDSCAPE=1")
+        }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let app = launch()
+        XCTAssertTrue(app.buttons["playEndless"].waitForExistence(timeout: 5))
+        attach(app, name: "landscape-home")
+        app.buttons["playEndless"].tap()
+        XCTAssertTrue(app.otherElements["board"].waitForExistence(timeout: 5))
+        sleep(1)
+        attach(app, name: "landscape-game")
+    }
+
+    private func attach(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testPaywallReachableFromSettings() {
         let app = launch()
         app.buttons["settingsLink"].tap()
-        let plusRow = app.buttons["Unlock Plus"].firstMatch
+        let plusRow = app.descendants(matching: .any)["Unlock Plus"].firstMatch
         XCTAssertTrue(plusRow.waitForExistence(timeout: 5))
         plusRow.tap()
         XCTAssertTrue(app.buttons["buyPlus"].waitForExistence(timeout: 5))

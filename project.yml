@@ -10,7 +10,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 4
+    CURRENT_PROJECT_VERSION: 5
     MARKETING_VERSION: 1.0.0
 targets:
   Gravitile:
@@ -31,12 +31,14 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         UILaunchScreen:
           UIColorName: LaunchBackground
+        # iPhone locks portrait; iPad supports every orientation and
+        # resizable windows (required for new apps on the iOS 26 SDK).
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        # iPad requires both portrait orientations when full-screen-only.
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
-        UIRequiresFullScreen: true
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UIAppFonts: [Unbounded.ttf]
         ITSAppUsesNonExemptEncryption: false
         UIStatusBarStyle: UIStatusBarStyleLightContent
