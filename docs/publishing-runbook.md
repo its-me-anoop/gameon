@@ -109,3 +109,20 @@ StoreKit purchases could not be end-to-end verified in this environment
   4 store tests are `.disabled` with this reason; re-enable on stable Xcode.
 - `Tools/generate.sh` (not bare `xcodegen`) is required so the StoreKit
   configuration lands in the scheme's TestAction.
+
+## Post-mortem: the three Invalid Binary rejections (2026-07-02)
+
+Root cause: **binaries archived on beta macOS are rejected at review
+submission** (`BuildMachineOSBuild` carries a beta stamp, e.g. 26A5368g).
+Upload validation and `altool --validate-app` pass — the killer check runs
+only at the review-submission gate, ~1–2 minutes after submitting. The
+rejection email (to the account holder, appleid.anoop@gmail.com) names only
+the version string, never the build.
+
+Fix: always release through `.github/workflows/release.yml` (released-macOS
+runner, beta guards, BuildMachineOSBuild preflight). Never archive releases
+on the beta-macOS dev machine.
+
+Two genuinely-wrong-anyway issues were fixed en route: missing
+`CFBundleIconName` in the XcodeGen plist, and `UIRequiresFullScreen` (new
+iOS 26 SDK apps must support resizable iPad windows).
