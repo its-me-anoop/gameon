@@ -21,6 +21,37 @@ import Testing
         #expect(nextID == 100)
     }
 
+    @Test func spawnCountRampsWithMovesPlayed() {
+        #expect(GameState.spawnCount(forMovesPlayed: 0) == 1)
+        #expect(GameState.spawnCount(forMovesPlayed: 59) == 1)
+        #expect(GameState.spawnCount(forMovesPlayed: 60) == 2)
+        #expect(GameState.spawnCount(forMovesPlayed: 119) == 2)
+        #expect(GameState.spawnCount(forMovesPlayed: 120) == 3)
+        #expect(GameState.spawnCount(forMovesPlayed: 6000) == 3)
+    }
+
+    @Test func resolveMoveSpawnsRequestedNumberOfTiles() {
+        let board = makeBoard([
+            [e, e, e, e, 2],
+            [e, e, e, e, e],
+            [e, e, e, e, e],
+            [e, e, 4, e, e],
+            [e, e, e, e, e],
+        ])
+        var rng = SplitMix64(seed: 5)
+        var nextID = 100
+        let result = MoveResolver.resolveMove(
+            board: board, swipe: .left, gravity: .down, rng: &rng, nextTileID: &nextID,
+            spawnCount: 3
+        )!
+        #expect(result.spawns.count == 3)
+        #expect(result.finalBoard.tiles.count == 5)
+        // All spawned tiles must rest against the new gravity edge like any other.
+        for spawn in result.spawns {
+            #expect(result.finalBoard[spawn.restedAt]?.id == spawn.tile.id)
+        }
+    }
+
     @Test func legalSwipeRotatesGravityAndSettlesBoard() {
         let board = makeBoard([
             [e, e, e, e, 2],
@@ -42,7 +73,7 @@ import Testing
         for (coordinate, _) in finalBoard.tiles where coordinate.col > 0 {
             #expect(finalBoard[Coordinate(row: coordinate.row, col: coordinate.col - 1)] != nil)
         }
-        #expect(result.spawn != nil)
+        #expect(result.spawns.count == 1)
         #expect(finalBoard.tiles.count == 3)
     }
 

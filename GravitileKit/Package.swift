@@ -4,9 +4,13 @@ import PackageDescription
 let package = Package(
     name: "GravitileKit",
     platforms: [.iOS(.v17), .macOS(.v14)],
-    products: [.library(name: "GravitileKit", targets: ["GravitileKit"])],
+    products: [
+        .library(name: "GravitileKit", targets: ["GravitileKit"]),
+        .executable(name: "BalanceSim", targets: ["BalanceSim"]),
+    ],
     targets: [
         .target(name: "GravitileKit"),
+        .executableTarget(name: "BalanceSim", dependencies: ["GravitileKit"]),
         .testTarget(name: "GravitileKitTests", dependencies: ["GravitileKit"]),
     ]
 )

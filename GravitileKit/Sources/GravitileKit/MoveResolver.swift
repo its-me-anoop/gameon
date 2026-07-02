@@ -74,7 +74,7 @@ public enum MoveResolver {
     /// including the RNG and tile counter — is consumed.
     public static func resolveMove(
         board: Board, swipe: Direction, gravity: Direction,
-        rng: inout SplitMix64, nextTileID: inout Int
+        rng: inout SplitMix64, nextTileID: inout Int, spawnCount: Int = 1
     ) -> MoveResult? {
         let slide = slide(board, toward: swipe, nextTileID: &nextTileID)
         guard slide.changed else {
@@ -100,12 +100,13 @@ public enum MoveResolver {
             round += 1
         }
 
-        var spawnEvent: SpawnEvent?
-        if let (withSpawn, event) = spawn(
-            on: current, gravity: newGravity, rng: &rng, nextTileID: &nextTileID
-        ) {
+        var spawnEvents: [SpawnEvent] = []
+        for _ in 0..<max(1, spawnCount) {
+            guard let (withSpawn, event) = spawn(
+                on: current, gravity: newGravity, rng: &rng, nextTileID: &nextTileID
+            ) else { break }
             current = withSpawn
-            spawnEvent = event
+            spawnEvents.append(event)
         }
 
         let slidePoints = slide.merges.reduce(0) { $0 + $1.points }
@@ -114,7 +115,7 @@ public enum MoveResolver {
             slide: slide,
             newGravity: newGravity,
             phases: phases,
-            spawn: spawnEvent,
+            spawns: spawnEvents,
             scoreDelta: slidePoints + cascadePoints,
             finalBoard: current
         )

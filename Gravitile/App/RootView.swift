@@ -1,14 +1,10 @@
 import SwiftUI
+import GravitileKit
 
 struct RootView: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Text("Gravitile")
-                .font(.largeTitle.weight(.bold))
-            Text("Scaffold build")
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityIdentifier("rootTitle")
+        GameScreen(game: GameState(mode: .endless, seed: UInt64.random(in: UInt64.min...UInt64.max)))
+            .preferredColorScheme(.dark)
     }
 }
 

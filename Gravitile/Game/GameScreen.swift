@@ -1,0 +1,175 @@
+import SwiftUI
+import GravitileKit
+
+struct GameScreen: View {
+    @State private var viewModel: GameViewModel
+    @State private var showGameOver = false
+    @State private var shareText: String?
+    var bestScore: Int
+    var onGameEnded: ((GameState) -> Void)?
+
+    init(game: GameState, freeUndoLimit: Int = 1, bestScore: Int = 0, onGameEnded: ((GameState) -> Void)? = nil) {
+        _viewModel = State(initialValue: GameViewModel(game: game, freeUndoLimit: freeUndoLimit))
+        self.bestScore = bestScore
+        self.onGameEnded = onGameEnded
+    }
+
+    var body: some View {
+        ZStack {
+            Theme.bgDeep.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+
+                Spacer(minLength: 16)
+
+                GravityCompass(current: viewModel.game.gravity, next: viewModel.game.gravity.rotatedClockwise)
+                    .padding(.bottom, 14)
+
+                BoardView(viewModel: viewModel) { direction in
+                    viewModel.handleSwipe(direction)
+                }
+                .padding(.horizontal, 16)
+
+                if let remaining = viewModel.game.movesRemaining {
+                    movesRing(remaining: remaining)
+                        .padding(.top, 18)
+                }
+
+                Spacer(minLength: 16)
+
+                controls
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 12)
+            }
+
+            if showGameOver {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                    .transition(.opacity)
+                GameOverOverlay(
+                    game: viewModel.game,
+                    onNewGame: startNewGame,
+                    onShare: { shareText = ShareCard.text(for: viewModel.game) }
+                )
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+        }
+        .onAppear {
+            viewModel.onGameOver = {
+                onGameEnded?(viewModel.game)
+                withAnimation(.spring(duration: 0.35)) { showGameOver = true }
+            }
+            if viewModel.game.isGameOver { showGameOver = true }
+            startAutoPlayerIfRequested()
+        }
+        .sheet(item: $shareText) { text in
+            ShareSheet(text: text)
+                .presentationDetents([.medium])
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center) {
+            Text("Gravitile")
+                .font(Theme.display(20))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer()
+            HStack(spacing: 22) {
+                ScoreBadge(title: "Score", value: viewModel.game.score, emphasized: true)
+                    .accessibilityIdentifier("score")
+                ScoreBadge(title: "Best", value: max(bestScore, viewModel.game.score))
+            }
+        }
+    }
+
+    private var controls: some View {
+        HStack {
+            Button {
+                viewModel.undoTapped()
+            } label: {
+                Label(
+                    viewModel.undosRemaining > 0 ? "Undo (\(viewModel.undosRemaining))" : "Undo",
+                    systemImage: "arrow.uturn.backward"
+                )
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(!viewModel.canUndo)
+            .opacity(viewModel.canUndo ? 1 : 0.4)
+            .accessibilityIdentifier("undoButton")
+
+            Spacer()
+
+            if viewModel.lastCascadeHighlight >= 2 {
+                Text("CASCADE ×\(viewModel.lastCascadeHighlight)")
+                    .font(.system(size: 13, weight: .heavy))
+                    .tracking(1.5)
+                    .foregroundStyle(Theme.accent)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            Spacer()
+
+            Button {
+                startNewGame()
+            } label: {
+                Label("New", systemImage: "plus")
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .accessibilityIdentifier("newGameButton")
+        }
+    }
+
+    private func movesRing(remaining: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hourglass")
+                .foregroundStyle(remaining <= 5 ? Theme.accent : Theme.textSecondary)
+            Text("\(remaining) moves left")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(remaining <= 5 ? Theme.accent : Theme.textSecondary)
+                .contentTransition(.numericText())
+        }
+        .accessibilityIdentifier("movesRemaining")
+    }
+
+    /// Debug soak-testing: GRAVITILE_AUTOPLAY=1 plays random legal moves so
+    /// animations and game-over flow can be exercised hands-free on simulator.
+    private func startAutoPlayerIfRequested() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1" else { return }
+        Task { @MainActor in
+            while !viewModel.game.isGameOver {
+                try? await Task.sleep(for: .seconds(1.0))
+                guard !viewModel.isAnimating else { continue }
+                if let direction = Direction.allCases.shuffled().first(where: { direction in
+                    var copy = viewModel.game
+                    return copy.applyMove(direction) != nil
+                }) {
+                    viewModel.handleSwipe(direction)
+                }
+            }
+        }
+        #endif
+    }
+
+    private func startNewGame() {
+        withAnimation(.spring(duration: 0.3)) { showGameOver = false }
+        let seed = UInt64.random(in: UInt64.min...UInt64.max)
+        viewModel.replace(game: GameState(mode: .endless, seed: seed))
+    }
+}
+
+extension String: @retroactive Identifiable {
+    public var id: String { self }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let text: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}

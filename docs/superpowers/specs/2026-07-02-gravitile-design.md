@@ -37,7 +37,7 @@ The name "Gravitile" showed no App Store collision as of 2026-07-02.
 2. **Gravity rotates** 90° clockwise.
 3. **Fall:** all tiles fall toward the new gravity direction.
 4. **Cascade:** after falling, any tile resting directly on an equal-valued tile (along the gravity axis) merges into it (doubling). Within a round, lines are scanned from the gravity edge outward; the pair nearest the gravity edge merges first, and each tile participates in at most one merge per round. Merges open gaps → tiles fall again → repeat until stable. Each cascade round increases a multiplier: round 1 merges score ×1, round 2 ×2, round 3 ×3, …
-5. **Spawn:** one new tile (90% a 2, 10% a 4) enters at the edge *opposite* gravity, in a seeded-random column (relative to gravity) that has at least one empty cell, and slides to rest toward gravity. **Spawn landings are inert** — they never merge; merging only happens in steps 1 and 4. If the board is full, spawn is skipped.
+5. **Spawn:** new tiles (90% a 2, 10% a 4) enter at the edge *opposite* gravity, each in a seeded-random column (relative to gravity) with at least one empty cell, sliding to rest toward gravity. **Spawn landings are inert** — they never merge; merging only happens in steps 1 and 4. Spawns stop early if the board fills. **Pressure ramp (endless-mode arc):** the number of tiles spawned per move is `min(3, 1 + movesPlayed/60)` — 1 tile for moves 0–59, 2 from move 60, 3 from move 120. Balance simulation (docs/balance-report.md) showed that with a flat 1-tile spawn, cascades relieve pressure so well that random play survives indefinitely; the ramp gives endless games a cruise → tension → collapse arc. Daily mode (40-move budget) never reaches the ramp.
 
 ### Scoring
 - Swipe-phase merge: merged value × 1.

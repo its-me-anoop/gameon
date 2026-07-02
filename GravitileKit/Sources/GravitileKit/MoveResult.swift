@@ -21,7 +21,8 @@ public struct MoveResult: Equatable, Sendable {
     public let slide: SlideOutcome
     public let newGravity: Direction
     public let phases: [CascadePhase]
-    public let spawn: SpawnEvent?
+    /// One or more spawns depending on the pressure ramp (spec §3 step 5).
+    public let spawns: [SpawnEvent]
     public let scoreDelta: Int
     /// Board state after every phase and the spawn.
     public let finalBoard: Board

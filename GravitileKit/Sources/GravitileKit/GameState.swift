@@ -111,7 +111,8 @@ public struct GameState: Codable, Equatable, Sendable {
         let snapshot = makeSnapshot()
         guard let result = MoveResolver.resolveMove(
             board: board, swipe: direction, gravity: gravity,
-            rng: &rng, nextTileID: &nextTileID
+            rng: &rng, nextTileID: &nextTileID,
+            spawnCount: Self.spawnCount(forMovesPlayed: moveCount)
         ) else { return nil }
 
         pushSnapshot(snapshot)
@@ -122,6 +123,14 @@ public struct GameState: Codable, Equatable, Sendable {
         cascadeCount += result.phases.filter { !$0.merges.isEmpty }.count
         bestTile = max(bestTile, board.tiles.map(\.1.value).max() ?? 0)
         return result
+    }
+
+    /// Pressure ramp: 1 tile per move for the first 60 moves, then 2, then 3
+    /// from move 120 on. Gives endless games a cruise → tension → collapse
+    /// arc; daily's 40-move budget never reaches the ramp. Tuned via
+    /// BalanceSim — see docs/balance-report.md.
+    public static func spawnCount(forMovesPlayed moves: Int) -> Int {
+        min(3, 1 + moves / 60)
     }
 
     public var canUndo: Bool { !history.isEmpty }
