@@ -5,8 +5,8 @@ import StoreKit
 /// purchases survive reinstalls and family sharing works for free.
 @Observable @MainActor
 final class StoreService {
-    static let plusID = "com.flutterly.gravitile.plus"
-    static let tipIDs = [
+    nonisolated static let plusID = "com.flutterly.gravitile.plus"
+    nonisolated static let tipIDs = [
         "com.flutterly.gravitile.tip.small",
         "com.flutterly.gravitile.tip.medium",
         "com.flutterly.gravitile.tip.large",
