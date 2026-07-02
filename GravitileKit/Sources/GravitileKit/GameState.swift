@@ -80,6 +80,12 @@ public struct GameState: Codable, Equatable, Sendable {
         bestTile = testBoard.tiles.map(\.1.value).max() ?? 0
     }
 
+    /// Test-only stat injection for exercising presentation code.
+    mutating func setTestStats(score: Int, cascadeCount: Int) {
+        self.score = score
+        self.cascadeCount = cascadeCount
+    }
+
     public var movesRemaining: Int? {
         guard case let .daily(_, budget) = mode else { return nil }
         return max(0, budget - moveCount)
