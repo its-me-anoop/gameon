@@ -19,7 +19,10 @@ struct GameScreen: View {
     }
 
     private var showTutorial: Bool {
-        !isDaily && !appModel.settings.hasSeenTutorial && !showGameOver
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1" { return false }
+        #endif
+        return !isDaily && !appModel.settings.hasSeenTutorial && !showGameOver
     }
 
     var body: some View {
