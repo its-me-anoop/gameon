@@ -33,13 +33,14 @@ def main():
     assert status == 200, out
     print("build attached")
 
-    # Reuse an open submission if one exists, else create one.
-    status, subs = request(
-        "GET", f"/v1/reviewSubmissions?filter[app]={APP_ID}&filter[state]=READY_FOR_REVIEW&limit=5"
-    )
-    if status == 200 and subs.get("data"):
-        sub_id = subs["data"][0]["id"]
-        print(f"reusing open submission {sub_id}")
+    # Reuse any open submission (READY_FOR_REVIEW or UNRESOLVED_ISSUES),
+    # else create one.
+    status, subs = request(f"GET", f"/v1/reviewSubmissions?filter[app]={APP_ID}&limit=10")
+    open_subs = [s for s in subs.get("data", [])
+                 if s["attributes"].get("state") in ("READY_FOR_REVIEW", "UNRESOLVED_ISSUES")]
+    if open_subs:
+        sub_id = open_subs[0]["id"]
+        print(f"reusing open submission {sub_id} ({open_subs[0]['attributes']['state']})")
     else:
         status, out = request("POST", "/v1/reviewSubmissions", {
             "data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
@@ -49,9 +50,16 @@ def main():
         sub_id = out["data"]["id"]
         print(f"created submission {sub_id}")
 
-    # Add the version item unless it's already in the submission.
+    # Clear rejected items so the fixed version can be re-added.
     status, items = request("GET", f"/v1/reviewSubmissions/{sub_id}/items")
-    if status == 200 and items.get("data"):
+    pending_items = []
+    for item in items.get("data", []) if status == 200 else []:
+        if item["attributes"].get("state") in ("REJECTED", "REMOVED"):
+            st, _ = request("DELETE", f"/v1/reviewSubmissionItems/{item['id']}")
+            print(f"removed {item['attributes'].get('state')} item: {st}")
+        else:
+            pending_items.append(item)
+    if pending_items:
         print("submission already has items")
     else:
         status, out = request("POST", "/v1/reviewSubmissionItems", {
