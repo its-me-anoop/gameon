@@ -50,8 +50,8 @@ struct BoardView: View {
             .gesture(swipeGesture)
         }
         .aspectRatio(1, contentMode: .fit)
-        .accessibilityIdentifier("board")
         .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("board")
         .accessibilityLabel("Game board")
         .accessibilityValue(accessibilitySummary)
         .accessibilityActions {

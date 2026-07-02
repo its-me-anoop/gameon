@@ -8,21 +8,26 @@ public enum ShareCard {
     private static let maxBlocks = 8
 
     public static func text(for state: GameState) -> String {
+        text(mode: state.mode, score: state.score, bestTile: state.bestTile, cascadeCount: state.cascadeCount)
+    }
+
+    /// Value-based variant so saved records can be shared without a live game.
+    public static func text(mode: GameMode, score: Int, bestTile: Int, cascadeCount: Int) -> String {
         let title: String
-        switch state.mode {
+        switch mode {
         case let .daily(puzzleNumber, _):
-            title = "Gravitile #\(puzzleNumber) — \(formatted(state.score))"
+            title = "Gravitile #\(puzzleNumber) — \(formatted(score))"
         case .endless:
-            title = "Gravitile Endless — \(formatted(state.score))"
+            title = "Gravitile Endless — \(formatted(score))"
         }
 
-        let tiersReached = max(1, Int(log2(Double(max(2, state.bestTile)))))
+        let tiersReached = max(1, Int(log2(Double(max(2, bestTile)))))
         let blocks = (0..<min(tiersReached, maxBlocks))
             .map { tierBlocks[$0 % tierBlocks.count] }
             .joined()
 
-        let cascadeNoun = state.cascadeCount == 1 ? "cascade" : "cascades"
-        let footer = "🌀 \(state.cascadeCount) \(cascadeNoun) · 🏆 \(state.bestTile)"
+        let cascadeNoun = cascadeCount == 1 ? "cascade" : "cascades"
+        let footer = "🌀 \(cascadeCount) \(cascadeNoun) · 🏆 \(bestTile)"
 
         return [title, blocks, footer].joined(separator: "\n")
     }

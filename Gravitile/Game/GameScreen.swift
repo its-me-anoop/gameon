@@ -2,16 +2,24 @@ import SwiftUI
 import GravitileKit
 
 struct GameScreen: View {
+    @Environment(AppModel.self) private var appModel
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel: GameViewModel
     @State private var showGameOver = false
     @State private var shareText: String?
-    var bestScore: Int
-    var onGameEnded: ((GameState) -> Void)?
+    @State private var gameEndRecorded = false
 
-    init(game: GameState, freeUndoLimit: Int = 1, bestScore: Int = 0, onGameEnded: ((GameState) -> Void)? = nil) {
+    init(game: GameState, freeUndoLimit: Int) {
         _viewModel = State(initialValue: GameViewModel(game: game, freeUndoLimit: freeUndoLimit))
-        self.bestScore = bestScore
-        self.onGameEnded = onGameEnded
+    }
+
+    private var isDaily: Bool {
+        if case .daily = viewModel.game.mode { return true }
+        return false
+    }
+
+    private var showTutorial: Bool {
+        !isDaily && !appModel.settings.hasSeenTutorial && !showGameOver
     }
 
     var body: some View {
@@ -34,7 +42,7 @@ struct GameScreen: View {
                 .padding(.horizontal, 16)
 
                 if let remaining = viewModel.game.movesRemaining {
-                    movesRing(remaining: remaining)
+                    movesIndicator(remaining: remaining)
                         .padding(.top, 18)
                 }
 
@@ -45,43 +53,85 @@ struct GameScreen: View {
                     .padding(.bottom, 12)
             }
 
+            if showTutorial {
+                TutorialOverlay(game: viewModel.game) {
+                    var settings = appModel.settings
+                    settings.hasSeenTutorial = true
+                    appModel.settings = settings
+                }
+            }
+
             if showGameOver {
                 Color.black.opacity(0.55).ignoresSafeArea()
                     .transition(.opacity)
                 GameOverOverlay(
                     game: viewModel.game,
-                    onNewGame: startNewGame,
+                    onNewGame: gameOverPrimaryAction,
                     onShare: { shareText = ShareCard.text(for: viewModel.game) }
                 )
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
-        .onAppear {
-            viewModel.onGameOver = {
-                onGameEnded?(viewModel.game)
-                withAnimation(.spring(duration: 0.35)) { showGameOver = true }
-            }
-            if viewModel.game.isGameOver { showGameOver = true }
-            startAutoPlayerIfRequested()
-        }
+        .navigationBarBackButtonHidden(false)
+        .onAppear(perform: wireCallbacks)
         .sheet(item: $shareText) { text in
             ShareSheet(text: text)
                 .presentationDetents([.medium])
         }
     }
 
+    private func wireCallbacks() {
+        viewModel.onMerge = { round in
+            appModel.haptics.merge(round: round)
+            appModel.sounds.merge(round: max(1, round))
+        }
+        viewModel.onMoveCommitted = { game in
+            appModel.checkpoint(game)
+        }
+        viewModel.onGameOver = {
+            finishGame()
+            withAnimation(.spring(duration: 0.35)) { showGameOver = true }
+        }
+        if viewModel.game.isGameOver {
+            showGameOver = true
+        }
+        startAutoPlayerIfRequested()
+    }
+
+    private func finishGame() {
+        guard !gameEndRecorded else { return }
+        gameEndRecorded = true
+        appModel.recordGameEnd(viewModel.game)
+        appModel.haptics.gameOver()
+        if isDaily {
+            appModel.sounds.fanfare()
+        } else {
+            appModel.sounds.gameOver()
+        }
+    }
+
     private var header: some View {
         HStack(alignment: .center) {
-            Text("Gravitile")
+            Text(isDaily ? "Daily #\(dailyNumber)" : "Gravitile")
                 .font(Theme.display(20))
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
             HStack(spacing: 22) {
                 ScoreBadge(title: "Score", value: viewModel.game.score, emphasized: true)
                     .accessibilityIdentifier("score")
-                ScoreBadge(title: "Best", value: max(bestScore, viewModel.game.score))
+                ScoreBadge(
+                    title: "Best",
+                    value: isDaily
+                        ? max(appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0, viewModel.game.score)
+                        : max(appModel.persisted.bestEndlessScore, viewModel.game.score)
+                )
             }
         }
+    }
+
+    private var dailyNumber: Int {
+        if case let .daily(number, _) = viewModel.game.mode { return number }
+        return 0
     }
 
     private var controls: some View {
@@ -111,17 +161,19 @@ struct GameScreen: View {
 
             Spacer()
 
-            Button {
-                startNewGame()
-            } label: {
-                Label("New", systemImage: "plus")
+            if !isDaily {
+                Button {
+                    startNewEndlessGame()
+                } label: {
+                    Label("New", systemImage: "plus")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .accessibilityIdentifier("newGameButton")
             }
-            .buttonStyle(SecondaryButtonStyle())
-            .accessibilityIdentifier("newGameButton")
         }
     }
 
-    private func movesRing(remaining: Int) -> some View {
+    private func movesIndicator(remaining: Int) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "hourglass")
                 .foregroundStyle(remaining <= 5 ? Theme.accent : Theme.textSecondary)
@@ -133,6 +185,25 @@ struct GameScreen: View {
         .accessibilityIdentifier("movesRemaining")
     }
 
+    private func gameOverPrimaryAction() {
+        if isDaily {
+            dismiss()
+        } else {
+            startNewEndlessGame()
+        }
+    }
+
+    private func startNewEndlessGame() {
+        finishGameIfOver()
+        withAnimation(.spring(duration: 0.3)) { showGameOver = false }
+        gameEndRecorded = false
+        viewModel.replace(game: appModel.newEndlessGame())
+    }
+
+    private func finishGameIfOver() {
+        if viewModel.game.isGameOver { finishGame() }
+    }
+
     /// Debug soak-testing: GRAVITILE_AUTOPLAY=1 plays random legal moves so
     /// animations and game-over flow can be exercised hands-free on simulator.
     private func startAutoPlayerIfRequested() {
@@ -140,7 +211,7 @@ struct GameScreen: View {
         guard ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1" else { return }
         Task { @MainActor in
             while !viewModel.game.isGameOver {
-                try? await Task.sleep(for: .seconds(1.0))
+                try? await Task.sleep(for: .seconds(0.6))
                 guard !viewModel.isAnimating else { continue }
                 if let direction = Direction.allCases.shuffled().first(where: { direction in
                     var copy = viewModel.game
@@ -151,12 +222,6 @@ struct GameScreen: View {
             }
         }
         #endif
-    }
-
-    private func startNewGame() {
-        withAnimation(.spring(duration: 0.3)) { showGameOver = false }
-        let seed = UInt64.random(in: UInt64.min...UInt64.max)
-        viewModel.replace(game: GameState(mode: .endless, seed: seed))
     }
 }
 

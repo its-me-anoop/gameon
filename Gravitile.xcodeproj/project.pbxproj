@@ -7,20 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07E540C552A088A3DBB6F317 /* merge5.wav in Resources */ = {isa = PBXBuildFile; fileRef = 4A65547C1132E810F5DAB804 /* merge5.wav */; };
+		09AE9F3C672F6815408BB7EC /* TutorialOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84A244D85F634BE5623F4FF /* TutorialOverlay.swift */; };
+		0AB09EDA6722E278F0995E60 /* Gravitile.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 07AFA388A975DF746C3A84E3 /* Gravitile.storekit */; };
+		12B3FA56002E21A7EF4B1795 /* merge2.wav in Resources */ = {isa = PBXBuildFile; fileRef = 54183085EF203B6659B68285 /* merge2.wav */; };
 		1824788065F95A07C77E6AFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2129DFDBBAF07E2C41A723BF /* Assets.xcassets */; };
 		29488B54E94805519FBFAAAD /* GravitileKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7424C563A3E0F4B4C00C806C /* GravitileKit */; };
+		31293381AF995C005A8EE43D /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A84B6CA13D019DB7258C622 /* AppModel.swift */; };
+		42A7249F0E2C9F040C54A0E9 /* slide.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5EC3651BC4594892DDAAABFE /* slide.wav */; };
+		49132101F1D81EFAD5FA3E32 /* merge3.wav in Resources */ = {isa = PBXBuildFile; fileRef = F079EA5A536E2DD9F585C87D /* merge3.wav */; };
 		4A8AB28B052308B13139DA6C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA387808ED5D620D5EC0DF9 /* Theme.swift */; };
+		51B29831FF26692BD1195131 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */; };
+		5381B7FE12C06D9484484FCD /* StatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CBBF66B673FD70834F4B65 /* StatsScreen.swift */; };
+		554A2F14BB0DAAD8B69A6A24 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */; };
 		593DFAE3F889E6DC7DBB84F0 /* GravitileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16951E6477320C328C1ED34 /* GravitileUITests.swift */; };
+		5A7CD32C93B78296A6FA91D0 /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9680C6D8F8153E6F2576500E /* StoreService.swift */; };
 		5B2D7315D75392F48DFF4C92 /* GameScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF40978777AFB66509D68B91 /* GameScreen.swift */; };
 		5C5CEB97E56B393F15E1A66A /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F484F5EE4F339C8F95392C58 /* HUDView.swift */; };
 		5C771ACF8379AB3B56D1D8F4 /* Unbounded-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */; };
+		637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AAD23A57F87D744C4F104B /* DailyScreen.swift */; };
 		70D22CC3C09507B5FD84A54D /* Unbounded.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */; };
+		7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */ = {isa = PBXBuildFile; fileRef = BBA685458A62BAB7C0CED357 /* fanfare.wav */; };
+		7D9F3AAFE9FFFBD86DC61C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3C236B91544628708A1928 /* PersistenceService.swift */; };
 		84181807B9284A4DA33ED83F /* ParticleBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35184532B02783D26F1413D3 /* ParticleBurstView.swift */; };
+		8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD9E32F3D56261309546552 /* StreakTests.swift */; };
 		9F5E400912545F6479F5EBD0 /* AnimationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89433D6D1BE9C1B7ADF81B38 /* AnimationPlanner.swift */; };
 		A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */; };
+		B83996B18768972748CA852B /* merge4.wav in Resources */ = {isa = PBXBuildFile; fileRef = 03973293FFFBD6BB3007497A /* merge4.wav */; };
 		B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7431D4D021A345983288F612 /* BoardView.swift */; };
+		BF014CB6BD964C0B74EE1AAD /* HapticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070AD2BA84FDD1C349F8918 /* HapticsService.swift */; };
+		C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */; };
 		D1819C9393DEA3F3F19ACEDD /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146127D215B2EC3AD6D1B728 /* RootView.swift */; };
 		D3A7D3E19545A0189C7F7820 /* GravitileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93A29F95D9F8E13ADFA8F1E8 /* GravitileApp.swift */; };
+		DB26DE239E292FC051B3BF73 /* gameover.wav in Resources */ = {isa = PBXBuildFile; fileRef = 54C6AFF597D99D987D11EBF8 /* gameover.wav */; };
+		DF0514D57F2B376E360DE201 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */; };
+		F4BF5D4578793CECB96A940C /* merge1.wav in Resources */ = {isa = PBXBuildFile; fileRef = 668728F0BF60B0989D17A7F8 /* merge1.wav */; };
+		FC01E16CB3B0DEA1CEE6B9CC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA96A4FE6B2A7105134A92B /* PaywallView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,25 +53,55 @@
 			remoteGlobalIDString = CD5BA31D3DB979C3D10ADA57;
 			remoteInfo = Gravitile;
 		};
+		EF93505232526F79C53F6152 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE9C05E9125249964F44BE02 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD5BA31D3DB979C3D10ADA57;
+			remoteInfo = Gravitile;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		03973293FFFBD6BB3007497A /* merge4.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge4.wav; sourceTree = "<group>"; };
+		07AFA388A975DF746C3A84E3 /* Gravitile.storekit */ = {isa = PBXFileReference; path = Gravitile.storekit; sourceTree = "<group>"; };
+		0ABB9B72856FDA31D847447A /* GravitileTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GravitileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		146127D215B2EC3AD6D1B728 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
 		1BF2CB1FE02C2163BCBFB241 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2129DFDBBAF07E2C41A723BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2A84B6CA13D019DB7258C622 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		2D46DC52DCD6BC9E1E21192D /* GravitileKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GravitileKit; path = GravitileKit; sourceTree = SOURCE_ROOT; };
 		35184532B02783D26F1413D3 /* ParticleBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleBurstView.swift; sourceTree = "<group>"; };
+		37CBBF66B673FD70834F4B65 /* StatsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsScreen.swift; sourceTree = "<group>"; };
 		39EF0C5DA84C56EDBB919058 /* Gravitile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Gravitile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A65547C1132E810F5DAB804 /* merge5.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge5.wav; sourceTree = "<group>"; };
+		4DD9E32F3D56261309546552 /* StreakTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakTests.swift; sourceTree = "<group>"; };
+		54183085EF203B6659B68285 /* merge2.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge2.wav; sourceTree = "<group>"; };
+		54C6AFF597D99D987D11EBF8 /* gameover.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = gameover.wav; sourceTree = "<group>"; };
+		5EC3651BC4594892DDAAABFE /* slide.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = slide.wav; sourceTree = "<group>"; };
+		5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
+		6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
+		668728F0BF60B0989D17A7F8 /* merge1.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge1.wav; sourceTree = "<group>"; };
 		7431D4D021A345983288F612 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
+		79AAD23A57F87D744C4F104B /* DailyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyScreen.swift; sourceTree = "<group>"; };
+		7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		7D3C236B91544628708A1928 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		89433D6D1BE9C1B7ADF81B38 /* AnimationPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationPlanner.swift; sourceTree = "<group>"; };
 		93A29F95D9F8E13ADFA8F1E8 /* GravitileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GravitileApp.swift; sourceTree = "<group>"; };
+		9680C6D8F8153E6F2576500E /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
+		9AA96A4FE6B2A7105134A92B /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		A070AD2BA84FDD1C349F8918 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
+		A84A244D85F634BE5623F4FF /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		B16951E6477320C328C1ED34 /* GravitileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GravitileUITests.swift; sourceTree = "<group>"; };
+		BBA685458A62BAB7C0CED357 /* fanfare.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = fanfare.wav; sourceTree = "<group>"; };
 		BDA387808ED5D620D5EC0DF9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		BF40978777AFB66509D68B91 /* GameScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScreen.swift; sourceTree = "<group>"; };
 		C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GravitileUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Unbounded-OFL.txt"; sourceTree = "<group>"; };
+		E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
 		ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Unbounded.ttf; sourceTree = "<group>"; };
+		F079EA5A536E2DD9F585C87D /* merge3.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge3.wav; sourceTree = "<group>"; };
 		F484F5EE4F339C8F95392C58 /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -65,6 +117,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		065B64DEA16EF544BD687128 /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				9AA96A4FE6B2A7105134A92B /* PaywallView.swift */,
+				9680C6D8F8153E6F2576500E /* StoreService.swift */,
+			);
+			path = Store;
+			sourceTree = "<group>";
+		};
+		07CEDB37BA705A20DC140D5C /* Stats */ = {
+			isa = PBXGroup;
+			children = (
+				37CBBF66B673FD70834F4B65 /* StatsScreen.swift */,
+			);
+			path = Stats;
+			sourceTree = "<group>";
+		};
 		0AF4C71AC9422B8AA08B09A3 /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
@@ -79,6 +148,7 @@
 			children = (
 				2129DFDBBAF07E2C41A723BF /* Assets.xcassets */,
 				0AF4C71AC9422B8AA08B09A3 /* Fonts */,
+				D6CA42D0D53CB008708291D9 /* Sounds */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -86,11 +156,31 @@
 		12FF2A47216CA99101390C6D /* App */ = {
 			isa = PBXGroup;
 			children = (
+				2A84B6CA13D019DB7258C622 /* AppModel.swift */,
 				93A29F95D9F8E13ADFA8F1E8 /* GravitileApp.swift */,
+				5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */,
 				146127D215B2EC3AD6D1B728 /* RootView.swift */,
+				7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */,
 				BDA387808ED5D620D5EC0DF9 /* Theme.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		32D0BD58083C00399ECBB0EB /* GravitileTests */ = {
+			isa = PBXGroup;
+			children = (
+				6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */,
+				4DD9E32F3D56261309546552 /* StreakTests.swift */,
+			);
+			path = GravitileTests;
+			sourceTree = "<group>";
+		};
+		39A9DF6096F01B5CF3BAA36C /* Daily */ = {
+			isa = PBXGroup;
+			children = (
+				79AAD23A57F87D744C4F104B /* DailyScreen.swift */,
+			);
+			path = Daily;
 			sourceTree = "<group>";
 		};
 		4E93D7CED224530F932524D9 /* Game */ = {
@@ -102,6 +192,7 @@
 				18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */,
 				F484F5EE4F339C8F95392C58 /* HUDView.swift */,
 				35184532B02783D26F1413D3 /* ParticleBurstView.swift */,
+				A84A244D85F634BE5623F4FF /* TutorialOverlay.swift */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -110,6 +201,7 @@
 			isa = PBXGroup;
 			children = (
 				F220C043258D366A32FC5E02 /* Gravitile */,
+				32D0BD58083C00399ECBB0EB /* GravitileTests */,
 				E70D8C2269DD7FF253D1340C /* GravitileUITests */,
 				6CAACA2D5C184F7526791237 /* Packages */,
 				CF5D1DF44D19B9D3411F760B /* Products */,
@@ -124,13 +216,39 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		C8CCE7E530C2D879D95D1A9E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A070AD2BA84FDD1C349F8918 /* HapticsService.swift */,
+				7D3C236B91544628708A1928 /* PersistenceService.swift */,
+				E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		CF5D1DF44D19B9D3411F760B /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				39EF0C5DA84C56EDBB919058 /* Gravitile.app */,
+				0ABB9B72856FDA31D847447A /* GravitileTests.xctest */,
 				C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D6CA42D0D53CB008708291D9 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				BBA685458A62BAB7C0CED357 /* fanfare.wav */,
+				54C6AFF597D99D987D11EBF8 /* gameover.wav */,
+				668728F0BF60B0989D17A7F8 /* merge1.wav */,
+				54183085EF203B6659B68285 /* merge2.wav */,
+				F079EA5A536E2DD9F585C87D /* merge3.wav */,
+				03973293FFFBD6BB3007497A /* merge4.wav */,
+				4A65547C1132E810F5DAB804 /* merge5.wav */,
+				5EC3651BC4594892DDAAABFE /* slide.wav */,
+			);
+			path = Sounds;
 			sourceTree = "<group>";
 		};
 		E70D8C2269DD7FF253D1340C /* GravitileUITests */ = {
@@ -144,10 +262,15 @@
 		F220C043258D366A32FC5E02 /* Gravitile */ = {
 			isa = PBXGroup;
 			children = (
+				07AFA388A975DF746C3A84E3 /* Gravitile.storekit */,
 				1BF2CB1FE02C2163BCBFB241 /* Info.plist */,
 				12FF2A47216CA99101390C6D /* App */,
+				39A9DF6096F01B5CF3BAA36C /* Daily */,
 				4E93D7CED224530F932524D9 /* Game */,
 				0DFABA1042562A37AA0F760E /* Resources */,
+				C8CCE7E530C2D879D95D1A9E /* Services */,
+				07CEDB37BA705A20DC140D5C /* Stats */,
+				065B64DEA16EF544BD687128 /* Store */,
 			);
 			path = Gravitile;
 			sourceTree = "<group>";
@@ -172,6 +295,24 @@
 			productName = GravitileUITests;
 			productReference = C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		B041684F7581D88D4B7906BF /* GravitileTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1D259454CC40A20A158F964C /* Build configuration list for PBXNativeTarget "GravitileTests" */;
+			buildPhases = (
+				43BEAC5820AB68C9FC9689D6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7BF6555B1B4F8DCF24670847 /* PBXTargetDependency */,
+			);
+			name = GravitileTests;
+			packageProductDependencies = (
+			);
+			productName = GravitileTests;
+			productReference = 0ABB9B72856FDA31D847447A /* GravitileTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		CD5BA31D3DB979C3D10ADA57 /* Gravitile */ = {
 			isa = PBXNativeTarget;
@@ -225,6 +366,7 @@
 			projectRoot = "";
 			targets = (
 				CD5BA31D3DB979C3D10ADA57 /* Gravitile */,
+				B041684F7581D88D4B7906BF /* GravitileTests */,
 				84839E5226DF9EA76810EF80 /* GravitileUITests */,
 			);
 		};
@@ -236,27 +378,56 @@
 			buildActionMask = 2147483647;
 			files = (
 				1824788065F95A07C77E6AFD /* Assets.xcassets in Resources */,
+				0AB09EDA6722E278F0995E60 /* Gravitile.storekit in Resources */,
 				5C771ACF8379AB3B56D1D8F4 /* Unbounded-OFL.txt in Resources */,
 				70D22CC3C09507B5FD84A54D /* Unbounded.ttf in Resources */,
+				7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */,
+				DB26DE239E292FC051B3BF73 /* gameover.wav in Resources */,
+				F4BF5D4578793CECB96A940C /* merge1.wav in Resources */,
+				12B3FA56002E21A7EF4B1795 /* merge2.wav in Resources */,
+				49132101F1D81EFAD5FA3E32 /* merge3.wav in Resources */,
+				B83996B18768972748CA852B /* merge4.wav in Resources */,
+				07E540C552A088A3DBB6F317 /* merge5.wav in Resources */,
+				42A7249F0E2C9F040C54A0E9 /* slide.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		43BEAC5820AB68C9FC9689D6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */,
+				8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7B73237495B21C085F073149 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				9F5E400912545F6479F5EBD0 /* AnimationPlanner.swift in Sources */,
+				31293381AF995C005A8EE43D /* AppModel.swift in Sources */,
 				B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */,
+				637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */,
 				5B2D7315D75392F48DFF4C92 /* GameScreen.swift in Sources */,
 				A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */,
 				D3A7D3E19545A0189C7F7820 /* GravitileApp.swift in Sources */,
 				5C5CEB97E56B393F15E1A66A /* HUDView.swift in Sources */,
+				BF014CB6BD964C0B74EE1AAD /* HapticsService.swift in Sources */,
+				DF0514D57F2B376E360DE201 /* HomeScreen.swift in Sources */,
 				84181807B9284A4DA33ED83F /* ParticleBurstView.swift in Sources */,
+				FC01E16CB3B0DEA1CEE6B9CC /* PaywallView.swift in Sources */,
+				7D9F3AAFE9FFFBD86DC61C35 /* PersistenceService.swift in Sources */,
 				D1819C9393DEA3F3F19ACEDD /* RootView.swift in Sources */,
+				554A2F14BB0DAAD8B69A6A24 /* SettingsScreen.swift in Sources */,
+				51B29831FF26692BD1195131 /* SoundService.swift in Sources */,
+				5381B7FE12C06D9484484FCD /* StatsScreen.swift in Sources */,
+				5A7CD32C93B78296A6FA91D0 /* StoreService.swift in Sources */,
 				4A8AB28B052308B13139DA6C /* Theme.swift in Sources */,
+				09AE9F3C672F6815408BB7EC /* TutorialOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,6 +446,11 @@
 			isa = PBXTargetDependency;
 			target = CD5BA31D3DB979C3D10ADA57 /* Gravitile */;
 			targetProxy = 7CD91F902A52E36925FAB9D2 /* PBXContainerItemProxy */;
+		};
+		7BF6555B1B4F8DCF24670847 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD5BA31D3DB979C3D10ADA57 /* Gravitile */;
+			targetProxy = EF93505232526F79C53F6152 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -366,6 +542,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -375,6 +552,23 @@
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Gravitile;
+			};
+			name = Debug;
+		};
+		50E4EF9F2E46E56683DFEE2B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.GravitileTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gravitile.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gravitile";
 			};
 			name = Debug;
 		};
@@ -395,10 +589,28 @@
 			};
 			name = Debug;
 		};
+		A9846238EE357880B0FD0872 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.GravitileTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gravitile.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gravitile";
+			};
+			name = Release;
+		};
 		BFAF9A7E4B7A7B227092AF1F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -478,6 +690,15 @@
 			buildConfigurations = (
 				44F6DDE02173B775232A07D4 /* Debug */,
 				BFAF9A7E4B7A7B227092AF1F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1D259454CC40A20A158F964C /* Build configuration list for PBXNativeTarget "GravitileTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50E4EF9F2E46E56683DFEE2B /* Debug */,
+				A9846238EE357880B0FD0872 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

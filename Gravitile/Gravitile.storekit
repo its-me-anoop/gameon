@@ -1,0 +1,83 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : true,
+      "internalID" : "6E1A0001",
+      "localizations" : [
+        {
+          "description" : "Daily archive, unlimited undo, and more.",
+          "displayName" : "Gravitile Plus",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.flutterly.gravitile.plus",
+      "referenceName" : "Gravitile Plus",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6E1A0002",
+      "localizations" : [
+        {
+          "description" : "A small thank-you to the developer.",
+          "displayName" : "Nice Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.flutterly.gravitile.tip.small",
+      "referenceName" : "Nice Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6E1A0003",
+      "localizations" : [
+        {
+          "description" : "A generous thank-you to the developer.",
+          "displayName" : "Generous Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.flutterly.gravitile.tip.medium",
+      "referenceName" : "Generous Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6E1A0004",
+      "localizations" : [
+        {
+          "description" : "A heroic thank-you to the developer.",
+          "displayName" : "Heroic Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.flutterly.gravitile.tip.large",
+      "referenceName" : "Heroic Tip",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

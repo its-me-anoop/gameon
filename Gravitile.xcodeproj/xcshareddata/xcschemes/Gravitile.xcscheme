@@ -44,6 +44,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B041684F7581D88D4B7906BF"
+               BuildableName = "GravitileTests.xctest"
+               BlueprintName = "GravitileTests"
+               ReferencedContainer = "container:Gravitile.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "84839E5226DF9EA76810EF80"
                BuildableName = "GravitileUITests.xctest"
                BlueprintName = "GravitileUITests"
@@ -76,6 +87,9 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
       </CommandLineArguments>
+      <StoreKitConfigurationFileReference
+         identifier = "../../Gravitile/Gravitile.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

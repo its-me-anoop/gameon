@@ -22,6 +22,7 @@ final class GameViewModel {
     private(set) var burstCells: [(Coordinate, Int)] = []
     var onMerge: ((Int) -> Void)?       // cascade round, for haptics/sound
     var onGameOver: (() -> Void)?
+    var onMoveCommitted: ((GameState) -> Void)?   // checkpoint persistence
 
     var freeUndoLimit: Int
     private let reduceMotion: () -> Bool
@@ -44,12 +45,14 @@ final class GameViewModel {
         guard !isAnimating, !game.isGameOver else { return }
         guard let result = game.applyMove(direction) else { return }
         lastCascadeHighlight = result.phases.filter { !$0.merges.isEmpty }.map(\.round).max() ?? 0
+        onMoveCommitted?(game)
         Task { await animate(result) }
     }
 
     func undoTapped() {
         guard canUndo else { return }
         guard game.undo() else { return }
+        onMoveCommitted?(game)
         withAnimation(.easeInOut(duration: 0.2)) {
             syncTilesToBoard()
         }
