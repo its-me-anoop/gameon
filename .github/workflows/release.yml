@@ -1,0 +1,97 @@
+name: Release to App Store Connect
+
+# Archives Gravitile on a RELEASED macOS runner and uploads to App Store
+# Connect. Exists because App Store review-submission validation rejects
+# binaries archived on beta macOS (BuildMachineOSBuild is sealed into every
+# bundle) — the primary dev machine runs the macOS beta. Same root cause and
+# pattern as WaterQuest/Sipli's release.yml.
+#
+# Requires repo secrets:
+#   ASC_KEY_ID      App Store Connect API key id
+#   ASC_ISSUER_ID   App Store Connect API issuer id
+#   ASC_KEY_P8      full contents of the AuthKey_<id>.p8 file
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select released Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)"
+          XCODE="${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -s "$XCODE"
+          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+          xcodebuild -version
+          sw_vers
+          # Hard guards: refuse beta OS or beta Xcode.
+          [[ "$(sw_vers -buildVersion)" =~ [a-z]$ ]] && { echo "beta macOS runner"; exit 1; }
+          xcodebuild -version | grep -qi beta && { echo "beta Xcode"; exit 1; }
+          exit 0
+
+      - name: Install ASC API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: Archive
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild archive \
+            -project Gravitile.xcodeproj -scheme Gravitile \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Gravitile.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM=K6623R3GP5 | xcbeautify --quiet || \
+          xcodebuild archive \
+            -project Gravitile.xcodeproj -scheme Gravitile \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Gravitile.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM=K6623R3GP5
+
+      - name: Preflight — assert non-beta build machine stamp
+        run: |
+          STAMP=$(/usr/libexec/PlistBuddy -c "Print :BuildMachineOSBuild" \
+            build/Gravitile.xcarchive/Products/Applications/Gravitile.app/Info.plist)
+          echo "BuildMachineOSBuild: $STAMP"
+          [[ "$STAMP" =~ [a-z]$ ]] && { echo "beta build machine stamp — refusing to upload"; exit 1; }
+          exit 0
+
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/Gravitile.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Keep archive as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcarchive
+          path: build/*.xcarchive
+          retention-days: 7
+          if-no-files-found: ignore

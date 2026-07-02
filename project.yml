@@ -10,7 +10,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 7
+    CURRENT_PROJECT_VERSION: 8
     MARKETING_VERSION: "1.0"
 targets:
   Gravitile:
@@ -19,10 +19,10 @@ targets:
     sources: [Gravitile]
     dependencies:
       - package: GravitileKit
-    # Game Center entitlement removed for v1.0: three consecutive
-    # submission-time Invalid Binary rejections; GC config (the only delta
-    # from a known-good app) is the prime suspect. GameCenterService degrades
-    # gracefully; re-enable in 1.0.1 once Apple's rejection email is read.
+    entitlements:
+      path: Gravitile/Gravitile.entitlements
+      properties:
+        com.apple.developer.game-center: true
     info:
       path: Gravitile/Info.plist
       properties:
