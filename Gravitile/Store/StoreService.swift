@@ -43,6 +43,19 @@ final class StoreService {
             .sorted { $0.price < $1.price }
     }
 
+    /// Called from purchase surfaces: retries the fetch (with backoff) if the
+    /// launch-time load failed, so the paywall never strands the user with a
+    /// dead buy button after a transient network failure.
+    func ensureProductsLoaded() async {
+        for attempt in 0..<5 {
+            if plusProduct != nil && !tipProducts.isEmpty { return }
+            if attempt > 0 {
+                try? await Task.sleep(for: .seconds(Double(attempt)))
+            }
+            await loadProducts()
+        }
+    }
+
     @discardableResult
     func purchase(_ product: Product) async -> Bool {
         guard let result = try? await product.purchase() else { return false }

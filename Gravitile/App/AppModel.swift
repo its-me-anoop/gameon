@@ -89,7 +89,10 @@ final class AppModel {
                 puzzleNumber: puzzleNumber, score: game.score, bestTile: game.bestTile,
                 cascadeCount: game.cascadeCount, completedAt: now()
             )
-            if puzzleNumber == todayPuzzleNumber {
+            // Today extends the streak directly; archive completions of the
+            // next-in-sequence puzzle count too (Plus's "catch up on a missed
+            // day") — StreakState ignores older/replayed puzzles itself.
+            if puzzleNumber <= todayPuzzleNumber {
                 persisted.streak.recordCompletion(puzzleNumber: puzzleNumber, on: now())
                 gameCenter.submitStreak(persisted.streak)
             }

@@ -57,7 +57,7 @@ struct SettingsScreen: View {
 
             Section("About") {
                 LabeledContent("Version", value: appVersion)
-                Link("Privacy policy", destination: URL(string: "https://github.com/its-me-anoop/gameon/blob/main/docs/appstore/privacy-policy.md")!)
+                Link("Privacy policy", destination: URL(string: "https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md")!)
                 LabeledContent("Font", value: "Unbounded (OFL)")
             }
             .listRowBackground(Theme.bgBoard)
@@ -65,6 +65,9 @@ struct SettingsScreen: View {
         .scrollContentBackground(.hidden)
         .background(Theme.bgDeep)
         .navigationTitle("Settings")
+        .task {
+            await appModel.store.ensureProductsLoaded()
+        }
         .alert("Thank you! 🧡", isPresented: $showThanks) {
             Button("You're welcome", role: .cancel) {}
         } message: {

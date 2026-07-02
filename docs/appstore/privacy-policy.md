@@ -38,4 +38,4 @@ update that changes it, with the effective date above revised.
 
 ## Contact
 
-Questions: open an issue at https://github.com/its-me-anoop/gameon/issues
+Questions: open an issue at https://github.com/its-me-anoop/gravitile-support/issues

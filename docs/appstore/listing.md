@@ -64,9 +64,9 @@ Game Center leaderboards, and not a single ad.
 
 ## Support & marketing URLs
 
-- Support URL: https://github.com/its-me-anoop/gameon/issues
+- Support URL: https://github.com/its-me-anoop/gravitile-support
 - Marketing URL (optional): repository page until a site exists
-- Privacy Policy URL: hosted copy of docs/appstore/privacy-policy.md
+- Privacy Policy URL: https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md
   (GitHub Pages or repo raw link)
 
 ## Age rating questionnaire answers

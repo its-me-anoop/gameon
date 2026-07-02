@@ -70,6 +70,9 @@ struct PaywallView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await appModel.store.ensureProductsLoaded()
+        }
     }
 
     private func feature(icon: String, title: String, detail: String) -> some View {

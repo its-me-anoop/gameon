@@ -26,7 +26,9 @@ struct StreakState: Codable, Equatable {
     /// Completing puzzle n: consecutive (n == last+1) extends the streak; a
     /// single missed day can be bridged by one freeze per ISO week; anything
     /// else restarts at 1. Completing the same or an older puzzle (archive
-    /// replays) never changes the streak.
+    /// replays of already-passed days) never changes the streak — but
+    /// completing the *next* uncompleted puzzle via the archive does extend
+    /// it, which is how Plus's "catch up on a missed day" works.
     mutating func recordCompletion(puzzleNumber: Int, on date: Date = Date()) {
         guard puzzleNumber > (lastCompletedPuzzle ?? Int.min) else { return }
         defer {

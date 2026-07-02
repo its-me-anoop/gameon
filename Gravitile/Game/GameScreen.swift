@@ -145,7 +145,7 @@ struct GameScreen: View {
                 viewModel.undoTapped()
             } label: {
                 Label(
-                    viewModel.undosRemaining > 0 ? "Undo (\(viewModel.undosRemaining))" : "Undo",
+                    undoLabel,
                     systemImage: "arrow.uturn.backward"
                 )
             }
@@ -176,6 +176,12 @@ struct GameScreen: View {
                 .accessibilityIdentifier("newGameButton")
             }
         }
+    }
+
+    /// Plus users have unlimited undo — no point showing a 19-digit counter.
+    private var undoLabel: String {
+        if viewModel.freeUndoLimit == Int.max { return "Undo" }
+        return viewModel.undosRemaining > 0 ? "Undo (\(viewModel.undosRemaining))" : "Undo"
     }
 
     private func movesIndicator(remaining: Int) -> some View {

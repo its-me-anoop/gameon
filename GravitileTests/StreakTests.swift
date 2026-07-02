@@ -63,6 +63,17 @@ import Foundation
         #expect(streak.longest == 5)
     }
 
+    @Test func archiveCatchUpOnNextPuzzleExtendsStreak() {
+        // Plus's "catch up on a missed day": completing the next uncompleted
+        // puzzle via the archive extends the streak like a normal completion.
+        var streak = StreakState()
+        streak.recordCompletion(puzzleNumber: 10, on: date("2026-07-10T10:00:00Z"))
+        // Missed #11; played it from the archive on the 12th, then today's.
+        streak.recordCompletion(puzzleNumber: 11, on: date("2026-07-12T09:00:00Z"))
+        streak.recordCompletion(puzzleNumber: 12, on: date("2026-07-12T10:00:00Z"))
+        #expect(streak.current == 3)
+    }
+
     @Test func archiveReplaysNeverChangeStreak() {
         var streak = StreakState()
         streak.recordCompletion(puzzleNumber: 10, on: date("2026-07-10T10:00:00Z"))
