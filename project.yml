@@ -28,7 +28,8 @@ targets:
       path: Gravitile/Info.plist
       properties:
         CFBundleDisplayName: Gravitile
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIRequiresFullScreen: true
         UIAppFonts: [Unbounded.ttf]
