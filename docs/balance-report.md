@@ -39,3 +39,13 @@ arc → no tension.
 
 The 10-move golden replay test (`goldenTenMoveGame`) is unaffected by the ramp
 (it plays below move 60) and still guards base semantics.
+
+## v1.2 addendum — boulders in the arc (2026-07-06)
+
+BalanceSim (200 games, random policy) after the boulder hurdle landed:
+endless median 342 moves (p10 227 / p90 509), median score 17,594, best
+tile median 1024, **0/200 games hit the move cap** — the cruise → tension
+→ collapse arc is intact; iced tiles tighten the mid-game without making
+runs unwinnable or unbounded. Daily (greedy, 40 moves) median 412 points
+with the two seed-fixed boulders. Stasis is a player choice and does not
+appear in random-policy sims.
