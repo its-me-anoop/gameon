@@ -30,6 +30,7 @@ final class AppModel {
         sounds = SoundService()
         haptics.isEnabled = persisted.settings.hapticsOn
         sounds.isEnabled = persisted.settings.soundOn
+        sounds.isMusicEnabled = persisted.settings.musicOn
     }
 
     // MARK: - Settings
@@ -40,6 +41,7 @@ final class AppModel {
             persisted.settings = newValue
             haptics.isEnabled = newValue.hapticsOn
             sounds.isEnabled = newValue.soundOn
+            sounds.isMusicEnabled = newValue.musicOn
             save()
         }
     }

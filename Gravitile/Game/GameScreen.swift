@@ -4,6 +4,7 @@ import GravitileKit
 struct GameScreen: View {
     @Environment(AppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: GameViewModel
     @State private var showGameOver = false
     @State private var shareText: String?
@@ -82,7 +83,17 @@ struct GameScreen: View {
         // (which also disables the gesture) and own the exit via the header.
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear(perform: wireCallbacks)
+        .onAppear {
+            wireCallbacks()
+            appModel.sounds.startMusic()
+        }
+        .onDisappear {
+            appModel.sounds.stopMusic()
+        }
+        // Ambient audio doesn't resume itself after backgrounding.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { appModel.sounds.syncMusic() }
+        }
         .sheet(item: $shareText) { text in
             ShareSheet(text: text)
                 .presentationDetents([.medium])

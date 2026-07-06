@@ -9,6 +9,7 @@ struct SettingsScreen: View {
         List {
             Section("Game") {
                 Toggle("Sound effects", isOn: binding(\.soundOn))
+                Toggle("Music", isOn: binding(\.musicOn))
                 Toggle("Haptics", isOn: binding(\.hapticsOn))
             }
             .listRowBackground(Theme.bgBoard)
