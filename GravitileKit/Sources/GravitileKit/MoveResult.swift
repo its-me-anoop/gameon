@@ -5,6 +5,8 @@ public struct CascadePhase: Equatable, Sendable {
     public let falls: [TileMove]
     public let merges: [MergeEvent]
     public let round: Int
+    /// Boulders chipped by this round's merges (v1.2 spec §3.2).
+    public var iceHits: [IceHit] = []
 }
 
 public struct SpawnEvent: Equatable, Sendable {

@@ -181,6 +181,27 @@ public struct GameState: Codable, Equatable, Sendable {
         }
     }
 
+    /// Boulder cadence (v1.2 spec §3.2.4) — stateless in (mode, moveCount,
+    /// seed) so resume/undo can't drift the schedule. Returns the ice HP for
+    /// this move's first spawn, or 0 for a normal spawn.
+    var boulderIceForNextSpawn: Int {
+        switch mode {
+        case .zen:
+            return 0
+        case .endless:
+            guard moveCount >= 40, (moveCount - 40) % 12 == 0 else { return 0 }
+            return moveCount >= 100 ? 2 : 1
+        case .sprint:
+            return moveCount == 45 ? 1 : 0
+        case .daily:
+            // Two seed-determined moves in 5...35, identical worldwide.
+            let first = 5 + Int(seed % 31)
+            var second = 5 + Int((seed / 31) % 31)
+            if second == first { second = 5 + (first - 5 + 7) % 31 }
+            return (moveCount == first || moveCount == second) ? 1 : 0
+        }
+    }
+
     public var hasLegalMove: Bool {
         var scratchID = nextTileID
         return Direction.allCases.contains { direction in
@@ -221,7 +242,8 @@ public struct GameState: Codable, Equatable, Sendable {
             board: board, swipe: direction, gravity: gravity,
             rng: &rng, nextTileID: &nextTileID,
             spawnCount: spawnCountForNextMove,
-            rotateGravity: !stasis
+            rotateGravity: !stasis,
+            boulderIce: boulderIceForNextSpawn
         ) else { return nil }
 
         pushSnapshot(snapshot)

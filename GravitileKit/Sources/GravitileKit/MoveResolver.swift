@@ -18,7 +18,8 @@ public enum MoveResolver {
             while read < tiles.count {
                 let (from, tile) = tiles[read]
                 let target = line[write]
-                if read + 1 < tiles.count, tiles[read + 1].1.value == tile.value {
+                if read + 1 < tiles.count, tiles[read + 1].1.value == tile.value,
+                   tile.ice == 0, tiles[read + 1].1.ice == 0 {
                     let (partnerFrom, partner) = tiles[read + 1]
                     let result = Tile(id: nextTileID, value: tile.value * 2)
                     nextTileID += 1
@@ -45,7 +46,24 @@ public enum MoveResolver {
                 write += 1
             }
         }
-        return SlideOutcome(board: newBoard, moves: moves, merges: merges)
+        let iceHits = chipIce(around: merges, on: &newBoard)
+        return SlideOutcome(board: newBoard, moves: moves, merges: merges, iceHits: iceHits)
+    }
+
+    /// Every merge chips one HP off each orthogonally-adjacent boulder.
+    /// Freed tiles (HP 0) merge normally from the next pairing pass on.
+    static func chipIce(around merges: [MergeEvent], on board: inout Board) -> [IceHit] {
+        var hits: [IceHit] = []
+        for merge in merges {
+            for direction in Direction.allCases {
+                let neighbor = merge.at.offset(by: direction)
+                guard Board.contains(neighbor), var tile = board[neighbor], tile.ice > 0 else { continue }
+                tile.ice -= 1
+                board[neighbor] = tile
+                hits.append(IceHit(tileID: tile.id, at: neighbor, hpAfter: tile.ice))
+            }
+        }
+        return hits
     }
 
     /// Compacts all tiles toward `gravity` without merging.
@@ -75,7 +93,7 @@ public enum MoveResolver {
     public static func resolveMove(
         board: Board, swipe: Direction, gravity: Direction,
         rng: inout SplitMix64, nextTileID: inout Int, spawnCount: Int = 1,
-        rotateGravity: Bool = true
+        rotateGravity: Bool = true, boulderIce: Int = 0
     ) -> MoveResult? {
         let slide = slide(board, toward: swipe, nextTileID: &nextTileID)
         guard slide.changed else {
@@ -94,9 +112,11 @@ public enum MoveResolver {
         while let (merged, merges) = cascadeRound(
             current, gravity: newGravity, round: round, nextTileID: &nextTileID
         ) {
-            cascadePoints += merges.reduce(0) { $0 + $1.points }
-            let (settled, falls) = fall(merged, gravity: newGravity)
-            phases.append(CascadePhase(falls: falls, merges: merges, round: round))
+            var chipped = merged
+            let iceHits = chipIce(around: merges, on: &chipped)
+            cascadePoints += merges.reduce(0) { $0 + $1.points } + iceHits.count * 10 * round
+            let (settled, falls) = fall(chipped, gravity: newGravity)
+            phases.append(CascadePhase(falls: falls, merges: merges, round: round, iceHits: iceHits))
             current = settled
             round += 1
         }
@@ -104,13 +124,14 @@ public enum MoveResolver {
         var spawnEvents: [SpawnEvent] = []
         for _ in 0..<max(1, spawnCount) {
             guard let (withSpawn, event) = spawn(
-                on: current, gravity: newGravity, rng: &rng, nextTileID: &nextTileID
+                on: current, gravity: newGravity, rng: &rng, nextTileID: &nextTileID,
+                ice: spawnEvents.isEmpty ? boulderIce : 0
             ) else { break }
             current = withSpawn
             spawnEvents.append(event)
         }
 
-        let slidePoints = slide.merges.reduce(0) { $0 + $1.points }
+        let slidePoints = slide.merges.reduce(0) { $0 + $1.points } + slide.iceHits.count * 10
         return MoveResult(
             swipe: swipe,
             slide: slide,
@@ -127,7 +148,8 @@ public enum MoveResolver {
     /// that has room. The tile enters at the opposite-gravity edge and rests
     /// at the deepest empty cell; spawn landings never merge.
     static func spawn(
-        on board: Board, gravity: Direction, rng: inout SplitMix64, nextTileID: inout Int
+        on board: Board, gravity: Direction, rng: inout SplitMix64, nextTileID: inout Int,
+        ice: Int = 0
     ) -> (Board, SpawnEvent)? {
         let lines = Board.lines(toward: gravity)
         let openLines = lines.filter { line in line.contains { board[$0] == nil } }
@@ -135,7 +157,9 @@ public enum MoveResolver {
 
         let line = openLines[Int(rng.next() % UInt64(openLines.count))]
         let value = rng.next() % 10 < 9 ? 2 : 4
-        let tile = Tile(id: nextTileID, value: value)
+        // Boulders draw exactly the same randoms as normal spawns so the
+        // seeded stream — and every pre-boulder golden game — is untouched.
+        let tile = Tile(id: nextTileID, value: value, ice: ice)
         nextTileID += 1
 
         // Settled boards have all tiles packed toward the gravity edge, so the
@@ -162,7 +186,8 @@ public enum MoveResolver {
                 guard
                     let lower = newBoard[line[index]],
                     let upper = newBoard[line[index + 1]],
-                    lower.value == upper.value
+                    lower.value == upper.value,
+                    lower.ice == 0, upper.ice == 0
                 else {
                     index += 1
                     continue

@@ -26,10 +26,19 @@ public struct MergeEvent: Equatable, Codable, Sendable {
     public let multiplier: Int
 }
 
+/// One HP chipped off a boulder by an orthogonally-adjacent merge.
+public struct IceHit: Equatable, Codable, Sendable {
+    public let tileID: Int
+    public let at: Coordinate
+    /// Remaining HP; 0 means the tile just shattered free.
+    public let hpAfter: Int
+}
+
 public struct SlideOutcome: Equatable, Sendable {
     public let board: Board
     public let moves: [TileMove]
     public let merges: [MergeEvent]
+    public var iceHits: [IceHit] = []
     /// A swipe is legal iff its slide outcome changed the board.
     public var changed: Bool { !(moves.isEmpty && merges.isEmpty) }
 }
