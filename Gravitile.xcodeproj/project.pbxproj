@@ -15,15 +15,20 @@
 		1824788065F95A07C77E6AFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2129DFDBBAF07E2C41A723BF /* Assets.xcassets */; };
 		29488B54E94805519FBFAAAD /* GravitileKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7424C563A3E0F4B4C00C806C /* GravitileKit */; };
 		31293381AF995C005A8EE43D /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A84B6CA13D019DB7258C622 /* AppModel.swift */; };
+		3292C393412177B9F6DD74D0 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA387808ED5D620D5EC0DF9 /* Theme.swift */; };
 		34D6C7EB2A25B7D5CA4E28A3 /* tap.wav in Resources */ = {isa = PBXBuildFile; fileRef = 787A5FE8893E949DC8BC42ED /* tap.wav */; };
+		3810580A91BE07DBE5F97B8C /* GravitileWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1264165B1E0E149EDE255C5D /* GravitileWatchApp.swift */; };
 		3C7F6C50D47CEA8BDEEAB690 /* newbest.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0D0736A061A9358B649BFE /* newbest.wav */; };
+		40513BB5AC7F71DC8912194E /* WatchGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C72F17E77C7828E9287A7AC /* WatchGameView.swift */; };
 		42A7249F0E2C9F040C54A0E9 /* slide.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5EC3651BC4594892DDAAABFE /* slide.wav */; };
+		4865F8A22D2C85C0A80344A3 /* GravitileWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 183314A5301E86C9D1BD13B2 /* GravitileWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		49132101F1D81EFAD5FA3E32 /* merge3.wav in Resources */ = {isa = PBXBuildFile; fileRef = F079EA5A536E2DD9F585C87D /* merge3.wav */; };
 		4A8AB28B052308B13139DA6C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA387808ED5D620D5EC0DF9 /* Theme.swift */; };
 		4D4213037BB20E305923BC81 /* bgm.wav in Resources */ = {isa = PBXBuildFile; fileRef = 179DA92E9C69BD122FB6A623 /* bgm.wav */; };
 		51B29831FF26692BD1195131 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */; };
 		5381B7FE12C06D9484484FCD /* StatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CBBF66B673FD70834F4B65 /* StatsScreen.swift */; };
 		554A2F14BB0DAAD8B69A6A24 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */; };
+		5782478C8591907B78D593E6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DB12E2E61011B067132CC8BA /* Assets.xcassets */; };
 		593DFAE3F889E6DC7DBB84F0 /* GravitileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16951E6477320C328C1ED34 /* GravitileUITests.swift */; };
 		5A7CD32C93B78296A6FA91D0 /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9680C6D8F8153E6F2576500E /* StoreService.swift */; };
 		5B2D7315D75392F48DFF4C92 /* GameScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF40978777AFB66509D68B91 /* GameScreen.swift */; };
@@ -45,11 +50,13 @@
 		A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */; };
 		B638FA3F3BB8DC56C520A5B9 /* GameCenterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D125B2774AF7E398DA3610 /* GameCenterService.swift */; };
 		B83996B18768972748CA852B /* merge4.wav in Resources */ = {isa = PBXBuildFile; fileRef = 03973293FFFBD6BB3007497A /* merge4.wav */; };
+		B9031B3E979B5DF637E85634 /* WatchGameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A52B5F4E871F5A9EB94252 /* WatchGameStore.swift */; };
 		B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7431D4D021A345983288F612 /* BoardView.swift */; };
 		BF014CB6BD964C0B74EE1AAD /* HapticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070AD2BA84FDD1C349F8918 /* HapticsService.swift */; };
 		C46FA006C32569A884B74AE3 /* whoosh.wav in Resources */ = {isa = PBXBuildFile; fileRef = 7EC7AB9F8C88BFE1FDE6E9F8 /* whoosh.wav */; };
 		C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */; };
 		C83FA83820B6B8AB2FC23B64 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590E969DCB31090727B05D1C /* StoreTests.swift */; };
+		CC31BCBC41C0D11426D1F034 /* GravitileKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2A68504F9C5732C1A24B0AB5 /* GravitileKit */; };
 		CE5F2EF0155E896CF8EE3BC1 /* Juice.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBA089E3387465647DF9C0C4 /* Juice.swift */; };
 		D1819C9393DEA3F3F19ACEDD /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146127D215B2EC3AD6D1B728 /* RootView.swift */; };
 		D32DC3E6E8BB58D3EA2C36EA /* StoreConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD799480E6D14BFF2FE8EA6F /* StoreConfigurationTests.swift */; };
@@ -69,6 +76,13 @@
 			remoteGlobalIDString = CD5BA31D3DB979C3D10ADA57;
 			remoteInfo = Gravitile;
 		};
+		EB875141AE93812FFBB18FFE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE9C05E9125249964F44BE02 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EBB655C80C8E67BB03AAC002;
+			remoteInfo = GravitileWatch;
+		};
 		EF93505232526F79C53F6152 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DE9C05E9125249964F44BE02 /* Project object */;
@@ -78,12 +92,28 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		686A9685B279D0291B6F6763 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4865F8A22D2C85C0A80344A3 /* GravitileWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		03973293FFFBD6BB3007497A /* merge4.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge4.wav; sourceTree = "<group>"; };
 		07AFA388A975DF746C3A84E3 /* Gravitile.storekit */ = {isa = PBXFileReference; path = Gravitile.storekit; sourceTree = "<group>"; };
 		0ABB9B72856FDA31D847447A /* GravitileTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GravitileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1264165B1E0E149EDE255C5D /* GravitileWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GravitileWatchApp.swift; sourceTree = "<group>"; };
 		146127D215B2EC3AD6D1B728 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		179DA92E9C69BD122FB6A623 /* bgm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = bgm.wav; sourceTree = "<group>"; };
+		183314A5301E86C9D1BD13B2 /* GravitileWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GravitileWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
 		1A0D0736A061A9358B649BFE /* newbest.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = newbest.wav; sourceTree = "<group>"; };
 		1BF2CB1FE02C2163BCBFB241 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -100,6 +130,7 @@
 		54C6AFF597D99D987D11EBF8 /* gameover.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = gameover.wav; sourceTree = "<group>"; };
 		590E969DCB31090727B05D1C /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
 		5ACD0EE04279D7BBC52F89D4 /* Gravitile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gravitile.entitlements; sourceTree = "<group>"; };
+		5C72F17E77C7828E9287A7AC /* WatchGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGameView.swift; sourceTree = "<group>"; };
 		5EC3651BC4594892DDAAABFE /* slide.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = slide.wav; sourceTree = "<group>"; };
 		5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
@@ -107,6 +138,7 @@
 		7431D4D021A345983288F612 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		76A7F90B58E4FA4FB359F714 /* ModeLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeLifecycleTests.swift; sourceTree = "<group>"; };
 		787A5FE8893E949DC8BC42ED /* tap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tap.wav; sourceTree = "<group>"; };
+		79A52B5F4E871F5A9EB94252 /* WatchGameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGameStore.swift; sourceTree = "<group>"; };
 		79AAD23A57F87D744C4F104B /* DailyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyScreen.swift; sourceTree = "<group>"; };
 		7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		7D3C236B91544628708A1928 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
@@ -128,7 +160,9 @@
 		CD799480E6D14BFF2FE8EA6F /* StoreConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreConfigurationTests.swift; sourceTree = "<group>"; };
 		D042DCA8EAA91D97E5222414 /* milestone.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = milestone.wav; sourceTree = "<group>"; };
 		D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Unbounded-OFL.txt"; sourceTree = "<group>"; };
+		DB12E2E61011B067132CC8BA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DBA089E3387465647DF9C0C4 /* Juice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Juice.swift; sourceTree = "<group>"; };
+		DC89E26D3BDC34E15E5F9870 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
 		E6D125B2774AF7E398DA3610 /* GameCenterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterService.swift; sourceTree = "<group>"; };
 		ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Unbounded.ttf; sourceTree = "<group>"; };
@@ -138,6 +172,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA16B8E3352610CD589C2FC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC31BCBC41C0D11426D1F034 /* GravitileKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		ED86E92A32326980BF893299 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -199,6 +241,18 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		2A12B438B2EC2DD37BEDBAE1 /* GravitileWatch */ = {
+			isa = PBXGroup;
+			children = (
+				DB12E2E61011B067132CC8BA /* Assets.xcassets */,
+				1264165B1E0E149EDE255C5D /* GravitileWatchApp.swift */,
+				DC89E26D3BDC34E15E5F9870 /* Info.plist */,
+				79A52B5F4E871F5A9EB94252 /* WatchGameStore.swift */,
+				5C72F17E77C7828E9287A7AC /* WatchGameView.swift */,
+			);
+			path = GravitileWatch;
+			sourceTree = "<group>";
+		};
 		32D0BD58083C00399ECBB0EB /* GravitileTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -242,6 +296,7 @@
 				F220C043258D366A32FC5E02 /* Gravitile */,
 				32D0BD58083C00399ECBB0EB /* GravitileTests */,
 				E70D8C2269DD7FF253D1340C /* GravitileUITests */,
+				2A12B438B2EC2DD37BEDBAE1 /* GravitileWatch */,
 				6CAACA2D5C184F7526791237 /* Packages */,
 				CF5D1DF44D19B9D3411F760B /* Products */,
 			);
@@ -273,6 +328,7 @@
 				39EF0C5DA84C56EDBB919058 /* Gravitile.app */,
 				0ABB9B72856FDA31D847447A /* GravitileTests.xctest */,
 				C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */,
+				183314A5301E86C9D1BD13B2 /* GravitileWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -370,10 +426,12 @@
 				7B73237495B21C085F073149 /* Sources */,
 				DA575D280E5539B59E5455B1 /* Resources */,
 				ED86E92A32326980BF893299 /* Frameworks */,
+				686A9685B279D0291B6F6763 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F8B6505F1A8484B72E47DA73 /* PBXTargetDependency */,
 			);
 			name = Gravitile;
 			packageProductDependencies = (
@@ -381,6 +439,26 @@
 			);
 			productName = Gravitile;
 			productReference = 39EF0C5DA84C56EDBB919058 /* Gravitile.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EBB655C80C8E67BB03AAC002 /* GravitileWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4854DE9DEE3B70988EEC55B1 /* Build configuration list for PBXNativeTarget "GravitileWatch" */;
+			buildPhases = (
+				3C9882F8D803A63D0C6FE1B6 /* Sources */,
+				D9572017ED1812144B63F554 /* Resources */,
+				CA16B8E3352610CD589C2FC1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GravitileWatch;
+			packageProductDependencies = (
+				2A68504F9C5732C1A24B0AB5 /* GravitileKit */,
+			);
+			productName = GravitileWatch;
+			productReference = 183314A5301E86C9D1BD13B2 /* GravitileWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -417,6 +495,7 @@
 				CD5BA31D3DB979C3D10ADA57 /* Gravitile */,
 				B041684F7581D88D4B7906BF /* GravitileTests */,
 				84839E5226DF9EA76810EF80 /* GravitileUITests */,
+				EBB655C80C8E67BB03AAC002 /* GravitileWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -427,6 +506,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				6AA0C08A585D081538C2DF90 /* Gravitile.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D9572017ED1812144B63F554 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5782478C8591907B78D593E6 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -459,6 +546,17 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3C9882F8D803A63D0C6FE1B6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3810580A91BE07DBE5F97B8C /* GravitileWatchApp.swift in Sources */,
+				3292C393412177B9F6DD74D0 /* Theme.swift in Sources */,
+				B9031B3E979B5DF637E85634 /* WatchGameStore.swift in Sources */,
+				40513BB5AC7F71DC8912194E /* WatchGameView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		43BEAC5820AB68C9FC9689D6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -524,6 +622,11 @@
 			target = CD5BA31D3DB979C3D10ADA57 /* Gravitile */;
 			targetProxy = EF93505232526F79C53F6152 /* PBXContainerItemProxy */;
 		};
+		F8B6505F1A8484B72E47DA73 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EBB655C80C8E67BB03AAC002 /* GravitileWatch */;
+			targetProxy = EB875141AE93812FFBB18FFE /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -585,7 +688,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -696,6 +798,19 @@
 			};
 			name = Release;
 		};
+		DBA60EE1C523CDB9BAF7110B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = GravitileWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.gravitile.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		E840173B6288B435866D0047 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -747,12 +862,24 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
+		};
+		FCDB682D8359281E47D508E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = GravitileWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.gravitile.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -771,6 +898,15 @@
 			buildConfigurations = (
 				50E4EF9F2E46E56683DFEE2B /* Debug */,
 				A9846238EE357880B0FD0872 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4854DE9DEE3B70988EEC55B1 /* Build configuration list for PBXNativeTarget "GravitileWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FCDB682D8359281E47D508E0 /* Debug */,
+				DBA60EE1C523CDB9BAF7110B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -803,6 +939,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		2A68504F9C5732C1A24B0AB5 /* GravitileKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GravitileKit;
+		};
 		7424C563A3E0F4B4C00C806C /* GravitileKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GravitileKit;

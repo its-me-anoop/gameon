@@ -19,6 +19,7 @@ targets:
     sources: [Gravitile]
     dependencies:
       - package: GravitileKit
+      - target: GravitileWatch
     entitlements:
       path: Gravitile/Gravitile.entitlements
       properties:
@@ -51,6 +52,33 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1,2"
+  GravitileWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - GravitileWatch
+      # Shared design tokens — SwiftUI-only, no UIKit, safe on watchOS.
+      - Gravitile/App/Theme.swift
+    dependencies:
+      - package: GravitileKit
+    info:
+      path: GravitileWatch/Info.plist
+      properties:
+        CFBundleDisplayName: Gravitile
+        # Embedded watch app versions must match the iOS app exactly, and
+        # hand-authored plists don't get CFBundleIconName injected by actool
+        # (the ITMS-90713 lesson from v1.0).
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleIconName: AppIcon
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.flutterly.gravitile
+        WKRunsIndependentlyOfCompanionApp: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flutterly.gravitile.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   GravitileTests:
     type: bundle.unit-test
     platform: iOS
@@ -75,6 +103,12 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 schemes:
+  GravitileWatch:
+    build:
+      targets:
+        GravitileWatch: all
+    run:
+      config: Debug
   Gravitile:
     build:
       targets:
