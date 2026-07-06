@@ -146,6 +146,57 @@ import Foundation
         #expect(undos > 0)
     }
 
+    @Test func zenHasNoBudgetAndAlwaysSpawnsAtMostOne() {
+        var game = GameState(mode: .zen, seed: 7)
+        #expect(game.movesRemaining == nil)
+        var made = 0
+        outer: while made < 130 {
+            for direction in Direction.allCases {
+                var copy = game
+                guard copy.applyMove(direction) != nil else { continue }
+                let result = game.applyMove(direction)!
+                #expect(result.spawns.count <= 1)
+                made += 1
+                continue outer
+            }
+            break // board locked — fine, pacing was verified up to here
+        }
+        #expect(made > 60, "zen should comfortably outlive the endless ramp threshold")
+    }
+
+    @Test func sprintCountsDownBudgetAndSpawnsTwo() {
+        var game = GameState(mode: .sprint, seed: 7)
+        #expect(game.movesRemaining == GameMode.sprintMoveBudget)
+        var sawDoubleSpawn = false
+        outer: while !game.isGameOver {
+            for direction in Direction.allCases {
+                var copy = game
+                guard copy.applyMove(direction) != nil else { continue }
+                let result = game.applyMove(direction)!
+                if result.spawns.count == 2 { sawDoubleSpawn = true }
+                continue outer
+            }
+            break
+        }
+        #expect(sawDoubleSpawn, "sprint should spawn 2 tiles when the board has room")
+        #expect(game.moveCount <= GameMode.sprintMoveBudget)
+        if game.moveCount == GameMode.sprintMoveBudget {
+            #expect(game.movesRemaining == 0)
+            #expect(game.isGameOver)
+        }
+    }
+
+    @Test func allModesCodableRoundTrip() throws {
+        let modes: [GameMode] = [.zen, .sprint, .endless, .daily(puzzleNumber: 3)]
+        for mode in modes {
+            let game = GameState(mode: mode, seed: 1)
+            let data = try JSONEncoder().encode(game)
+            let back = try JSONDecoder().decode(GameState.self, from: data)
+            #expect(back.mode == mode)
+            #expect(back == game)
+        }
+    }
+
     @Test func goldenTenMoveGame() {
         // Frozen reference game: seed 42, scripted swipes. Guards against any
         // accidental change to engine semantics. Regenerate deliberately only

@@ -3,12 +3,20 @@ import Foundation
 public enum GameMode: Equatable, Codable, Sendable, Hashable {
     case endless
     case daily(puzzleNumber: Int, moveBudget: Int)
+    /// No budget, no pressure ramp — a single spawn per move keeps the board
+    /// breathable indefinitely (see docs/balance-report.md).
+    case zen
+    /// Fixed-budget score attack under constant double-spawn pressure.
+    case sprint(moveBudget: Int)
 
     public static let dailyMoveBudget = 40
+    public static let sprintMoveBudget = 60
 
     public static func daily(puzzleNumber: Int) -> GameMode {
         .daily(puzzleNumber: puzzleNumber, moveBudget: dailyMoveBudget)
     }
+
+    public static var sprint: GameMode { .sprint(moveBudget: sprintMoveBudget) }
 }
 
 /// The complete, self-contained state of one game. A value type so snapshots
@@ -87,8 +95,24 @@ public struct GameState: Codable, Equatable, Sendable {
     }
 
     public var movesRemaining: Int? {
-        guard case let .daily(_, budget) = mode else { return nil }
-        return max(0, budget - moveCount)
+        switch mode {
+        case let .daily(_, budget), let .sprint(budget):
+            return max(0, budget - moveCount)
+        case .endless, .zen:
+            return nil
+        }
+    }
+
+    /// Spawn pacing is owned by the mode: endless (and daily, whose budget
+    /// never reaches the ramp) keep the cruise → tension → collapse ramp,
+    /// zen stays at a breathable single spawn, sprint applies constant
+    /// double-spawn pressure from move one.
+    public var spawnCountForNextMove: Int {
+        switch mode {
+        case .zen: 1
+        case .sprint: 2
+        case .endless, .daily: Self.spawnCount(forMovesPlayed: moveCount)
+        }
     }
 
     public var hasLegalMove: Bool {
@@ -112,7 +136,7 @@ public struct GameState: Codable, Equatable, Sendable {
         guard let result = MoveResolver.resolveMove(
             board: board, swipe: direction, gravity: gravity,
             rng: &rng, nextTileID: &nextTileID,
-            spawnCount: Self.spawnCount(forMovesPlayed: moveCount)
+            spawnCount: spawnCountForNextMove
         ) else { return nil }
 
         pushSnapshot(snapshot)

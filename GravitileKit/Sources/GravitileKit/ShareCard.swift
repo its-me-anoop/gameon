@@ -19,6 +19,10 @@ public enum ShareCard {
             title = "Gravitile #\(puzzleNumber) — \(formatted(score))"
         case .endless:
             title = "Gravitile Endless — \(formatted(score))"
+        case .zen:
+            title = "Gravitile Zen — \(formatted(score))"
+        case .sprint:
+            title = "Gravitile Sprint — \(formatted(score))"
         }
 
         let tiersReached = max(1, Int(log2(Double(max(2, bestTile)))))
