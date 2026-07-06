@@ -77,7 +77,11 @@ struct GameScreen: View {
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
-        .navigationBarBackButtonHidden(false)
+        // The interactive pop gesture starts at the same left edge as game
+        // swipes and kept eating them mid-game — hide the system back button
+        // (which also disables the gesture) and own the exit via the header.
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: wireCallbacks)
         .sheet(item: $shareText) { text in
             ShareSheet(text: text)
@@ -116,7 +120,18 @@ struct GameScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 14) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Theme.cellWell))
+            }
+            .accessibilityLabel("Back")
+            .accessibilityIdentifier("exitGame")
             Text(isDaily ? "Daily #\(dailyNumber)" : "Gravitile")
                 .font(Theme.display(20))
                 .foregroundStyle(Theme.textPrimary)
