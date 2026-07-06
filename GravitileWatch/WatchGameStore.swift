@@ -35,6 +35,7 @@ final class WatchGameStore {
                 }) else { break }
                 game.applyMove(direction)
             }
+            checkpoint()
         }
         #endif
     }
