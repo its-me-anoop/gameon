@@ -13,6 +13,8 @@ final class GameCenterService {
     static let dailyWeeklyLeaderboardID = "grv.daily.weekly"
 
     private(set) var isAuthenticated = false
+    /// Whether the current screen wants the floating GKAccessPoint visible.
+    private var accessPointWanted = false
 
     func authenticate() {
         GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, error in
@@ -27,29 +29,59 @@ final class GameCenterService {
                     return
                 }
                 self.isAuthenticated = error == nil && GKLocalPlayer.local.isAuthenticated
-                GKAccessPoint.shared.location = .topLeading
+                self.applyAccessPoint()
             }
         }
     }
 
-    func submit(game: GameState) {
-        guard isAuthenticated else { return }
-        var entries: [(Int, String)] = [(game.bestTile, Self.bestTileLeaderboardID)]
+    /// Screens opt the access point in/out (Home shows it; gameplay never).
+    func setAccessPointActive(_ active: Bool) {
+        accessPointWanted = active
+        applyAccessPoint()
+    }
+
+    private func applyAccessPoint() {
+        GKAccessPoint.shared.location = .topTrailing
+        GKAccessPoint.shared.showHighlights = false
+        GKAccessPoint.shared.isActive = accessPointWanted && isAuthenticated
+    }
+
+    /// Pure routing — which scores land on which boards — split out so tests
+    /// don't need GameKit. Daily scores go to both the classic all-time board
+    /// and the weekly recurring one.
+    static func leaderboardEntries(for game: GameState) -> [(score: Int, board: String)] {
+        var entries: [(score: Int, board: String)] = [(game.bestTile, bestTileLeaderboardID)]
         switch game.mode {
         case .endless:
-            entries.append((game.score, Self.endlessLeaderboardID))
+            entries.append((game.score, endlessLeaderboardID))
         case .daily:
-            entries.append((game.score, Self.dailyLeaderboardID))
+            entries.append((game.score, dailyLeaderboardID))
+            entries.append((game.score, dailyWeeklyLeaderboardID))
         case .zen:
-            entries.append((game.bestTile, Self.zenTileLeaderboardID))
+            entries.append((game.bestTile, zenTileLeaderboardID))
         case .sprint:
-            entries.append((game.score, Self.sprintLeaderboardID))
+            entries.append((game.score, sprintLeaderboardID))
         }
-        for (score, board) in entries {
-            GKLeaderboard.submitScore(
-                score, context: 0, player: GKLocalPlayer.local,
-                leaderboardIDs: [board]
-            ) { _ in }
+        return entries
+    }
+
+    func submit(game: GameState) {
+        guard isAuthenticated else { return }
+        for entry in Self.leaderboardEntries(for: game) {
+            if entry.board == Self.dailyWeeklyLeaderboardID {
+                // Occurrence-scoped submit: a late-arriving network call must
+                // not leak last week's score into the new occurrence.
+                GKLeaderboard.loadLeaderboards(IDs: [entry.board]) { boards, _ in
+                    boards?.first?.submitScore(
+                        entry.score, context: 0, player: GKLocalPlayer.local
+                    ) { _ in }
+                }
+            } else {
+                GKLeaderboard.submitScore(
+                    entry.score, context: 0, player: GKLocalPlayer.local,
+                    leaderboardIDs: [entry.board]
+                ) { _ in }
+            }
         }
         reportAchievements(for: game)
     }

@@ -3,6 +3,7 @@ import GravitileKit
 
 struct StatsScreen: View {
     @Environment(AppModel.self) private var appModel
+    @State private var showLeaderboards = false
 
     var body: some View {
         ScrollView {
@@ -25,15 +26,38 @@ struct StatsScreen: View {
                     stat("\(appModel.persisted.stats.totalCascades)", "Cascades")
                 }
 
+                HStack(spacing: 0) {
+                    stat("\(appModel.persisted.bestSprintScore)", "Sprint best")
+                    stat("\(appModel.persisted.bestZenTile)", "Zen best tile")
+                    stat("\(appModel.persisted.stats.totalScore)", "Total score")
+                }
+
                 dailyStrip
 
                 streakSection
+
+                if appModel.gameCenter.isAuthenticated {
+                    Button {
+                        appModel.sounds.tap()
+                        showLeaderboards = true
+                    } label: {
+                        Label("Game Center Leaderboards", systemImage: "trophy.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityIdentifier("leaderboardsButton")
+                }
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)
+            .padding(.bottom, 24)
         }
         .background(Theme.bgDeep)
         .navigationTitle("Stats")
+        .sheet(isPresented: $showLeaderboards) {
+            GameCenterView()
+                .ignoresSafeArea()
+        }
     }
 
     private func stat(_ value: String, _ label: String) -> some View {

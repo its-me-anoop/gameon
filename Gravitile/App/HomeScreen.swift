@@ -93,6 +93,9 @@ struct HomeScreen: View {
             .padding(.horizontal, 28)
             .frame(maxWidth: 620, maxHeight: 900)
         }
+        // The floating Game Center pill belongs on the menu, never mid-game.
+        .onAppear { appModel.gameCenter.setAccessPointActive(true) }
+        .onDisappear { appModel.gameCenter.setAccessPointActive(false) }
     }
 
     private var hasEndlessInProgress: Bool {

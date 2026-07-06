@@ -40,6 +40,7 @@
 		8B02C4E4066E34A2BA73A377 /* JuiceLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414D70020772B7B1EA079642 /* JuiceLogicTests.swift */; };
 		8C0E242EDE84B0722281F1DE /* StreakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD9E32F3D56261309546552 /* StreakTests.swift */; };
 		9D29134042F3C69B8735BD00 /* land.wav in Resources */ = {isa = PBXBuildFile; fileRef = FD348DE0BD108B34E0D11702 /* land.wav */; };
+		9ECF7491B529A6723E423041 /* GameCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB21543C9E14013117C1B5D8 /* GameCenterView.swift */; };
 		9F5E400912545F6479F5EBD0 /* AnimationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89433D6D1BE9C1B7ADF81B38 /* AnimationPlanner.swift */; };
 		A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F2CE7D364AC8AF305BDC24 /* GameViewModel.swift */; };
 		B638FA3F3BB8DC56C520A5B9 /* GameCenterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D125B2774AF7E398DA3610 /* GameCenterService.swift */; };
@@ -57,6 +58,7 @@
 		DF0514D57F2B376E360DE201 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F09FCFFCFADE4995BF2530E /* HomeScreen.swift */; };
 		F4BF5D4578793CECB96A940C /* merge1.wav in Resources */ = {isa = PBXBuildFile; fileRef = 668728F0BF60B0989D17A7F8 /* merge1.wav */; };
 		FC01E16CB3B0DEA1CEE6B9CC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA96A4FE6B2A7105134A92B /* PaywallView.swift */; };
+		FDA395FE5B5BCB0F9FDBE042 /* GameCenterRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CE0A271A03FA6F7D2D9183 /* GameCenterRoutingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,6 +123,8 @@
 		BDA387808ED5D620D5EC0DF9 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		BF40978777AFB66509D68B91 /* GameScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScreen.swift; sourceTree = "<group>"; };
 		C47D0C813A0CB8F38AC6CCF4 /* GravitileUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GravitileUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4CE0A271A03FA6F7D2D9183 /* GameCenterRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterRoutingTests.swift; sourceTree = "<group>"; };
+		CB21543C9E14013117C1B5D8 /* GameCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterView.swift; sourceTree = "<group>"; };
 		CD799480E6D14BFF2FE8EA6F /* StoreConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreConfigurationTests.swift; sourceTree = "<group>"; };
 		D042DCA8EAA91D97E5222414 /* milestone.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = milestone.wav; sourceTree = "<group>"; };
 		D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Unbounded-OFL.txt"; sourceTree = "<group>"; };
@@ -198,6 +202,7 @@
 		32D0BD58083C00399ECBB0EB /* GravitileTests */ = {
 			isa = PBXGroup;
 			children = (
+				C4CE0A271A03FA6F7D2D9183 /* GameCenterRoutingTests.swift */,
 				414D70020772B7B1EA079642 /* JuiceLogicTests.swift */,
 				76A7F90B58E4FA4FB359F714 /* ModeLifecycleTests.swift */,
 				6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */,
@@ -254,6 +259,7 @@
 			isa = PBXGroup;
 			children = (
 				E6D125B2774AF7E398DA3610 /* GameCenterService.swift */,
+				CB21543C9E14013117C1B5D8 /* GameCenterView.swift */,
 				A070AD2BA84FDD1C349F8918 /* HapticsService.swift */,
 				7D3C236B91544628708A1928 /* PersistenceService.swift */,
 				E5E75D7FC53DC6ECE0D9688C /* SoundService.swift */,
@@ -457,6 +463,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FDA395FE5B5BCB0F9FDBE042 /* GameCenterRoutingTests.swift in Sources */,
 				8B02C4E4066E34A2BA73A377 /* JuiceLogicTests.swift in Sources */,
 				6BA2189E0C17F8860EAAECB6 /* ModeLifecycleTests.swift in Sources */,
 				C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */,
@@ -475,6 +482,7 @@
 				B9BFCBA9F141AE267C76207F /* BoardView.swift in Sources */,
 				637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */,
 				B638FA3F3BB8DC56C520A5B9 /* GameCenterService.swift in Sources */,
+				9ECF7491B529A6723E423041 /* GameCenterView.swift in Sources */,
 				5B2D7315D75392F48DFF4C92 /* GameScreen.swift in Sources */,
 				A6D2784CCDE4BF84BCC6BFA9 /* GameViewModel.swift in Sources */,
 				D3A7D3E19545A0189C7F7820 /* GravitileApp.swift in Sources */,
