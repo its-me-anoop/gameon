@@ -3,9 +3,24 @@ import GravitileKit
 
 struct Settings: Codable, Equatable {
     var soundOn = true
+    var musicOn = true
     var hapticsOn = true
     var themeID = "ember"
     var hasSeenTutorial = false
+
+    init() {}
+
+    /// Hand-written so files from older app versions (missing newer keys)
+    /// decode with defaults instead of throwing — a decode throw in load()
+    /// falls back to a fresh state, which must never cost a player their data.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        soundOn = try c.decodeIfPresent(Bool.self, forKey: .soundOn) ?? true
+        musicOn = try c.decodeIfPresent(Bool.self, forKey: .musicOn) ?? true
+        hapticsOn = try c.decodeIfPresent(Bool.self, forKey: .hapticsOn) ?? true
+        themeID = try c.decodeIfPresent(String.self, forKey: .themeID) ?? "ember"
+        hasSeenTutorial = try c.decodeIfPresent(Bool.self, forKey: .hasSeenTutorial) ?? false
+    }
 }
 
 struct DailyRecord: Codable, Equatable {
@@ -72,12 +87,35 @@ struct LifetimeStats: Codable, Equatable {
 struct PersistedState: Codable, Equatable {
     var endlessGame: GameState?
     var dailyGame: GameState?
+    var zenGame: GameState?
+    var sprintGame: GameState?
     var bestEndlessScore = 0
+    var bestZenTile = 0
+    var bestSprintScore = 0
     var bestTileEver = 0
     var dailyRecords: [Int: DailyRecord] = [:]
     var streak = StreakState()
     var stats = LifetimeStats()
     var settings = Settings()
+
+    init() {}
+
+    /// Same rationale as Settings: missing keys (older files) take defaults.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        endlessGame = try c.decodeIfPresent(GameState.self, forKey: .endlessGame)
+        dailyGame = try c.decodeIfPresent(GameState.self, forKey: .dailyGame)
+        zenGame = try c.decodeIfPresent(GameState.self, forKey: .zenGame)
+        sprintGame = try c.decodeIfPresent(GameState.self, forKey: .sprintGame)
+        bestEndlessScore = try c.decodeIfPresent(Int.self, forKey: .bestEndlessScore) ?? 0
+        bestZenTile = try c.decodeIfPresent(Int.self, forKey: .bestZenTile) ?? 0
+        bestSprintScore = try c.decodeIfPresent(Int.self, forKey: .bestSprintScore) ?? 0
+        bestTileEver = try c.decodeIfPresent(Int.self, forKey: .bestTileEver) ?? 0
+        dailyRecords = try c.decodeIfPresent([Int: DailyRecord].self, forKey: .dailyRecords) ?? [:]
+        streak = try c.decodeIfPresent(StreakState.self, forKey: .streak) ?? StreakState()
+        stats = try c.decodeIfPresent(LifetimeStats.self, forKey: .stats) ?? LifetimeStats()
+        settings = try c.decodeIfPresent(Settings.self, forKey: .settings) ?? Settings()
+    }
 }
 
 /// JSON file persistence with a versioned envelope so future schema changes

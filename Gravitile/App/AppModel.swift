@@ -61,12 +61,54 @@ final class AppModel {
         return game
     }
 
+    /// Resumes the saved zen game, or starts a fresh one.
+    func zenGame() -> GameState {
+        if let saved = persisted.zenGame, !saved.isGameOver { return saved }
+        return newZenGame()
+    }
+
+    func newZenGame() -> GameState {
+        let game = GameState(mode: .zen, seed: UInt64.random(in: UInt64.min...UInt64.max))
+        persisted.zenGame = game
+        save()
+        return game
+    }
+
+    /// Resumes the saved sprint game, or starts a fresh one.
+    func sprintGame() -> GameState {
+        if let saved = persisted.sprintGame, !saved.isGameOver { return saved }
+        return newSprintGame()
+    }
+
+    func newSprintGame() -> GameState {
+        let game = GameState(mode: .sprint, seed: UInt64.random(in: UInt64.min...UInt64.max))
+        persisted.sprintGame = game
+        save()
+        return game
+    }
+
+    /// "New Game" from inside a running game keeps the player in their mode.
+    func newGame(like mode: GameMode) -> GameState {
+        switch mode {
+        case .endless: newEndlessGame()
+        case .zen: newZenGame()
+        case .sprint: newSprintGame()
+        case .daily: dailyGame(puzzleNumber: todayPuzzleNumber)
+        }
+    }
+
     /// Called continuously as the game progresses so force-quits lose nothing.
     func checkpoint(_ game: GameState) {
         switch game.mode {
         case .endless:
             persisted.endlessGame = game
             persisted.bestEndlessScore = max(persisted.bestEndlessScore, game.score)
+        case .zen:
+            persisted.zenGame = game
+            persisted.bestZenTile = max(persisted.bestZenTile, game.bestTile)
+        case .sprint:
+            persisted.sprintGame = game
+            persisted.bestSprintScore = max(persisted.bestSprintScore, game.score)
         case .daily:
             persisted.dailyGame = game
         }
@@ -84,6 +126,12 @@ final class AppModel {
         case .endless:
             persisted.bestEndlessScore = max(persisted.bestEndlessScore, game.score)
             persisted.endlessGame = nil
+        case .zen:
+            persisted.bestZenTile = max(persisted.bestZenTile, game.bestTile)
+            persisted.zenGame = nil
+        case .sprint:
+            persisted.bestSprintScore = max(persisted.bestSprintScore, game.score)
+            persisted.sprintGame = nil
         case let .daily(puzzleNumber, _):
             persisted.dailyRecords[puzzleNumber] = DailyRecord(
                 puzzleNumber: puzzleNumber, score: game.score, bestTile: game.bestTile,

@@ -8,6 +8,9 @@ final class GameCenterService {
     static let endlessLeaderboardID = "grv.endless.best"
     static let dailyLeaderboardID = "grv.daily.score"
     static let bestTileLeaderboardID = "grv.best.tile"
+    static let zenTileLeaderboardID = "grv.zen.tile"
+    static let sprintLeaderboardID = "grv.sprint.best"
+    static let dailyWeeklyLeaderboardID = "grv.daily.weekly"
 
     private(set) var isAuthenticated = false
 
@@ -37,6 +40,10 @@ final class GameCenterService {
             entries.append((game.score, Self.endlessLeaderboardID))
         case .daily:
             entries.append((game.score, Self.dailyLeaderboardID))
+        case .zen:
+            entries.append((game.bestTile, Self.zenTileLeaderboardID))
+        case .sprint:
+            entries.append((game.score, Self.sprintLeaderboardID))
         }
         for (score, board) in entries {
             GKLeaderboard.submitScore(

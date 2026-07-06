@@ -50,6 +50,28 @@ struct HomeScreen: View {
                         dailyCard
                     }
                     .accessibilityIdentifier("playDaily")
+
+                    // Two compact chips, a deliberate visual step down from the
+                    // full-width cards above — modes, not the main event.
+                    HStack(spacing: 14) {
+                        NavigationLink(value: Route.zen) {
+                            modeChip(
+                                title: "Zen",
+                                subtitle: "No clock. No pressure.",
+                                systemImage: "leaf.fill"
+                            )
+                        }
+                        .accessibilityIdentifier("playZen")
+
+                        NavigationLink(value: Route.sprint) {
+                            modeChip(
+                                title: "Sprint",
+                                subtitle: "60 moves. Go big.",
+                                systemImage: "bolt.fill"
+                            )
+                        }
+                        .accessibilityIdentifier("playSprint")
+                    }
                 }
 
                 Spacer(minLength: 24)
@@ -107,6 +129,28 @@ struct HomeScreen: View {
         )
     }
 
+    private func modeChip(title: String, subtitle: String, systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.accent)
+                Text(title)
+                    .font(Theme.display(15, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            Text(subtitle)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.cellWell))
+    }
+
     private var dailySubtitle: String {
         if let record = appModel.todayRecord {
             return "Done — \(record.score) points. Archive inside."
@@ -117,6 +161,8 @@ struct HomeScreen: View {
 
 enum Route: Hashable {
     case endless
+    case zen
+    case sprint
     case daily
     case dailyPuzzle(Int)
     case stats

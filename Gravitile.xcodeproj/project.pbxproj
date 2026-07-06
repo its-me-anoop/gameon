@@ -27,6 +27,7 @@
 		5C771ACF8379AB3B56D1D8F4 /* Unbounded-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = D6B69F0E760A1AFA51F67DC6 /* Unbounded-OFL.txt */; };
 		637606AB76C7550290E774C3 /* DailyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AAD23A57F87D744C4F104B /* DailyScreen.swift */; };
 		6AA0C08A585D081538C2DF90 /* Gravitile.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 07AFA388A975DF746C3A84E3 /* Gravitile.storekit */; };
+		6BA2189E0C17F8860EAAECB6 /* ModeLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A7F90B58E4FA4FB359F714 /* ModeLifecycleTests.swift */; };
 		70D22CC3C09507B5FD84A54D /* Unbounded.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ED1AC6BE287F5FE429F96E69 /* Unbounded.ttf */; };
 		7CABDA1241294A2E79A8263A /* fanfare.wav in Resources */ = {isa = PBXBuildFile; fileRef = BBA685458A62BAB7C0CED357 /* fanfare.wav */; };
 		7D9F3AAFE9FFFBD86DC61C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3C236B91544628708A1928 /* PersistenceService.swift */; };
@@ -91,6 +92,7 @@
 		6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
 		668728F0BF60B0989D17A7F8 /* merge1.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = merge1.wav; sourceTree = "<group>"; };
 		7431D4D021A345983288F612 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
+		76A7F90B58E4FA4FB359F714 /* ModeLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeLifecycleTests.swift; sourceTree = "<group>"; };
 		79AAD23A57F87D744C4F104B /* DailyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyScreen.swift; sourceTree = "<group>"; };
 		7A6D41F3ABBA24937F7E8E7E /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		7D3C236B91544628708A1928 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 		32D0BD58083C00399ECBB0EB /* GravitileTests */ = {
 			isa = PBXGroup;
 			children = (
+				76A7F90B58E4FA4FB359F714 /* ModeLifecycleTests.swift */,
 				6588BD0F2BBA03843BE4BA79 /* PersistenceTests.swift */,
 				CD799480E6D14BFF2FE8EA6F /* StoreConfigurationTests.swift */,
 				590E969DCB31090727B05D1C /* StoreTests.swift */,
@@ -424,6 +427,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6BA2189E0C17F8860EAAECB6 /* ModeLifecycleTests.swift in Sources */,
 				C50D38200F908964B7092CDC /* PersistenceTests.swift in Sources */,
 				D32DC3E6E8BB58D3EA2C36EA /* StoreConfigurationTests.swift in Sources */,
 				C83FA83820B6B8AB2FC23B64 /* StoreTests.swift in Sources */,

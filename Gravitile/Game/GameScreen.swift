@@ -132,20 +132,40 @@ struct GameScreen: View {
             }
             .accessibilityLabel("Back")
             .accessibilityIdentifier("exitGame")
-            Text(isDaily ? "Daily #\(dailyNumber)" : "Gravitile")
+            Text(modeTitle)
                 .font(Theme.display(20))
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
             HStack(spacing: 22) {
                 ScoreBadge(title: "Score", value: viewModel.game.score, emphasized: true)
                     .accessibilityIdentifier("score")
-                ScoreBadge(
-                    title: "Best",
-                    value: isDaily
-                        ? max(appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0, viewModel.game.score)
-                        : max(appModel.persisted.bestEndlessScore, viewModel.game.score)
-                )
+                ScoreBadge(title: bestBadgeTitle, value: bestBadgeValue)
             }
+        }
+    }
+
+    private var modeTitle: String {
+        switch viewModel.game.mode {
+        case .endless: "Gravitile"
+        case .zen: "Zen"
+        case .sprint: "Sprint"
+        case .daily: "Daily #\(dailyNumber)"
+        }
+    }
+
+    /// Zen has no meaningful score ceiling (games can run forever), so its
+    /// personal best is the tile chase; every other mode competes on score.
+    private var bestBadgeTitle: String {
+        if case .zen = viewModel.game.mode { return "Best Tile" }
+        return "Best"
+    }
+
+    private var bestBadgeValue: Int {
+        switch viewModel.game.mode {
+        case .endless: max(appModel.persisted.bestEndlessScore, viewModel.game.score)
+        case .zen: max(appModel.persisted.bestZenTile, viewModel.game.bestTile)
+        case .sprint: max(appModel.persisted.bestSprintScore, viewModel.game.score)
+        case .daily: max(appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0, viewModel.game.score)
         }
     }
 
@@ -183,7 +203,7 @@ struct GameScreen: View {
 
             if !isDaily {
                 Button {
-                    startNewEndlessGame()
+                    startNewGame()
                 } label: {
                     Label("New", systemImage: "plus")
                 }
@@ -215,15 +235,15 @@ struct GameScreen: View {
         if isDaily {
             dismiss()
         } else {
-            startNewEndlessGame()
+            startNewGame()
         }
     }
 
-    private func startNewEndlessGame() {
+    private func startNewGame() {
         finishGameIfOver()
         withAnimation(.spring(duration: 0.3)) { showGameOver = false }
         gameEndRecorded = false
-        viewModel.replace(game: appModel.newEndlessGame())
+        viewModel.replace(game: appModel.newGame(like: viewModel.game.mode))
     }
 
     private func finishGameIfOver() {

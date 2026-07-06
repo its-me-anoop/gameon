@@ -21,6 +21,8 @@ struct RootView: View {
             // screenshot capture, or into endless for the auto-player.
             switch ProcessInfo.processInfo.environment["GRAVITILE_ROUTE"] {
             case "endless": path = [.endless]
+            case "zen": path = [.zen]
+            case "sprint": path = [.sprint]
             case "daily": path = [.daily]
             case "stats": path = [.stats]
             case "paywall": path = [.paywall]
@@ -39,6 +41,16 @@ struct RootView: View {
         case .endless:
             GameScreen(
                 game: appModel.endlessGame(),
+                freeUndoLimit: Entitlements.maxUndosPerGame(isPlus: appModel.isPlus)
+            )
+        case .zen:
+            GameScreen(
+                game: appModel.zenGame(),
+                freeUndoLimit: Entitlements.maxUndosPerGame(isPlus: appModel.isPlus)
+            )
+        case .sprint:
+            GameScreen(
+                game: appModel.sprintGame(),
                 freeUndoLimit: Entitlements.maxUndosPerGame(isPlus: appModel.isPlus)
             )
         case .daily:

@@ -107,8 +107,11 @@ struct GameOverOverlay: View {
     }
 
     private var titleText: String {
-        if case .daily = game.mode { return "Daily Done" }
-        return "Board Locked"
+        switch game.mode {
+        case .daily: "Daily Done"
+        case .sprint: game.hasLegalMove ? "Out of Moves" : "Board Locked"
+        case .endless, .zen: "Board Locked"
+        }
     }
 }
 
