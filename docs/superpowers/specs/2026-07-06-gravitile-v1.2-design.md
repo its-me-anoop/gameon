@@ -142,13 +142,13 @@ boulder and normal spawns**).
 
 ### 4.3 Stats (D)
 
-- **Records block** (per current mode segment picker: All · Endless · Zen ·
-  Sprint · Daily): six big tabular numerals — Best Score, Best Tile, Deepest
-  Cascade (now tracked), Total Cascades, Games, Total Score. Flat rows, no cards.
+- **Records block**: six big tabular numerals — Best Score, Sprint Best, Zen
+  Best Tile, Best Tile Ever, Deepest Cascade (now tracked), Longest Streak.
+  Flat rows, no cards. (As-built: global block with per-mode bests instead of
+  a segment picker — same six records, less state.)
 - **Daily section**: score distribution histogram of the player's own daily
-  results (8 buckets, log-ish), today's bar highlighted in accent; percentile
-  line "Top N% this week" from the weekly GC board (rank/total via
-  `loadEntries`) when authenticated, hidden otherwise. Last-30 strip becomes a
+  results (8 buckets of 500), today's bar highlighted in accent. The GC weekly
+  percentile line is **deferred to v1.3**. Last-30 strip becomes a
   tappable **monthly calendar** — completed days filled, "clean" days (no undo,
   budget kept) gold-ringed; tapping a past day routes to the archive (Plus) or
   paywall tease (free), today routes to play.
