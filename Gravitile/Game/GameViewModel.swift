@@ -9,6 +9,8 @@ struct TileViewState: Identifiable, Equatable {
     var coordinate: Coordinate
     var scale: CGFloat = 1
     var opacity: Double = 1
+    /// Boulder ice HP; 0 renders a normal tile.
+    var ice: Int = 0
 }
 
 @Observable @MainActor
@@ -29,6 +31,10 @@ final class GameViewModel {
     private(set) var boardNudge: CGSize = .zero
     /// Milestone value currently being celebrated (first 256/512/… of a game).
     private(set) var celebrationValue: Int?
+    /// The celebrated milestone also banked a stasis charge (endless only).
+    private(set) var celebrationEarnedCharge = false
+    /// Stasis is armed: the next swipe holds gravity in place.
+    private(set) var stasisArmed = false
     private var milestones: MilestoneTracker
     private var nextPopID = 0
     /// Bumped whenever the board is wholesale replaced (new game, undo).
@@ -40,6 +46,8 @@ final class GameViewModel {
     var onRotation: (() -> Void)?       // gravity turned — whoosh + tick
     var onLanding: (() -> Void)?        // a fall settled — thock
     var onMilestone: ((Int) -> Void)?   // first big tile of the game
+    var onIceChip: ((Int) -> Void)?     // hpAfter; 0 = shattered free
+    var onBoulderSpawned: (() -> Void)? // first-sighting hint hook
     var onGameOver: (() -> Void)?
     var onMoveCommitted: ((GameState) -> Void)?   // checkpoint persistence
 
@@ -63,10 +71,24 @@ final class GameViewModel {
 
     func handleSwipe(_ direction: Direction) {
         guard !isAnimating, !game.isGameOver else { return }
-        guard let result = game.applyMove(direction) else { return }
+        let useStasis = stasisArmed && game.canUseStasis
+        let chargesBefore = game.stasisCharges
+        guard let result = game.applyMove(direction, stasis: useStasis) else { return }
+        stasisArmed = false
+        celebrationEarnedCharge = game.stasisCharges > chargesBefore
         lastCascadeHighlight = result.phases.filter { !$0.merges.isEmpty }.map(\.round).max() ?? 0
         onMoveCommitted?(game)
         Task { await animate(result) }
+    }
+
+    /// Arm/disarm stasis for the next swipe. No-ops (and disarms) when the
+    /// mode forbids it or no charge is banked.
+    func toggleStasis() {
+        guard game.canUseStasis, !game.isGameOver else {
+            stasisArmed = false
+            return
+        }
+        stasisArmed.toggle()
     }
 
     func undoTapped() {
@@ -86,6 +108,8 @@ final class GameViewModel {
         milestones = MilestoneTracker(alreadyReached: newGame.bestTile)
         scorePops = []
         celebrationValue = nil
+        celebrationEarnedCharge = false
+        stasisArmed = false
         withAnimation(.easeInOut(duration: 0.25)) {
             syncTilesToBoard()
         }
@@ -173,17 +197,34 @@ final class GameViewModel {
 
         case let .gravityCue(direction):
             // The compass observes game.gravity directly; here the board leans
-            // toward the new edge so the turn is felt, not just seen.
+            // toward the new edge so the turn is felt, not just seen. (Stasis
+            // moves never reach here — the planner emits no cue for them.)
             onRotation?()
             withAnimation(.easeOut(duration: AnimationPlanner.cueDuration)) {
                 boardNudge = direction.nudgeOffset
             }
 
+        case let .iceChips(hits):
+            for hit in hits {
+                if let index = tiles.firstIndex(where: { $0.id == hit.tileID }) {
+                    tiles[index].ice = hit.hpAfter
+                    pulse(tileID: hit.tileID)
+                }
+                if hit.hpAfter == 0 {
+                    burstCells.append((hit.at, 1))
+                }
+                onIceChip?(hit.hpAfter)
+            }
+
         case let .spawn(spawns):
+            if spawns.contains(where: { $0.tile.ice > 0 }) {
+                onBoulderSpawned?()
+            }
             for spawn in spawns {
                 var tile = TileViewState(id: spawn.tile.id, value: spawn.tile.value, coordinate: spawn.enteredAt)
                 tile.scale = 0.4
                 tile.opacity = 0.4
+                tile.ice = spawn.tile.ice
                 tiles.append(tile)
             }
             withAnimation(.spring(duration: AnimationPlanner.spawnDuration, bounce: 0.2)) {
@@ -232,6 +273,17 @@ final class GameViewModel {
         }
     }
 
+    /// Quick chip pulse on a boulder, generation-guarded like the squash.
+    private func pulse(tileID: Int) {
+        let generation = boardGeneration
+        withAnimation(.easeOut(duration: 0.05)) { setScale(1.08, for: [tileID]) }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.06))
+            guard generation == boardGeneration else { return }
+            withAnimation(.spring(duration: 0.15, bounce: 0.4)) { setScale(1, for: [tileID]) }
+        }
+    }
+
     private func checkMilestone() {
         guard let value = milestones.newlyReached(bestTile: game.bestTile) else { return }
         withAnimation(.spring(duration: 0.35, bounce: 0.4)) { celebrationValue = value }
@@ -246,7 +298,7 @@ final class GameViewModel {
 
     private func syncTilesToBoard() {
         tiles = game.board.tiles.map { coordinate, tile in
-            TileViewState(id: tile.id, value: tile.value, coordinate: coordinate)
+            TileViewState(id: tile.id, value: tile.value, coordinate: coordinate, ice: tile.ice)
         }
     }
 }

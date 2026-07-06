@@ -59,8 +59,9 @@ import GravitileKit
         #expect(loaded.stats.gamesPlayed == 10)
         #expect(loaded.settings.soundOn == false)
         #expect(loaded.settings.hasSeenTutorial == true)
-        // v1.1 additions default sanely instead of failing the decode.
+        // v1.1/v1.2 additions default sanely instead of failing the decode.
         #expect(loaded.settings.musicOn == true)
+        #expect(loaded.settings.hasSeenBoulderHint == false)
         #expect(loaded.zenGame == nil)
         #expect(loaded.sprintGame == nil)
         #expect(loaded.bestZenTile == 0)

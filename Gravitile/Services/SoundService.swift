@@ -20,6 +20,7 @@ final class SoundService {
             "merge1", "merge2", "merge3", "merge4", "merge5",
             "slide", "gameover", "fanfare",
             "whoosh", "land", "tap", "milestone", "newbest",
+            "chip", "shatter",
         ]
         for name in effects {
             if let url = Bundle.main.url(forResource: name, withExtension: "wav"),
@@ -50,6 +51,8 @@ final class SoundService {
     func tap() { play("tap") }
     func milestone() { play("milestone") }
     func newBest() { play("newbest") }
+    func chip() { play("chip") }
+    func shatter() { play("shatter") }
 
     // MARK: - Music
 

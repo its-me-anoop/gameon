@@ -28,7 +28,7 @@ struct BoardView: View {
 
                 // Tiles
                 ForEach(viewModel.tiles) { tile in
-                    TileView(value: tile.value, size: cell)
+                    TileView(value: tile.value, size: cell, ice: tile.ice)
                         .scaleEffect(tile.scale)
                         .opacity(tile.opacity)
                         .position(center(of: tile.coordinate, cell: cell, side: side))
@@ -97,13 +97,18 @@ struct BoardView: View {
 struct TileView: View {
     let value: Int
     let size: CGFloat
+    /// Boulder ice HP; 0 renders a normal tile, 1 a cracked shell, 2 intact.
+    var ice: Int = 0
 
     var body: some View {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(Theme.tileColor(for: value))
+            .fill(ice > 0 ? Theme.frost.opacity(0.28) : Theme.tileColor(for: value))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                    .strokeBorder(
+                        ice > 0 ? Theme.frost.opacity(0.9) : .white.opacity(0.12),
+                        style: StrokeStyle(lineWidth: ice > 0 ? 2 : 1, dash: ice == 1 ? [5, 3] : [])
+                    )
             )
             .overlay(
                 Text("\(value)")
@@ -111,9 +116,19 @@ struct TileView: View {
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .padding(4)
-                    .foregroundStyle(Theme.tileTextColor(for: value))
+                    .foregroundStyle(ice > 0 ? Theme.frost : Theme.tileTextColor(for: value))
             )
+            .overlay(alignment: .topTrailing) {
+                if ice > 0 {
+                    Image(systemName: "snowflake")
+                        .font(.system(size: size * 0.18, weight: .bold))
+                        .foregroundStyle(Theme.frost)
+                        .padding(size * 0.07)
+                        .opacity(ice >= 2 ? 1 : 0.55)
+                }
+            }
             .frame(width: size, height: size)
+            .accessibilityLabel(ice > 0 ? "Iced tile \(value), \(ice) hits to free" : "Tile \(value)")
     }
 
     private var numeralSize: CGFloat {

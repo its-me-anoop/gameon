@@ -13,6 +13,7 @@ struct GameScreen: View {
     /// a one-time sting; nil until first wired.
     @State private var sessionStartBest: Int?
     @State private var newBestCelebrated = false
+    @State private var showBoulderHint = false
 
     init(game: GameState, freeUndoLimit: Int) {
         _viewModel = State(initialValue: GameViewModel(game: game, freeUndoLimit: freeUndoLimit))
@@ -41,8 +42,12 @@ struct GameScreen: View {
 
                 Spacer(minLength: 16)
 
-                GravityCompass(current: viewModel.game.gravity, next: viewModel.game.gravity.rotatedClockwise)
-                    .padding(.bottom, 14)
+                GravityCompass(
+                    current: viewModel.game.gravity,
+                    next: viewModel.game.gravity.rotatedClockwise,
+                    locked: viewModel.stasisArmed
+                )
+                .padding(.bottom, 14)
 
                 BoardView(viewModel: viewModel) { direction in
                     viewModel.handleSwipe(direction)
@@ -50,9 +55,33 @@ struct GameScreen: View {
                 .padding(.horizontal, 16)
                 .overlay {
                     if let value = viewModel.celebrationValue {
-                        MilestoneCelebration(value: value)
-                            .transition(.scale(scale: 0.6).combined(with: .opacity))
-                            .allowsHitTesting(false)
+                        MilestoneCelebration(
+                            value: value,
+                            earnedCharge: viewModel.celebrationEarnedCharge
+                        )
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .allowsHitTesting(false)
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    if showBoulderHint {
+                        HStack(spacing: 10) {
+                            Image(systemName: "snowflake")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Theme.frost)
+                            Text("Ice never merges — merge beside it to crack it free.")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Theme.textPrimary)
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Theme.cellWell)
+                                .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+                        )
+                        .padding(.bottom, 8)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .allowsHitTesting(false)
                     }
                 }
 
@@ -129,6 +158,26 @@ struct GameScreen: View {
         viewModel.onMilestone = { _ in
             appModel.haptics.milestone()
             appModel.sounds.milestone()
+        }
+        viewModel.onIceChip = { hpAfter in
+            if hpAfter == 0 {
+                appModel.haptics.shatter()
+                appModel.sounds.shatter()
+            } else {
+                appModel.haptics.iceChip()
+                appModel.sounds.chip()
+            }
+        }
+        viewModel.onBoulderSpawned = {
+            guard !appModel.settings.hasSeenBoulderHint else { return }
+            var settings = appModel.settings
+            settings.hasSeenBoulderHint = true
+            appModel.settings = settings
+            withAnimation(.easeOut(duration: 0.3)) { showBoulderHint = true }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(6))
+                withAnimation(.easeOut(duration: 0.3)) { showBoulderHint = false }
+            }
         }
         viewModel.onMoveCommitted = { game in
             appModel.checkpoint(game)
@@ -252,6 +301,24 @@ struct GameScreen: View {
             .opacity(viewModel.canUndo ? 1 : 0.4)
             .accessibilityIdentifier("undoButton")
 
+            if showsStasis {
+                Button {
+                    appModel.sounds.tap()
+                    viewModel.toggleStasis()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: viewModel.stasisArmed ? "pause.circle.fill" : "pause.circle")
+                        Text(stasisLabel)
+                    }
+                }
+                .buttonStyle(StasisButtonStyle(armed: viewModel.stasisArmed))
+                .disabled(!viewModel.game.canUseStasis && !viewModel.stasisArmed)
+                .opacity(viewModel.game.canUseStasis || viewModel.stasisArmed ? 1 : 0.4)
+                .accessibilityLabel(viewModel.stasisArmed ? "Stasis armed" : "Stasis")
+                .accessibilityIdentifier("stasisButton")
+                .padding(.leading, 10)
+            }
+
             Spacer()
 
             if viewModel.lastCascadeHighlight >= 2 {
@@ -275,6 +342,20 @@ struct GameScreen: View {
                 .accessibilityIdentifier("newGameButton")
             }
         }
+    }
+
+    /// Stasis appears only where the engine allows it (endless + zen).
+    private var showsStasis: Bool {
+        switch viewModel.game.mode {
+        case .endless, .zen: true
+        case .daily, .sprint: false
+        }
+    }
+
+    /// Zen holds gravity freely; endless shows the banked charges.
+    private var stasisLabel: String {
+        if case .zen = viewModel.game.mode { return "Hold" }
+        return "Hold (\(viewModel.game.stasisCharges))"
     }
 
     /// Plus users have unlimited undo — no point showing a 19-digit counter.
@@ -357,17 +438,30 @@ struct ScorePopView: View {
 /// Full-board flourish for the first 256/512/… of a game.
 struct MilestoneCelebration: View {
     let value: Int
+    var earnedCharge = false
 
     var body: some View {
         ZStack {
             ParticleBurstView(round: 5, milestone: true)
                 .frame(width: 260, height: 260)
-            Text("\(value)!")
-                .font(Theme.display(46))
-                .foregroundStyle(Theme.accent)
-                .shadow(color: .black.opacity(0.55), radius: 14)
+            VStack(spacing: 6) {
+                Text("\(value)!")
+                    .font(Theme.display(46))
+                    .foregroundStyle(Theme.accent)
+                    .shadow(color: .black.opacity(0.55), radius: 14)
+                if earnedCharge {
+                    Label("+1 Hold", systemImage: "pause.circle.fill")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(Theme.frost)
+                        .shadow(color: .black.opacity(0.55), radius: 10)
+                }
+            }
         }
-        .accessibilityLabel("Milestone: reached tile \(value)")
+        .accessibilityLabel(
+            earnedCharge
+                ? "Milestone: reached tile \(value), earned a stasis hold"
+                : "Milestone: reached tile \(value)"
+        )
     }
 }
 

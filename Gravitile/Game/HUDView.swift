@@ -5,24 +5,39 @@ import GravitileKit
 struct GravityCompass: View {
     let current: Direction
     let next: Direction
+    /// Stasis armed: the world will not turn on the next swipe.
+    var locked = false
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: arrowName(for: current))
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Theme.accent)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
-            Image(systemName: arrowName(for: next))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
+            if locked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.frost)
+                Image(systemName: arrowName(for: current))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.frost)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                Image(systemName: arrowName(for: next))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(Capsule().fill(Theme.bgBoard))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Gravity \(label(for: current)), next \(label(for: next))")
+        .accessibilityLabel(
+            locked
+                ? "Gravity \(label(for: current)), held by stasis"
+                : "Gravity \(label(for: current)), next \(label(for: next))"
+        )
         .accessibilityIdentifier("gravityCompass")
     }
 
@@ -130,6 +145,21 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 13)
             .padding(.horizontal, 18)
             .background(Capsule().fill(Theme.accent))
+            .opacity(configuration.isPressed ? 0.75 : 1)
+    }
+}
+
+/// Stasis reads frost-cold when armed, quiet otherwise.
+struct StasisButtonStyle: ButtonStyle {
+    var armed: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(armed ? Theme.bgDeep : Theme.frost)
+            .padding(.vertical, 13)
+            .padding(.horizontal, 18)
+            .background(Capsule().fill(armed ? Theme.frost : Theme.cellWell))
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }

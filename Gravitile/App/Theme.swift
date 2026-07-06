@@ -14,6 +14,8 @@ enum Theme {
     static let textPrimary = Color(red: 0.9228, green: 0.9358, blue: 0.9567)   // oklch(95% 0.008 260)
     static let textSecondary = Color(red: 0.6283, green: 0.6464, blue: 0.6757) // oklch(72% 0.012 260)
     static let accent = Color(red: 0.9369, green: 0.5224, blue: 0.1805)        // oklch(72% 0.16 55)
+    /// Boulder frost — cool counterpoint to the heat ramp, used only on ice.
+    static let frost = Color(red: 0.6377, green: 0.7817, blue: 0.9032)         // oklch(80% 0.06 240)
 
     // MARK: Tile ramp — heat journey cream → red → violet → teal → lime
 

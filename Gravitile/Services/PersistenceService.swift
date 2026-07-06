@@ -7,6 +7,7 @@ struct Settings: Codable, Equatable {
     var hapticsOn = true
     var themeID = "ember"
     var hasSeenTutorial = false
+    var hasSeenBoulderHint = false
 
     init() {}
 
@@ -20,6 +21,7 @@ struct Settings: Codable, Equatable {
         hapticsOn = try c.decodeIfPresent(Bool.self, forKey: .hapticsOn) ?? true
         themeID = try c.decodeIfPresent(String.self, forKey: .themeID) ?? "ember"
         hasSeenTutorial = try c.decodeIfPresent(Bool.self, forKey: .hasSeenTutorial) ?? false
+        hasSeenBoulderHint = try c.decodeIfPresent(Bool.self, forKey: .hasSeenBoulderHint) ?? false
     }
 }
 

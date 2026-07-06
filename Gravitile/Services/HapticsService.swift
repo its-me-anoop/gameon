@@ -51,6 +51,32 @@ final class HapticsService {
         ])
     }
 
+    /// Ice chipped off a boulder — bright, glassy.
+    func iceChip() {
+        guard isEnabled else { return }
+        play(events: [
+            CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9),
+            ], relativeTime: 0),
+        ])
+    }
+
+    /// The boulder shattered free.
+    func shatter() {
+        guard isEnabled else { return }
+        play(events: [
+            CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.85),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8),
+            ], relativeTime: 0),
+            CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.4),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
+            ], relativeTime: 0.07),
+        ])
+    }
+
     /// First 256/512/1024/… of the game: three rising taps into a short purr.
     func milestone() {
         guard isEnabled else { return }

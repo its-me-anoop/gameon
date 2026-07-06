@@ -10,6 +10,8 @@ enum AnimationStep: Equatable {
     case merges([MergeEvent], round: Int)
     /// The board's gravity indicator flips to the new direction.
     case gravityCue(Direction)
+    /// Boulders chipped by the merges just shown (hpAfter 0 = shattered).
+    case iceChips([IceHit])
     /// Fresh tiles drop in from the entry edge together.
     case spawn([SpawnEvent])
 }
@@ -20,6 +22,7 @@ enum AnimationPlanner {
     static let mergeDuration: TimeInterval = 0.10
     static let spawnDuration: TimeInterval = 0.12
     static let cueDuration: TimeInterval = 0.08
+    static let chipDuration: TimeInterval = 0.12
 
     static func steps(for result: MoveResult) -> [AnimationStep] {
         var steps: [AnimationStep] = []
@@ -29,10 +32,19 @@ enum AnimationPlanner {
         if !result.slide.merges.isEmpty {
             steps.append(.merges(result.slide.merges, round: 0))
         }
-        steps.append(.gravityCue(result.newGravity))
+        if !result.slide.iceHits.isEmpty {
+            steps.append(.iceChips(result.slide.iceHits))
+        }
+        // Stasis holds the world still — no rotation cue to show.
+        if !result.heldGravity {
+            steps.append(.gravityCue(result.newGravity))
+        }
         for phase in result.phases {
             if !phase.merges.isEmpty {
                 steps.append(.merges(phase.merges, round: phase.round))
+            }
+            if !phase.iceHits.isEmpty {
+                steps.append(.iceChips(phase.iceHits))
             }
             if !phase.falls.isEmpty {
                 steps.append(.moves(phase.falls, duration: fallDuration))
@@ -49,6 +61,7 @@ enum AnimationPlanner {
         case let .moves(_, duration): duration
         case .merges: mergeDuration
         case .gravityCue: cueDuration
+        case .iceChips: chipDuration
         case .spawn: spawnDuration
         }
     }

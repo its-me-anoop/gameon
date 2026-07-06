@@ -188,6 +188,17 @@ try writeWAV(mix([
     (0.08, tone(frequency: 1108.7, duration: 0.22, decayRate: 12, gain: 0.45)),
     (0.16, tone(frequency: 1318.5, duration: 0.4, decayRate: 7, detune: 0.003, gain: 0.5)),
 ]), to: outDir.appendingPathComponent("newbest.wav"))
+// Ice chip — bright glassy tick.
+try writeWAV(mix([
+    (0.00, tone(frequency: 2200, duration: 0.06, decayRate: 55, partial: 1.5, partialGain: 0.25, gain: 0.4)),
+    (0.00, noiseSweep(duration: 0.05, gain: 0.10)),
+]), to: outDir.appendingPathComponent("chip.wav"))
+// Ice shatter — glassy burst falling away.
+try writeWAV(mix([
+    (0.00, noiseSweep(duration: 0.16, gain: 0.30)),
+    (0.00, tone(frequency: 1900, duration: 0.12, decayRate: 26, partial: 2.7, partialGain: 0.35, detune: 0.006, gain: 0.4)),
+    (0.05, tone(frequency: 1250, duration: 0.16, decayRate: 20, partial: 2.3, partialGain: 0.3, gain: 0.3)),
+]), to: outDir.appendingPathComponent("shatter.wav"))
 // Ambient loop under gameplay.
 try writeWAV(ambientLoop(), to: outDir.appendingPathComponent("bgm.wav"))
 
