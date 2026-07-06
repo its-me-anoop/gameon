@@ -197,6 +197,67 @@ import Foundation
         }
     }
 
+    /// Byte-for-byte v1.1 saved game (captured before v1.2 fields existed).
+    /// New engine fields must default instead of failing the decode — a
+    /// decode throw upstream wipes the player's persisted state.
+    @Test func v11SavedGameDecodesWithNewFieldsDefaulted() throws {
+        let fixture = #"{"mode":{"endless":{}},"rng":{"state":17418742259747381458},"history":[{"moveCount":0,"score":0,"nextTileID":3,"board":{"cells":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"value":2,"id":2},null,null,null,null,{"value":2,"id":1},null]},"gravity":"down","bestTile":2,"rng":{"state":8709371129873690750},"cascadeCount":0},{"board":{"cells":[{"value":2,"id":3},null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"value":2,"id":2},null,null,null,null,{"value":2,"id":1},null,null,null,null]},"bestTile":2,"score":0,"cascadeCount":0,"rng":{"state":13064056694810536104},"nextTileID":4,"moveCount":1,"gravity":"left"}],"nextTileID":6,"bestTile":4,"moveCount":2,"score":4,"undosUsed":0,"board":{"cells":[{"id":4,"value":4},null,null,null,null,{"id":1,"value":2},null,null,null,null,{"value":2,"id":5},null,null,null,null,null,null,null,null,null,null,null,null,null,null]},"gravity":"up","seed":42,"cascadeCount":0}"#
+        var game = try JSONDecoder().decode(GameState.self, from: Data(fixture.utf8))
+        #expect(game.score == 4)
+        #expect(game.bestTile == 4)
+        #expect(game.moveCount == 2)
+        #expect(game.bestCascadeRound == 0)  // new in v1.2 — defaults
+        #expect(game.canUndo)
+        let undone = game.undo()             // old history snapshots decode too
+        #expect(undone)
+        #expect(game.moveCount == 1)
+    }
+
+    @Test func bestCascadeRoundTracksTheDeepestMergeRound() {
+        var game = GameState(mode: .zen, seed: 3)
+        var deepest = 0
+        var made = 0
+        outer: while made < 80 {
+            for direction in Direction.allCases {
+                var copy = game
+                guard copy.applyMove(direction) != nil else { continue }
+                let result = game.applyMove(direction)!
+                deepest = max(
+                    deepest,
+                    result.phases.filter { !$0.merges.isEmpty }.map(\.round).max() ?? 0
+                )
+                made += 1
+                continue outer
+            }
+            break
+        }
+        #expect(deepest > 0, "80 zen moves should cascade at least once")
+        #expect(game.bestCascadeRound == deepest)
+    }
+
+    @Test func undoRestoresBestCascadeRound() {
+        var game = GameState(mode: .zen, seed: 3)
+        var made = 0
+        outer: while made < 40 {
+            let before = game.bestCascadeRound
+            for direction in Direction.allCases {
+                var copy = game
+                guard copy.applyMove(direction) != nil else { continue }
+                _ = game.applyMove(direction)
+                if game.bestCascadeRound > before {
+                    let undone = game.undo()
+                    #expect(undone)
+                    #expect(game.bestCascadeRound == before)
+                    return
+                }
+                made += 1
+                continue outer
+            }
+            break
+        }
+        Issue.record("never saw bestCascadeRound increase in 40 moves")
+    }
+
     @Test func goldenTenMoveGame() {
         // Frozen reference game: seed 42, scripted swipes. Guards against any
         // accidental change to engine semantics. Regenerate deliberately only

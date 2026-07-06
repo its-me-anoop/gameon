@@ -30,6 +30,8 @@ public struct GameState: Codable, Equatable, Sendable {
     public private(set) var moveCount: Int
     public private(set) var undosUsed: Int
     public private(set) var cascadeCount: Int
+    /// Deepest cascade round reached this game (×2, ×3… bragging rights).
+    public private(set) var bestCascadeRound: Int
     public let mode: GameMode
     public let seed: UInt64
 
@@ -45,8 +47,40 @@ public struct GameState: Codable, Equatable, Sendable {
         var bestTile: Int
         var moveCount: Int
         var cascadeCount: Int
+        var bestCascadeRound: Int
         var rng: SplitMix64
         var nextTileID: Int
+
+        init(
+            board: Board, gravity: Direction, score: Int, bestTile: Int,
+            moveCount: Int, cascadeCount: Int, bestCascadeRound: Int,
+            rng: SplitMix64, nextTileID: Int
+        ) {
+            self.board = board
+            self.gravity = gravity
+            self.score = score
+            self.bestTile = bestTile
+            self.moveCount = moveCount
+            self.cascadeCount = cascadeCount
+            self.bestCascadeRound = bestCascadeRound
+            self.rng = rng
+            self.nextTileID = nextTileID
+        }
+
+        /// Snapshots persist inside saved games; fields added after v1.1
+        /// default instead of failing the whole decode.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            board = try c.decode(Board.self, forKey: .board)
+            gravity = try c.decode(Direction.self, forKey: .gravity)
+            score = try c.decode(Int.self, forKey: .score)
+            bestTile = try c.decode(Int.self, forKey: .bestTile)
+            moveCount = try c.decode(Int.self, forKey: .moveCount)
+            cascadeCount = try c.decode(Int.self, forKey: .cascadeCount)
+            bestCascadeRound = try c.decodeIfPresent(Int.self, forKey: .bestCascadeRound) ?? 0
+            rng = try c.decode(SplitMix64.self, forKey: .rng)
+            nextTileID = try c.decode(Int.self, forKey: .nextTileID)
+        }
     }
 
     public init(mode: GameMode, seed: UInt64) {
@@ -58,6 +92,7 @@ public struct GameState: Codable, Equatable, Sendable {
         moveCount = 0
         undosUsed = 0
         cascadeCount = 0
+        bestCascadeRound = 0
         rng = SplitMix64(seed: seed)
         nextTileID = 1
         history = []
@@ -82,6 +117,7 @@ public struct GameState: Codable, Equatable, Sendable {
         moveCount = 0
         undosUsed = 0
         cascadeCount = 0
+        bestCascadeRound = 0
         rng = SplitMix64(seed: seed)
         nextTileID = 1000
         history = []
@@ -92,6 +128,25 @@ public struct GameState: Codable, Equatable, Sendable {
     mutating func setTestStats(score: Int, cascadeCount: Int) {
         self.score = score
         self.cascadeCount = cascadeCount
+    }
+
+    /// Saved games from older versions predate some keys; those default
+    /// instead of failing the decode (which would cost the player their game).
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        board = try c.decode(Board.self, forKey: .board)
+        gravity = try c.decode(Direction.self, forKey: .gravity)
+        score = try c.decode(Int.self, forKey: .score)
+        bestTile = try c.decode(Int.self, forKey: .bestTile)
+        moveCount = try c.decode(Int.self, forKey: .moveCount)
+        undosUsed = try c.decode(Int.self, forKey: .undosUsed)
+        cascadeCount = try c.decode(Int.self, forKey: .cascadeCount)
+        bestCascadeRound = try c.decodeIfPresent(Int.self, forKey: .bestCascadeRound) ?? 0
+        mode = try c.decode(GameMode.self, forKey: .mode)
+        seed = try c.decode(UInt64.self, forKey: .seed)
+        rng = try c.decode(SplitMix64.self, forKey: .rng)
+        nextTileID = try c.decode(Int.self, forKey: .nextTileID)
+        history = try c.decode([Snapshot].self, forKey: .history)
     }
 
     public var movesRemaining: Int? {
@@ -145,6 +200,10 @@ public struct GameState: Codable, Equatable, Sendable {
         score += result.scoreDelta
         moveCount += 1
         cascadeCount += result.phases.filter { !$0.merges.isEmpty }.count
+        bestCascadeRound = max(
+            bestCascadeRound,
+            result.phases.filter { !$0.merges.isEmpty }.map(\.round).max() ?? 0
+        )
         bestTile = max(bestTile, board.tiles.map(\.1.value).max() ?? 0)
         return result
     }
@@ -170,6 +229,7 @@ public struct GameState: Codable, Equatable, Sendable {
         bestTile = snapshot.bestTile
         moveCount = snapshot.moveCount
         cascadeCount = snapshot.cascadeCount
+        bestCascadeRound = snapshot.bestCascadeRound
         rng = snapshot.rng
         nextTileID = snapshot.nextTileID
         undosUsed += 1
@@ -179,7 +239,8 @@ public struct GameState: Codable, Equatable, Sendable {
     private func makeSnapshot() -> Snapshot {
         Snapshot(
             board: board, gravity: gravity, score: score, bestTile: bestTile,
-            moveCount: moveCount, cascadeCount: cascadeCount, rng: rng, nextTileID: nextTileID
+            moveCount: moveCount, cascadeCount: cascadeCount,
+            bestCascadeRound: bestCascadeRound, rng: rng, nextTileID: nextTileID
         )
     }
 
