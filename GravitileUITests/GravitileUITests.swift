@@ -40,6 +40,41 @@ final class GravitileUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["gravityCompass"].exists)
     }
 
+    func testZenAndSprintModesArePlayable() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["playZen"].waitForExistence(timeout: 5))
+        app.buttons["playZen"].tap()
+        let board = app.otherElements["board"]
+        XCTAssertTrue(board.waitForExistence(timeout: 5))
+        board.swipeLeft()
+        XCTAssertTrue(app.buttons["exitGame"].exists)
+        app.buttons["exitGame"].tap()
+
+        XCTAssertTrue(app.buttons["playSprint"].waitForExistence(timeout: 5))
+        app.buttons["playSprint"].tap()
+        XCTAssertTrue(board.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["movesRemaining"].firstMatch.exists
+                      || app.staticTexts["movesRemaining"].firstMatch.exists,
+                      "sprint shows its move budget")
+    }
+
+    /// Regression: the interactive pop gesture used to eat left-edge swipes
+    /// mid-game (user report). The game screen owns its exit now.
+    func testLeftEdgeSwipeStaysInGame() {
+        let app = launch()
+        app.buttons["playEndless"].tap()
+        let board = app.otherElements["board"]
+        XCTAssertTrue(board.waitForExistence(timeout: 5))
+
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.005, dy: 0.5))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        sleep(1)
+
+        XCTAssertTrue(board.exists, "left-edge swipe must not pop the game")
+        XCTAssertTrue(app.buttons["exitGame"].exists)
+    }
+
     func testDailyScreenOffersTodayPuzzle() {
         let app = launch()
         app.buttons["playDaily"].tap()

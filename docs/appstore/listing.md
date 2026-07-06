@@ -12,8 +12,8 @@
 
 ## Promotional text (170 chars max)
 
-Merge tiles while gravity rotates beneath you. Chain cascades, chase the daily
-puzzle, and keep your streak alive. No ads. No tracking. Just the tumble.
+Merge tiles while gravity rotates beneath you. Zen, Sprint, Endless and the
+Daily — now on Apple Watch too. No ads. No tracking. Just the tumble. (146)
 
 ## Description (4000 chars max)
 
@@ -31,16 +31,23 @@ the swipe — they plan the fall.
 • Cascades chain automatically as tiles tumble, multiplying points ×2, ×3, ×4…
 • The pressure builds the longer you survive. Every game has an ending.
 
-**TWO WAYS TO PLAY**
+**FOUR WAYS TO PLAY**
 • Endless — chase your best score through rising pressure
 • The Daily — one seeded puzzle a day, identical for every player on Earth,
   40 moves. Share your result as an emoji card and keep your streak alive
   (one missed day a week is forgiven).
+• Zen — no clock, no pressure, no ending. Just the tumble.
+• Sprint — 60 moves. Post your biggest score.
+
+**ON APPLE WATCH**
+The full tumbling-merge game, playable on your wrist — swipe, tumble, merge.
+Your watch game is its own little world, ready anywhere.
 
 **MADE WITH CARE**
 • One free undo per game — experiment without fear
-• Game Center leaderboards and achievements
-• Haptics and sound tuned to every cascade
+• Game Center leaderboards and achievements — including a weekly Daily board
+• A calm ambient soundtrack, with haptics and sound tuned to every cascade
+• Celebrations when you forge your first 256, 512, 1024…
 • Works fully offline. No account. No ads. No tracking. Ever.
 
 **GRAVITILE PLUS (one-time purchase)**
@@ -52,9 +59,23 @@ The rules take ten seconds to learn. The tumble takes a lifetime to master.
 
 ## Keywords (100 chars max)
 
-merge,2048,puzzle,daily,gravity,cascade,number,tile,logic,brain,streak,offline
+merge,2048,puzzle,daily,gravity,cascade,zen,relax,tile,logic,brain,streak,offline
 
-(97 chars)
+(81 chars)
+
+## What's New — v1.1
+
+• Two new ways to play: Zen (no clock, no pressure) and Sprint (60 moves to
+  post your biggest score).
+• Gravitile comes to Apple Watch — the full tumbling-merge game on your wrist.
+• A calm ambient soundtrack now plays under the game, with its own toggle.
+• Bigger celebrations: floating score pops, board shake on deep cascades, and
+  fanfare the first time you forge a 256, 512, 1024…
+• New sounds and haptics for gravity turns, tile landings, and beating your
+  personal best.
+• New Game Center leaderboards for Zen and Sprint, plus a weekly Daily board —
+  a fresh shot at the podium every week.
+• Fixed: swiping from the left edge no longer interrupts your game.
 
 ## What's New — v1.0.0
 
@@ -106,12 +127,15 @@ Plus: family sharing ON. Localized display names/descriptions in
 
 ## Game Center configuration
 
-Leaderboards (classic):
-| ID | Name | Sort |
-|---|---|---|
-| grv.endless.best | Endless Best | High to low |
-| grv.daily.score | Daily Score | High to low, recurring daily |
-| grv.best.tile | Biggest Tile | High to low |
+Leaderboards:
+| ID | Name | Sort | Type |
+|---|---|---|---|
+| grv.endless.best | Endless Best | High to low | classic |
+| grv.daily.score | Daily Score | High to low | classic |
+| grv.best.tile | Biggest Tile | High to low | classic |
+| grv.zen.tile | Zen Biggest Tile | High to low | classic (v1.1) |
+| grv.sprint.best | Sprint Best | High to low | classic (v1.1) |
+| grv.daily.weekly | Daily — This Week | High to low | recurring weekly, Mon 00:00 UTC (v1.1) |
 
 Achievements: grv.first.merge, grv.first.cascade, grv.tile.256, grv.tile.512,
 grv.tile.1024, grv.tile.2048, grv.streak.7, grv.streak.30 (points 10–100 to
@@ -122,3 +146,7 @@ taste; all visible).
 Gravitile is fully offline and needs no account. To reach the paywall:
 Settings → Unlock Plus, or Daily → any locked archive row. StoreKit products
 are standard IAP. The daily puzzle is seeded from the UTC date — no server.
+
+v1.1: The Apple Watch app is a standalone game (runs independently, no phone
+or account required) — swipe on the board to play. Zen and Sprint modes are
+free and reachable from the home screen chips below the Daily card.

@@ -28,8 +28,8 @@ struct RootView: View {
             case "paywall": path = [.paywall]
             default: break
             }
-            if ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1" {
-                path = [.endless]
+            if ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1", path.isEmpty {
+                path = [.endless]  // autoplay composes with GRAVITILE_ROUTE
             }
             #endif
         }

@@ -23,6 +23,20 @@ final class WatchGameStore {
         } else {
             game = GameState(mode: .zen, seed: UInt64.random(in: .min ... .max))
         }
+        #if DEBUG
+        // Screenshot helper: pre-play N random moves so simulator captures
+        // show a lived-in board (mirrors the phone's GRAVITILE_AUTOPLAY hook).
+        if let moves = ProcessInfo.processInfo.environment["GRAVITILE_WATCH_SEED_MOVES"].flatMap(Int.init),
+           moves > 0, game.moveCount == 0 {
+            for _ in 0..<moves {
+                guard let direction = Direction.allCases.shuffled().first(where: { direction in
+                    var copy = game
+                    return copy.applyMove(direction) != nil
+                }) else { break }
+                game.applyMove(direction)
+            }
+        }
+        #endif
     }
 
     @discardableResult

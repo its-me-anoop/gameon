@@ -31,6 +31,11 @@ final class GameViewModel {
     private(set) var celebrationValue: Int?
     private var milestones: MilestoneTracker
     private var nextPopID = 0
+    /// Bumped whenever the board is wholesale replaced (new game, undo).
+    /// In-flight fire-and-forget animation tasks check it before touching
+    /// tiles — tile IDs restart per game, so stale tasks would otherwise
+    /// mis-scale a *new* game's tiles.
+    private var boardGeneration = 0
     var onMerge: ((Int) -> Void)?       // cascade round, for haptics/sound
     var onRotation: (() -> Void)?       // gravity turned — whoosh + tick
     var onLanding: (() -> Void)?        // a fall settled — thock
@@ -67,6 +72,7 @@ final class GameViewModel {
     func undoTapped() {
         guard canUndo else { return }
         guard game.undo() else { return }
+        boardGeneration += 1
         onMoveCommitted?(game)
         withAnimation(.easeInOut(duration: 0.2)) {
             syncTilesToBoard()
@@ -76,6 +82,7 @@ final class GameViewModel {
     func replace(game newGame: GameState) {
         game = newGame
         lastCascadeHighlight = 0
+        boardGeneration += 1
         milestones = MilestoneTracker(alreadyReached: newGame.bestTile)
         scorePops = []
         celebrationValue = nil
@@ -206,10 +213,13 @@ final class GameViewModel {
     /// Fire-and-forget: lookups are id-based, so tiles consumed by a later
     /// merge simply drop out of the pulse.
     private func squashOnLanding(_ tileIDs: [Int], fallDuration: TimeInterval) {
+        let generation = boardGeneration
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(fallDuration * 0.75))
+            guard generation == boardGeneration else { return }
             withAnimation(.easeOut(duration: 0.06)) { setScale(0.93, for: tileIDs) }
             try? await Task.sleep(for: .seconds(0.07))
+            guard generation == boardGeneration else { return }
             withAnimation(.spring(duration: 0.2, bounce: 0.45)) { setScale(1, for: tileIDs) }
         }
     }
