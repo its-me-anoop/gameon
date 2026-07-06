@@ -122,6 +122,7 @@ final class AppModel {
         persisted.stats.gamesPlayed += 1
         persisted.stats.totalScore += game.score
         persisted.stats.totalCascades += game.cascadeCount
+        persisted.stats.bestCascadeRound = max(persisted.stats.bestCascadeRound, game.bestCascadeRound)
         persisted.bestTileEver = max(persisted.bestTileEver, game.bestTile)
 
         switch game.mode {
