@@ -11,9 +11,21 @@ from ascapi import APP_ID, request, upload_asset, md5
 BADGES = Path("/tmp/gravitile-badges")
 
 LEADERBOARDS = [
-    ("Endless Best", "grv.endless.best"),
-    ("Daily Score", "grv.daily.score"),
-    ("Biggest Tile", "grv.best.tile"),
+    ("Endless Best", "grv.endless.best", None),
+    ("Daily Score", "grv.daily.score", None),
+    ("Biggest Tile", "grv.best.tile", None),
+    # v1.1
+    ("Zen Biggest Tile", "grv.zen.tile", None),
+    ("Sprint Best", "grv.sprint.best", None),
+    # Weekly recurring: fresh occurrence every Monday 00:00 UTC, so new
+    # players get a realistic shot at placing (see v1.1 design spec §F).
+    # ASC quirks: start must be in the future, durations need time
+    # components (P7D rejected), and weekly is spelled FREQ=DAILY;INTERVAL=7.
+    ("Daily Weekly", "grv.daily.weekly", {
+        "recurrenceStartDate": "2026-07-13T00:00:00Z",  # a Monday
+        "recurrenceDuration": "PT168H",
+        "recurrenceRule": "FREQ=DAILY;INTERVAL=7",
+    }),
 ]
 
 ACHIEVEMENTS = [
@@ -56,20 +68,23 @@ def main():
     # Leaderboards
     status, existing = request("GET", f"/v1/gameCenterDetails/{detail_id}/gameCenterLeaderboards?limit=50")
     have = {l["attributes"]["vendorIdentifier"] for l in existing.get("data", [])} if status == 200 else set()
-    for name, vendor in LEADERBOARDS:
+    for name, vendor, recurrence in LEADERBOARDS:
         if vendor in have:
             print(f"leaderboard {vendor}: exists")
             continue
+        attributes = {
+            "defaultFormatter": "INTEGER",
+            "referenceName": name,
+            "vendorIdentifier": vendor,
+            "submissionType": "BEST_SCORE",
+            "scoreSortType": "DESC",
+        }
+        if recurrence:
+            attributes.update(recurrence)
         status, out = request("POST", "/v1/gameCenterLeaderboards", {
             "data": {
                 "type": "gameCenterLeaderboards",
-                "attributes": {
-                    "defaultFormatter": "INTEGER",
-                    "referenceName": name,
-                    "vendorIdentifier": vendor,
-                    "submissionType": "BEST_SCORE",
-                    "scoreSortType": "DESC",
-                },
+                "attributes": attributes,
                 "relationships": {"gameCenterDetail": {
                     "data": {"type": "gameCenterDetails", "id": detail_id}
                 }},
