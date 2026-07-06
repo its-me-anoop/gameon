@@ -5,7 +5,7 @@ import GravitileKit
 /// see them locked as a paywall tease.
 struct DailyScreen: View {
     @Environment(AppModel.self) private var appModel
-    @State private var shareText: String?
+    @State private var sharePayload: SharePayload?
 
     var body: some View {
         List {
@@ -34,8 +34,8 @@ struct DailyScreen: View {
         .scrollContentBackground(.hidden)
         .background(Theme.bgDeep)
         .navigationTitle("Daily")
-        .sheet(item: $shareText) { text in
-            ShareSheet(text: text).presentationDetents([.medium])
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(items: payload.items).presentationDetents([.medium])
         }
     }
 
@@ -55,7 +55,7 @@ struct DailyScreen: View {
                         .foregroundStyle(Theme.textSecondary)
                 }
                 Button {
-                    shareText = shareTextForToday(record)
+                    sharePayload = ShareCardRenderer.payload(for: record)
                 } label: {
                     Label("Share result", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
@@ -137,10 +137,4 @@ struct DailyScreen: View {
         }
     }
 
-    private func shareTextForToday(_ record: DailyRecord) -> String {
-        ShareCard.text(
-            mode: .daily(puzzleNumber: record.puzzleNumber),
-            score: record.score, bestTile: record.bestTile, cascadeCount: record.cascadeCount
-        )
-    }
 }

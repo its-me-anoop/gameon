@@ -31,6 +31,9 @@ struct DailyRecord: Codable, Equatable {
     var bestTile: Int
     var cascadeCount: Int
     var completedAt: Date
+    // v1.2 — optionals so records written before these existed decode as nil.
+    var movesUsed: Int?
+    var usedUndo: Bool?
 }
 
 struct StreakState: Codable, Equatable {

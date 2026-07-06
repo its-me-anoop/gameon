@@ -135,9 +135,10 @@ public struct GameState: Codable, Equatable, Sendable {
     }
 
     /// Test-only stat injection for exercising presentation code.
-    mutating func setTestStats(score: Int, cascadeCount: Int) {
+    mutating func setTestStats(score: Int, cascadeCount: Int, bestCascadeRound: Int = 0) {
         self.score = score
         self.cascadeCount = cascadeCount
+        self.bestCascadeRound = bestCascadeRound
     }
 
     /// Saved games from older versions predate some keys; those default

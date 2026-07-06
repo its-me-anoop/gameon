@@ -138,7 +138,8 @@ final class AppModel {
         case let .daily(puzzleNumber, _):
             persisted.dailyRecords[puzzleNumber] = DailyRecord(
                 puzzleNumber: puzzleNumber, score: game.score, bestTile: game.bestTile,
-                cascadeCount: game.cascadeCount, completedAt: now()
+                cascadeCount: game.cascadeCount, completedAt: now(),
+                movesUsed: game.moveCount, usedUndo: game.undosUsed > 0
             )
             // Today extends the streak directly; archive completions of the
             // next-in-sequence puzzle count too (Plus's "catch up on a missed

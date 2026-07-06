@@ -7,7 +7,7 @@ struct GameScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: GameViewModel
     @State private var showGameOver = false
-    @State private var shareText: String?
+    @State private var sharePayload: SharePayload?
     @State private var gameEndRecorded = false
     /// Personal best when this screen appeared — crossing it mid-game earns
     /// a one-time sting; nil until first wired.
@@ -114,7 +114,7 @@ struct GameScreen: View {
                     game: viewModel.game,
                     isNewBest: newBestCelebrated,
                     onNewGame: gameOverPrimaryAction,
-                    onShare: { shareText = ShareCard.text(for: viewModel.game) }
+                    onShare: { sharePayload = ShareCardRenderer.payload(for: viewModel.game) }
                 )
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
@@ -135,8 +135,8 @@ struct GameScreen: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { appModel.sounds.syncMusic() }
         }
-        .sheet(item: $shareText) { text in
-            ShareSheet(text: text)
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(items: payload.items)
                 .presentationDetents([.medium])
         }
     }
@@ -465,15 +465,11 @@ struct MilestoneCelebration: View {
     }
 }
 
-extension String: @retroactive Identifiable {
-    public var id: String { self }
-}
-
 struct ShareSheet: UIViewControllerRepresentable {
-    let text: String
+    let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
 
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}

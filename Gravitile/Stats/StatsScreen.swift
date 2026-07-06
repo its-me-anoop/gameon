@@ -4,6 +4,7 @@ import GravitileKit
 struct StatsScreen: View {
     @Environment(AppModel.self) private var appModel
     @State private var showLeaderboards = false
+    @State private var achievements: [GameCenterService.AchievementStatus] = []
 
     var body: some View {
         ScrollView {
@@ -47,6 +48,10 @@ struct StatsScreen: View {
                     .buttonStyle(SecondaryButtonStyle())
                     .accessibilityIdentifier("leaderboardsButton")
                 }
+
+                if !achievements.isEmpty {
+                    achievementsSection
+                }
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)
@@ -54,6 +59,9 @@ struct StatsScreen: View {
         }
         .background(Theme.bgDeep)
         .navigationTitle("Stats")
+        .task {
+            achievements = await appModel.gameCenter.loadAchievements()
+        }
         .sheet(isPresented: $showLeaderboards) {
             GameCenterView()
                 .ignoresSafeArea()
@@ -94,6 +102,43 @@ struct StatsScreen: View {
             }
             .frame(height: 68, alignment: .bottom)
         }
+    }
+
+    /// Earned achievements are one tap from a brag; locked ones tease the goal.
+    private var achievementsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Achievements")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+            ForEach(achievements) { achievement in
+                HStack(spacing: 12) {
+                    Image(systemName: achievement.earned ? "checkmark.seal.fill" : "seal")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(achievement.earned ? Theme.accent : Theme.textSecondary)
+                        .frame(width: 26)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(achievement.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(achievement.earned ? Theme.textPrimary : Theme.textSecondary)
+                        Text(achievement.detail)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer()
+                    if achievement.earned {
+                        ShareLink(item: achievementShareText(achievement)) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.accent)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func achievementShareText(_ achievement: GameCenterService.AchievementStatus) -> String {
+        "🏆 \(achievement.title) — earned in Gravitile, the tumbling merge puzzle.\n\(ShareCard.appStoreURL)"
     }
 
     private var streakSection: some View {

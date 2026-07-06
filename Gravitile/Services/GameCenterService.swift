@@ -104,6 +104,38 @@ final class GameCenterService {
         GKAchievement.report(achievements) { _ in }
     }
 
+    struct AchievementStatus: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let detail: String
+        let earned: Bool
+    }
+
+    /// Descriptions + completion state for the in-app achievements list.
+    /// Empty when unauthenticated or offline — callers hide the section.
+    func loadAchievements() async -> [AchievementStatus] {
+        guard isAuthenticated else { return [] }
+        do {
+            let descriptions = try await GKAchievementDescription.loadAchievementDescriptions()
+            let earnedIDs = Set(
+                ((try? await GKAchievement.loadAchievements()) ?? [])
+                    .filter(\.isCompleted)
+                    .map(\.identifier)
+            )
+            return descriptions.map { description in
+                let earned = earnedIDs.contains(description.identifier)
+                return AchievementStatus(
+                    id: description.identifier,
+                    title: description.title,
+                    detail: earned ? description.achievedDescription : description.unachievedDescription,
+                    earned: earned
+                )
+            }
+        } catch {
+            return []
+        }
+    }
+
     func submitStreak(_ streak: StreakState) {
         guard isAuthenticated else { return }
         var earned: [String] = []

@@ -7,16 +7,30 @@ public enum ShareCard {
     private static let tierBlocks = ["🟨", "🟧", "🟥", "🟪", "🟦", "🟩", "🟫", "⬛"]
     private static let maxBlocks = 8
 
+    /// Clones taught the lesson Wordle learned late: the share must say where
+    /// the game lives.
+    public static let appStoreURL = "https://apps.apple.com/app/id6786840477"
+
     public static func text(for state: GameState) -> String {
-        text(mode: state.mode, score: state.score, bestTile: state.bestTile, cascadeCount: state.cascadeCount)
+        var movesUsed: Int?
+        if case .daily = state.mode { movesUsed = state.moveCount }
+        return text(
+            mode: state.mode, score: state.score, bestTile: state.bestTile,
+            cascadeCount: state.cascadeCount, movesUsed: movesUsed,
+            deepestRound: state.bestCascadeRound
+        )
     }
 
     /// Value-based variant so saved records can be shared without a live game.
-    public static func text(mode: GameMode, score: Int, bestTile: Int, cascadeCount: Int) -> String {
+    public static func text(
+        mode: GameMode, score: Int, bestTile: Int, cascadeCount: Int,
+        movesUsed: Int? = nil, deepestRound: Int = 0
+    ) -> String {
         let title: String
         switch mode {
-        case let .daily(puzzleNumber, _):
-            title = "Gravitile #\(puzzleNumber) — \(formatted(score))"
+        case let .daily(puzzleNumber, budget):
+            let moves = movesUsed.map { " · \($0)/\(budget)" } ?? ""
+            title = "Gravitile #\(puzzleNumber) — \(formatted(score))\(moves)"
         case .endless:
             title = "Gravitile Endless — \(formatted(score))"
         case .zen:
@@ -31,9 +45,10 @@ public enum ShareCard {
             .joined()
 
         let cascadeNoun = cascadeCount == 1 ? "cascade" : "cascades"
-        let footer = "🌀 \(cascadeCount) \(cascadeNoun) · 🏆 \(bestTile)"
+        let depth = deepestRound >= 2 ? " · ×\(deepestRound) deep" : ""
+        let footer = "🌀 \(cascadeCount) \(cascadeNoun)\(depth) · 🏆 \(bestTile)"
 
-        return [title, blocks, footer].joined(separator: "\n")
+        return [title, blocks, footer, appStoreURL].joined(separator: "\n")
     }
 
     /// Comma-grouped digits, independent of device locale so shared cards
