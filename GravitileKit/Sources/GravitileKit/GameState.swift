@@ -32,8 +32,13 @@ public struct GameState: Codable, Equatable, Sendable {
     public private(set) var cascadeCount: Int
     /// Deepest cascade round reached this game (×2, ×3… bragging rights).
     public private(set) var bestCascadeRound: Int
+    /// Banked stasis charges (earned at milestone crossings; spec v1.2 §3.1).
+    public private(set) var stasisCharges: Int
     public let mode: GameMode
     public let seed: UInt64
+
+    static let stasisMilestones = [256, 512, 1024]
+    static let stasisBankCap = 2
 
     private var rng: SplitMix64
     private var nextTileID: Int
@@ -48,13 +53,14 @@ public struct GameState: Codable, Equatable, Sendable {
         var moveCount: Int
         var cascadeCount: Int
         var bestCascadeRound: Int
+        var stasisCharges: Int
         var rng: SplitMix64
         var nextTileID: Int
 
         init(
             board: Board, gravity: Direction, score: Int, bestTile: Int,
             moveCount: Int, cascadeCount: Int, bestCascadeRound: Int,
-            rng: SplitMix64, nextTileID: Int
+            stasisCharges: Int, rng: SplitMix64, nextTileID: Int
         ) {
             self.board = board
             self.gravity = gravity
@@ -63,6 +69,7 @@ public struct GameState: Codable, Equatable, Sendable {
             self.moveCount = moveCount
             self.cascadeCount = cascadeCount
             self.bestCascadeRound = bestCascadeRound
+            self.stasisCharges = stasisCharges
             self.rng = rng
             self.nextTileID = nextTileID
         }
@@ -78,6 +85,7 @@ public struct GameState: Codable, Equatable, Sendable {
             moveCount = try c.decode(Int.self, forKey: .moveCount)
             cascadeCount = try c.decode(Int.self, forKey: .cascadeCount)
             bestCascadeRound = try c.decodeIfPresent(Int.self, forKey: .bestCascadeRound) ?? 0
+            stasisCharges = try c.decodeIfPresent(Int.self, forKey: .stasisCharges) ?? 0
             rng = try c.decode(SplitMix64.self, forKey: .rng)
             nextTileID = try c.decode(Int.self, forKey: .nextTileID)
         }
@@ -93,6 +101,7 @@ public struct GameState: Codable, Equatable, Sendable {
         undosUsed = 0
         cascadeCount = 0
         bestCascadeRound = 0
+        stasisCharges = 0
         rng = SplitMix64(seed: seed)
         nextTileID = 1
         history = []
@@ -118,6 +127,7 @@ public struct GameState: Codable, Equatable, Sendable {
         undosUsed = 0
         cascadeCount = 0
         bestCascadeRound = 0
+        stasisCharges = 0
         rng = SplitMix64(seed: seed)
         nextTileID = 1000
         history = []
@@ -142,6 +152,7 @@ public struct GameState: Codable, Equatable, Sendable {
         undosUsed = try c.decode(Int.self, forKey: .undosUsed)
         cascadeCount = try c.decode(Int.self, forKey: .cascadeCount)
         bestCascadeRound = try c.decodeIfPresent(Int.self, forKey: .bestCascadeRound) ?? 0
+        stasisCharges = try c.decodeIfPresent(Int.self, forKey: .stasisCharges) ?? 0
         mode = try c.decode(GameMode.self, forKey: .mode)
         seed = try c.decode(UInt64.self, forKey: .seed)
         rng = try c.decode(SplitMix64.self, forKey: .rng)
@@ -182,19 +193,40 @@ public struct GameState: Codable, Equatable, Sendable {
         return !hasLegalMove
     }
 
+    /// Stasis availability: zen always (the calm mode has no stakes), endless
+    /// while a charge is banked, never in the seeded/competitive modes.
+    public var canUseStasis: Bool {
+        switch mode {
+        case .zen: true
+        case .endless: stasisCharges > 0
+        case .daily, .sprint: false
+        }
+    }
+
+    /// Bank one charge, respecting the cap. Zen doesn't bank (it doesn't need
+    /// to), daily/sprint don't bank (they can never spend).
+    mutating func bankStasisCharge() {
+        guard case .endless = mode else { return }
+        stasisCharges = min(Self.stasisBankCap, stasisCharges + 1)
+    }
+
     @discardableResult
-    public mutating func applyMove(_ direction: Direction) -> MoveResult? {
+    public mutating func applyMove(_ direction: Direction, stasis: Bool = false) -> MoveResult? {
         if let remaining = movesRemaining, remaining == 0 { return nil }
+        if stasis, !canUseStasis { return nil }
         // Snapshot before resolution: resolveMove advances the RNG and tile
         // counter, and undo must restore their pre-move values.
         let snapshot = makeSnapshot()
         guard let result = MoveResolver.resolveMove(
             board: board, swipe: direction, gravity: gravity,
             rng: &rng, nextTileID: &nextTileID,
-            spawnCount: spawnCountForNextMove
+            spawnCount: spawnCountForNextMove,
+            rotateGravity: !stasis
         ) else { return nil }
 
         pushSnapshot(snapshot)
+        if stasis, case .endless = mode { stasisCharges -= 1 }
+        let bestTileBefore = bestTile
         board = result.finalBoard
         gravity = result.newGravity
         score += result.scoreDelta
@@ -205,6 +237,9 @@ public struct GameState: Codable, Equatable, Sendable {
             result.phases.filter { !$0.merges.isEmpty }.map(\.round).max() ?? 0
         )
         bestTile = max(bestTile, board.tiles.map(\.1.value).max() ?? 0)
+        for milestone in Self.stasisMilestones where bestTileBefore < milestone && bestTile >= milestone {
+            bankStasisCharge()
+        }
         return result
     }
 
@@ -230,6 +265,7 @@ public struct GameState: Codable, Equatable, Sendable {
         moveCount = snapshot.moveCount
         cascadeCount = snapshot.cascadeCount
         bestCascadeRound = snapshot.bestCascadeRound
+        stasisCharges = snapshot.stasisCharges
         rng = snapshot.rng
         nextTileID = snapshot.nextTileID
         undosUsed += 1
@@ -240,7 +276,8 @@ public struct GameState: Codable, Equatable, Sendable {
         Snapshot(
             board: board, gravity: gravity, score: score, bestTile: bestTile,
             moveCount: moveCount, cascadeCount: cascadeCount,
-            bestCascadeRound: bestCascadeRound, rng: rng, nextTileID: nextTileID
+            bestCascadeRound: bestCascadeRound, stasisCharges: stasisCharges,
+            rng: rng, nextTileID: nextTileID
         )
     }
 

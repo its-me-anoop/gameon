@@ -207,6 +207,7 @@ import Foundation
         #expect(game.bestTile == 4)
         #expect(game.moveCount == 2)
         #expect(game.bestCascadeRound == 0)  // new in v1.2 — defaults
+        #expect(game.stasisCharges == 0)     // new in v1.2 — defaults
         #expect(game.canUndo)
         let undone = game.undo()             // old history snapshots decode too
         #expect(undone)

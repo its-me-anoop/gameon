@@ -74,7 +74,8 @@ public enum MoveResolver {
     /// including the RNG and tile counter — is consumed.
     public static func resolveMove(
         board: Board, swipe: Direction, gravity: Direction,
-        rng: inout SplitMix64, nextTileID: inout Int, spawnCount: Int = 1
+        rng: inout SplitMix64, nextTileID: inout Int, spawnCount: Int = 1,
+        rotateGravity: Bool = true
     ) -> MoveResult? {
         let slide = slide(board, toward: swipe, nextTileID: &nextTileID)
         guard slide.changed else {
@@ -83,7 +84,7 @@ public enum MoveResolver {
             return nil
         }
 
-        let newGravity = gravity.rotatedClockwise
+        let newGravity = rotateGravity ? gravity.rotatedClockwise : gravity
         var phases: [CascadePhase] = []
         var (current, initialFalls) = fall(slide.board, gravity: newGravity)
         phases.append(CascadePhase(falls: initialFalls, merges: [], round: 0))
@@ -117,7 +118,8 @@ public enum MoveResolver {
             phases: phases,
             spawns: spawnEvents,
             scoreDelta: slidePoints + cascadePoints,
-            finalBoard: current
+            finalBoard: current,
+            heldGravity: !rotateGravity
         )
     }
 

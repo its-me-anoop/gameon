@@ -26,4 +26,6 @@ public struct MoveResult: Equatable, Sendable {
     public let scoreDelta: Int
     /// Board state after every phase and the spawn.
     public let finalBoard: Board
+    /// Stasis: gravity was held in place for this move (v1.2 spec §3.1).
+    public var heldGravity: Bool = false
 }
