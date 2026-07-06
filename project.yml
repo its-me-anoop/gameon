@@ -10,8 +10,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 9
-    MARKETING_VERSION: "1.1"
+    CURRENT_PROJECT_VERSION: 10
+    MARKETING_VERSION: "1.2"
 targets:
   Gravitile:
     type: application
