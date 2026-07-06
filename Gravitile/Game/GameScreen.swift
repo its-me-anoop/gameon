@@ -9,6 +9,10 @@ struct GameScreen: View {
     @State private var showGameOver = false
     @State private var shareText: String?
     @State private var gameEndRecorded = false
+    /// Personal best when this screen appeared — crossing it mid-game earns
+    /// a one-time sting; nil until first wired.
+    @State private var sessionStartBest: Int?
+    @State private var newBestCelebrated = false
 
     init(game: GameState, freeUndoLimit: Int) {
         _viewModel = State(initialValue: GameViewModel(game: game, freeUndoLimit: freeUndoLimit))
@@ -44,6 +48,13 @@ struct GameScreen: View {
                     viewModel.handleSwipe(direction)
                 }
                 .padding(.horizontal, 16)
+                .overlay {
+                    if let value = viewModel.celebrationValue {
+                        MilestoneCelebration(value: value)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                            .allowsHitTesting(false)
+                    }
+                }
 
                 if let remaining = viewModel.game.movesRemaining {
                     movesIndicator(remaining: remaining)
@@ -72,6 +83,7 @@ struct GameScreen: View {
                     .transition(.opacity)
                 GameOverOverlay(
                     game: viewModel.game,
+                    isNewBest: newBestCelebrated,
                     onNewGame: gameOverPrimaryAction,
                     onShare: { shareText = ShareCard.text(for: viewModel.game) }
                 )
@@ -101,12 +113,26 @@ struct GameScreen: View {
     }
 
     private func wireCallbacks() {
+        if sessionStartBest == nil { sessionStartBest = storedBest }
         viewModel.onMerge = { round in
             appModel.haptics.merge(round: round)
             appModel.sounds.merge(round: max(1, round))
         }
+        viewModel.onRotation = {
+            appModel.haptics.rotationTick()
+            appModel.sounds.whoosh()
+        }
+        viewModel.onLanding = {
+            appModel.haptics.landing()
+            appModel.sounds.land()
+        }
+        viewModel.onMilestone = { _ in
+            appModel.haptics.milestone()
+            appModel.sounds.milestone()
+        }
         viewModel.onMoveCommitted = { game in
             appModel.checkpoint(game)
+            celebrateNewBestIfCrossed(game)
         }
         viewModel.onGameOver = {
             finishGame()
@@ -150,6 +176,11 @@ struct GameScreen: View {
             HStack(spacing: 22) {
                 ScoreBadge(title: "Score", value: viewModel.game.score, emphasized: true)
                     .accessibilityIdentifier("score")
+                    .overlay(alignment: .bottom) {
+                        ForEach(viewModel.scorePops) { pop in
+                            ScorePopView(pop: pop)
+                        }
+                    }
                 ScoreBadge(title: bestBadgeTitle, value: bestBadgeValue)
             }
         }
@@ -180,6 +211,26 @@ struct GameScreen: View {
         }
     }
 
+    /// Stored bests only (no live-game max) — the yardstick for "new best".
+    private var storedBest: Int {
+        switch viewModel.game.mode {
+        case .endless: appModel.persisted.bestEndlessScore
+        case .zen: appModel.persisted.bestZenTile
+        case .sprint: appModel.persisted.bestSprintScore
+        case .daily: appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0
+        }
+    }
+
+    private func celebrateNewBestIfCrossed(_ game: GameState) {
+        guard !newBestCelebrated, let start = sessionStartBest, start > 0 else { return }
+        let comparable: Int
+        if case .zen = game.mode { comparable = game.bestTile } else { comparable = game.score }
+        guard comparable > start else { return }
+        newBestCelebrated = true
+        appModel.haptics.newBest()
+        appModel.sounds.newBest()
+    }
+
     private var dailyNumber: Int {
         if case let .daily(number, _) = viewModel.game.mode { return number }
         return 0
@@ -188,6 +239,7 @@ struct GameScreen: View {
     private var controls: some View {
         HStack {
             Button {
+                appModel.sounds.tap()
                 viewModel.undoTapped()
             } label: {
                 Label(
@@ -214,6 +266,7 @@ struct GameScreen: View {
 
             if !isDaily {
                 Button {
+                    appModel.sounds.tap()
                     startNewGame()
                 } label: {
                     Label("New", systemImage: "plus")
@@ -255,6 +308,9 @@ struct GameScreen: View {
         withAnimation(.spring(duration: 0.3)) { showGameOver = false }
         gameEndRecorded = false
         viewModel.replace(game: appModel.newGame(like: viewModel.game.mode))
+        // The bar to beat may have just moved (recordGameEnd above).
+        sessionStartBest = storedBest
+        newBestCelebrated = false
     }
 
     private func finishGameIfOver() {
@@ -279,6 +335,39 @@ struct GameScreen: View {
             }
         }
         #endif
+    }
+}
+
+/// Floating "+N" above the score — rises and fades, louder for deep cascades.
+struct ScorePopView: View {
+    let pop: ScorePop
+    @State private var risen = false
+
+    var body: some View {
+        Text("+\(pop.points)")
+            .font(Theme.display(pop.round >= 2 ? 17 : 13, weight: .bold))
+            .foregroundStyle(pop.round >= 2 ? Theme.accent : Theme.textPrimary)
+            .offset(y: risen ? -34 : -6)
+            .opacity(risen ? 0 : 1)
+            .onAppear { withAnimation(.easeOut(duration: 0.85)) { risen = true } }
+            .allowsHitTesting(false)
+    }
+}
+
+/// Full-board flourish for the first 256/512/… of a game.
+struct MilestoneCelebration: View {
+    let value: Int
+
+    var body: some View {
+        ZStack {
+            ParticleBurstView(round: 5, milestone: true)
+                .frame(width: 260, height: 260)
+            Text("\(value)!")
+                .font(Theme.display(46))
+                .foregroundStyle(Theme.accent)
+                .shadow(color: .black.opacity(0.55), radius: 14)
+        }
+        .accessibilityLabel("Milestone: reached tile \(value)")
     }
 }
 

@@ -45,6 +45,8 @@ struct BoardView: View {
                     }
                 }
             }
+            .offset(viewModel.boardNudge)
+            .modifier(ShakeEffect(travel: viewModel.shakeTravel, magnitude: viewModel.shakeMagnitude))
             .frame(width: proxy.size.width, height: proxy.size.height)
             .contentShape(Rectangle())
             .gesture(swipeGesture)

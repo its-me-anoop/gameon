@@ -5,10 +5,12 @@ import SwiftUI
 /// bursts during full animation runs).
 struct ParticleBurstView: View {
     let round: Int
+    /// Milestone celebrations get a bigger, longer volley.
+    var milestone = false
     @State private var startDate = Date()
 
-    private var sparkCount: Int { min(10 + round * 6, 28) }
-    private let lifetime: TimeInterval = 0.5
+    private var sparkCount: Int { milestone ? 46 : min(10 + round * 6, 28) }
+    private var lifetime: TimeInterval { milestone ? 0.9 : 0.5 }
 
     var body: some View {
         TimelineView(.animation) { context in

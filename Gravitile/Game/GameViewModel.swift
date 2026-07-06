@@ -20,7 +20,21 @@ final class GameViewModel {
     private(set) var lastCascadeHighlight = 0
     /// Merge cells of the current animation step, for particle bursts.
     private(set) var burstCells: [(Coordinate, Int)] = []
+    /// Floating "+N" deltas above the score badge; self-expire.
+    private(set) var scorePops: [ScorePop] = []
+    /// Board shake for big cascades: one whole travel unit per shake.
+    private(set) var shakeTravel: CGFloat = 0
+    private(set) var shakeMagnitude: CGFloat = 0
+    /// Small board push toward the new gravity edge during the rotation cue.
+    private(set) var boardNudge: CGSize = .zero
+    /// Milestone value currently being celebrated (first 256/512/… of a game).
+    private(set) var celebrationValue: Int?
+    private var milestones: MilestoneTracker
+    private var nextPopID = 0
     var onMerge: ((Int) -> Void)?       // cascade round, for haptics/sound
+    var onRotation: (() -> Void)?       // gravity turned — whoosh + tick
+    var onLanding: (() -> Void)?        // a fall settled — thock
+    var onMilestone: ((Int) -> Void)?   // first big tile of the game
     var onGameOver: (() -> Void)?
     var onMoveCommitted: ((GameState) -> Void)?   // checkpoint persistence
 
@@ -35,6 +49,7 @@ final class GameViewModel {
         self.game = game
         self.freeUndoLimit = freeUndoLimit
         self.reduceMotion = reduceMotion
+        milestones = MilestoneTracker(alreadyReached: game.bestTile)
         syncTilesToBoard()
     }
 
@@ -61,6 +76,9 @@ final class GameViewModel {
     func replace(game newGame: GameState) {
         game = newGame
         lastCascadeHighlight = 0
+        milestones = MilestoneTracker(alreadyReached: newGame.bestTile)
+        scorePops = []
+        celebrationValue = nil
         withAnimation(.easeInOut(duration: 0.25)) {
             syncTilesToBoard()
         }
@@ -78,24 +96,33 @@ final class GameViewModel {
         }
 
         if reduceMotion() {
-            // Single crossfade to the final board instead of movement.
+            // Single crossfade to the final board instead of movement — no
+            // shake, nudge, or pops; milestones still sound and announce.
             let rounds = result.phases.filter { !$0.merges.isEmpty }.count
             if !result.slide.merges.isEmpty || rounds > 0 { onMerge?(max(1, rounds)) }
             withAnimation(.easeInOut(duration: 0.25)) {
                 syncTilesToBoard()
             }
             try? await Task.sleep(for: .seconds(0.25))
+            checkMilestone()
             return
         }
 
+        var rotated = false
         for step in AnimationPlanner.steps(for: result) {
-            apply(step)
+            // The nudge springs back as the tumble begins.
+            if rotated, boardNudge != .zero {
+                withAnimation(.spring(duration: 0.3, bounce: 0.5)) { boardNudge = .zero }
+            }
+            apply(step, isFall: rotated)
+            if case .gravityCue = step { rotated = true }
             try? await Task.sleep(for: .seconds(AnimationPlanner.duration(of: step) + 0.02))
         }
         burstCells = []
+        checkMilestone()
     }
 
-    private func apply(_ step: AnimationStep) {
+    private func apply(_ step: AnimationStep, isFall: Bool) {
         switch step {
         case let .moves(moves, duration):
             withAnimation(.spring(duration: duration, bounce: 0.15)) {
@@ -104,6 +131,10 @@ final class GameViewModel {
                         tiles[index].coordinate = move.to
                     }
                 }
+            }
+            if isFall, !moves.isEmpty {
+                onLanding?()
+                squashOnLanding(moves.map(\.tileID), fallDuration: duration)
             }
 
         case let .merges(merges, round):
@@ -127,9 +158,19 @@ final class GameViewModel {
             }
             burstCells = merges.map { ($0.at, round) }
             onMerge?(round)
+            addScorePop(points: merges.reduce(0) { $0 + $1.points }, round: round)
+            if round >= 2 {
+                shakeMagnitude = min(CGFloat(round) * 1.6 + 1, 8)
+                withAnimation(.easeOut(duration: 0.4)) { shakeTravel += 1 }
+            }
 
-        case .gravityCue:
-            break // The compass observes game.gravity directly; step is a timing beat.
+        case let .gravityCue(direction):
+            // The compass observes game.gravity directly; here the board leans
+            // toward the new edge so the turn is felt, not just seen.
+            onRotation?()
+            withAnimation(.easeOut(duration: AnimationPlanner.cueDuration)) {
+                boardNudge = direction.nudgeOffset
+            }
 
         case let .spawn(spawns):
             for spawn in spawns {
@@ -146,6 +187,49 @@ final class GameViewModel {
                         tiles[index].opacity = 1
                     }
                 }
+            }
+        }
+    }
+
+    private func addScorePop(points: Int, round: Int) {
+        guard points > 0 else { return }
+        let pop = ScorePop(id: nextPopID, points: points, round: round)
+        nextPopID += 1
+        scorePops.append(pop)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.95))
+            scorePops.removeAll { $0.id == pop.id }
+        }
+    }
+
+    /// Brief settle pulse on tiles that just landed, timed to the fall's end.
+    /// Fire-and-forget: lookups are id-based, so tiles consumed by a later
+    /// merge simply drop out of the pulse.
+    private func squashOnLanding(_ tileIDs: [Int], fallDuration: TimeInterval) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(fallDuration * 0.75))
+            withAnimation(.easeOut(duration: 0.06)) { setScale(0.93, for: tileIDs) }
+            try? await Task.sleep(for: .seconds(0.07))
+            withAnimation(.spring(duration: 0.2, bounce: 0.45)) { setScale(1, for: tileIDs) }
+        }
+    }
+
+    private func setScale(_ scale: CGFloat, for tileIDs: [Int]) {
+        for id in tileIDs {
+            if let index = tiles.firstIndex(where: { $0.id == id }) {
+                tiles[index].scale = scale
+            }
+        }
+    }
+
+    private func checkMilestone() {
+        guard let value = milestones.newlyReached(bestTile: game.bestTile) else { return }
+        withAnimation(.spring(duration: 0.35, bounce: 0.4)) { celebrationValue = value }
+        onMilestone?(value)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.3))
+            if celebrationValue == value {
+                withAnimation(.easeOut(duration: 0.3)) { celebrationValue = nil }
             }
         }
     }

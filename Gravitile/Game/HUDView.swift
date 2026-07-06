@@ -61,6 +61,7 @@ struct ScoreBadge: View {
 
 struct GameOverOverlay: View {
     let game: GameState
+    var isNewBest = false
     var onNewGame: () -> Void
     var onShare: () -> Void
 
@@ -70,6 +71,12 @@ struct GameOverOverlay: View {
                 .font(Theme.display(26))
                 .foregroundStyle(Theme.textPrimary)
             VStack(spacing: 6) {
+                if isNewBest {
+                    Text("NEW PERSONAL BEST")
+                        .font(.system(size: 12, weight: .heavy))
+                        .tracking(1.6)
+                        .foregroundStyle(Theme.accent)
+                }
                 Text("Score \(game.score)")
                     .font(Theme.display(20, weight: .semibold))
                     .foregroundStyle(Theme.accent)
