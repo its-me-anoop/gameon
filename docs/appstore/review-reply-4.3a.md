@@ -58,16 +58,25 @@ Thank you for taking a second look at build 11 (version 1.3).
 
 ---
 
-## Submission checklist (ASC, manual — do not automate without approval)
+## Submission record — EXECUTED 2026-07-08 (user-approved)
 
-1. Wait for build 11 to finish processing on TestFlight (upload via the
-   `release.yml` GitHub workflow — never archive locally on the beta Mac).
-2. On the rejected 1.0 submission: update the version string to 1.3 (or
-   create the 1.3 appStoreVersion and move the submission), attach build 11.
-3. Push refreshed metadata from docs/appstore/listing.md (description,
-   promo text, keywords, review notes) — note Tools/publish_metadata.py is
-   still v1.0-hardcoded; update or push by hand.
-4. New screenshots: include one of Math Pop (Sorbet theme reads best) and
-   one of the theme picker. `GRAVITILE_ROUTE=math` + `GRAVITILE_THEME=sorbet`
-   debug env vars stage them quickly.
-5. Paste the reply above into Resolution Center, then resubmit.
+All steps completed via Tools/publish_v13.py + the ASC API:
+
+1. Version renamed 1.0 → 1.3 on the same appStoreVersion (9a76a036…);
+   copy/promo/keywords + review notes pushed (the review notes carry the
+   originality response above, so the reviewer sees it with the binary).
+2. Screenshots rebuilt as flattened JPEGs (ASC rejects alpha PNGs):
+   APP_IPHONE_67 ×8 (incl. Math Pop equation pop + theme picker),
+   APP_IPAD_PRO_3GEN_129 ×5, APP_WATCH_SERIES_10 ×1; the stale 6.5" set was
+   deleted only after the replacement polled COMPLETE.
+3. Build 11 was refused at submission (BUILD_INDICATES_GAME_CENTER_DISABLED):
+   a GC-enabled version needs the game-center entitlement on every nested
+   bundle, and the watch app lacked it. Fixed (GravitileWatch.entitlements +
+   GAME_CENTER on watch App ID 2MDHT8B4NL) → build 12 → attached.
+4. Old submission fd880674 (its REJECTED item is undeletable once submitted)
+   was canceled; new submission f76cd03d created, version added, submitted.
+   State: WAITING_FOR_REVIEW at 2026-07-08T19:28Z. Release is manual
+   (AFTER_APPROVAL) once approved.
+
+If App Review responds, reply in the NEW submission's Resolution Center
+thread using the message above.
