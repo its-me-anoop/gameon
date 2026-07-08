@@ -7,6 +7,8 @@ public struct CascadePhase: Equatable, Sendable {
     public let round: Int
     /// Boulders chipped by this round's merges (v1.2 spec §3.2).
     public var iceHits: [IceHit] = []
+    /// Bond pops under `.sumTarget` (v1.3 spec §3.3).
+    public var clears: [ClearEvent] = []
 }
 
 public struct SpawnEvent: Equatable, Sendable {
@@ -30,4 +32,18 @@ public struct MoveResult: Equatable, Sendable {
     public let finalBoard: Board
     /// Stasis: gravity was held in place for this move (v1.2 spec §3.1).
     public var heldGravity: Bool = false
+    /// Math Pop stage-up: set after resolution by GameState, like
+    /// `heldGravity` (v1.3 spec §3.2). The swept board and starter spawns
+    /// happen after `finalBoard`; `GameState.board` is the source of truth.
+    public var stageAdvance: StageAdvance? = nil
+}
+
+/// Everything the UI needs to animate a Math Pop stage-up: old tiles sweep
+/// away, the banner announces the new target, starters drop in.
+public struct StageAdvance: Equatable, Sendable {
+    public let newStage: Int
+    public let newTarget: Int
+    public let bonusPoints: Int
+    public let sweptTileIDs: [Int]
+    public let starterSpawns: [SpawnEvent]
 }

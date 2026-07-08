@@ -31,6 +31,7 @@ final class AppModel {
         haptics.isEnabled = persisted.settings.hapticsOn
         sounds.isEnabled = persisted.settings.soundOn
         sounds.isMusicEnabled = persisted.settings.musicOn
+        Theme.current = Theme.palette(id: persisted.settings.themeID)
     }
 
     // MARK: - Settings
@@ -42,9 +43,14 @@ final class AppModel {
             haptics.isEnabled = newValue.hapticsOn
             sounds.isEnabled = newValue.soundOn
             sounds.isMusicEnabled = newValue.musicOn
+            Theme.current = Theme.palette(id: newValue.themeID)
             save()
         }
     }
+
+    /// The active palette as observable state — views that read this re-render
+    /// when the theme changes (the Theme statics alone can't trigger that).
+    var theme: ThemePalette { Theme.palette(id: persisted.settings.themeID) }
 
     // MARK: - Endless lifecycle
 
@@ -89,12 +95,26 @@ final class AppModel {
         return game
     }
 
+    /// Resumes the saved Math Pop game, or starts a fresh one.
+    func mathGame() -> GameState {
+        if let saved = persisted.mathGame, !saved.isGameOver { return saved }
+        return newMathGame()
+    }
+
+    func newMathGame() -> GameState {
+        let game = GameState(mode: .math, seed: UInt64.random(in: UInt64.min...UInt64.max))
+        persisted.mathGame = game
+        save()
+        return game
+    }
+
     /// "New Game" from inside a running game keeps the player in their mode.
     func newGame(like mode: GameMode) -> GameState {
         switch mode {
         case .endless: newEndlessGame()
         case .zen: newZenGame()
         case .sprint: newSprintGame()
+        case .math: newMathGame()
         case .daily: dailyGame(puzzleNumber: todayPuzzleNumber)
         }
     }
@@ -111,10 +131,17 @@ final class AppModel {
         case .sprint:
             persisted.sprintGame = game
             persisted.bestSprintScore = max(persisted.bestSprintScore, game.score)
+        case .math:
+            persisted.mathGame = game
+            persisted.bestMathScore = max(persisted.bestMathScore, game.score)
         case .daily:
             persisted.dailyGame = game
         }
-        persisted.bestTileEver = max(persisted.bestTileEver, game.bestTile)
+        // Math tiles cap at 9 and would never touch this record anyway, but
+        // keeping it doubling-only preserves its meaning.
+        if case .math = game.mode {} else {
+            persisted.bestTileEver = max(persisted.bestTileEver, game.bestTile)
+        }
         save()
     }
 
@@ -123,7 +150,9 @@ final class AppModel {
         persisted.stats.totalScore += game.score
         persisted.stats.totalCascades += game.cascadeCount
         persisted.stats.bestCascadeRound = max(persisted.stats.bestCascadeRound, game.bestCascadeRound)
-        persisted.bestTileEver = max(persisted.bestTileEver, game.bestTile)
+        if case .math = game.mode {} else {
+            persisted.bestTileEver = max(persisted.bestTileEver, game.bestTile)
+        }
 
         switch game.mode {
         case .endless:
@@ -135,6 +164,9 @@ final class AppModel {
         case .sprint:
             persisted.bestSprintScore = max(persisted.bestSprintScore, game.score)
             persisted.sprintGame = nil
+        case .math:
+            persisted.bestMathScore = max(persisted.bestMathScore, game.score)
+            persisted.mathGame = nil
         case let .daily(puzzleNumber, _):
             persisted.dailyRecords[puzzleNumber] = DailyRecord(
                 puzzleNumber: puzzleNumber, score: game.score, bestTile: game.bestTile,

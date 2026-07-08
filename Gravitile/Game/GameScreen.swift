@@ -14,6 +14,7 @@ struct GameScreen: View {
     @State private var sessionStartBest: Int?
     @State private var newBestCelebrated = false
     @State private var showBoulderHint = false
+    @State private var showMathHint = false
 
     init(game: GameState, freeUndoLimit: Int) {
         _viewModel = State(initialValue: GameViewModel(game: game, freeUndoLimit: freeUndoLimit))
@@ -24,11 +25,18 @@ struct GameScreen: View {
         return false
     }
 
+    private var isMath: Bool {
+        if case .math = viewModel.game.mode { return true }
+        return false
+    }
+
+    /// The doubling tutorial teaches the wrong rule for Math Pop, which gets
+    /// its own hint banner instead.
     private var showTutorial: Bool {
         #if DEBUG
         if ProcessInfo.processInfo.environment["GRAVITILE_AUTOPLAY"] == "1" { return false }
         #endif
-        return !isDaily && !appModel.settings.hasSeenTutorial && !showGameOver
+        return !isDaily && !isMath && !appModel.settings.hasSeenTutorial && !showGameOver
     }
 
     var body: some View {
@@ -42,11 +50,20 @@ struct GameScreen: View {
 
                 Spacer(minLength: 16)
 
-                GravityCompass(
-                    current: viewModel.game.gravity,
-                    next: viewModel.game.gravity.rotatedClockwise,
-                    locked: viewModel.stasisArmed
-                )
+                HStack(spacing: 12) {
+                    GravityCompass(
+                        current: viewModel.game.gravity,
+                        next: viewModel.game.gravity.rotatedClockwise,
+                        locked: viewModel.stasisArmed
+                    )
+                    if let target = viewModel.game.mathTarget {
+                        TargetChip(
+                            target: target,
+                            progress: viewModel.game.bondsThisStage,
+                            total: MathProgression.bondsPerStage
+                        )
+                    }
+                }
                 .padding(.bottom, 14)
 
                 BoardView(viewModel: viewModel) { direction in
@@ -63,25 +80,25 @@ struct GameScreen: View {
                         .allowsHitTesting(false)
                     }
                 }
+                .overlay {
+                    if let advance = viewModel.stageCelebration {
+                        StageCelebration(advance: advance)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay(alignment: .bottom) {
                     if showBoulderHint {
-                        HStack(spacing: 10) {
-                            Image(systemName: "snowflake")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(Theme.frost)
-                            Text("Ice never merges — merge beside it to crack it free.")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Theme.textPrimary)
-                        }
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Theme.cellWell)
-                                .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+                        hintBanner(
+                            icon: "snowflake", tint: Theme.frost,
+                            text: "Ice never merges — merge beside it to crack it free."
                         )
-                        .padding(.bottom, 8)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .allowsHitTesting(false)
+                    }
+                    if showMathHint, let target = viewModel.game.mathTarget {
+                        hintBanner(
+                            icon: "plus.forwardslash.minus", tint: Theme.accent,
+                            text: "Two tiles that add up to \(target) pop together. Gravity turns after every swipe!"
+                        )
                     }
                 }
 
@@ -141,8 +158,39 @@ struct GameScreen: View {
         }
     }
 
+    /// Shared bottom banner for first-sighting hints (boulders, Math Pop).
+    private func hintBanner(icon: String, tint: Color, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(tint)
+            Text(text)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.cellWell)
+                .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+        )
+        .padding(.bottom, 8)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .allowsHitTesting(false)
+    }
+
     private func wireCallbacks() {
         if sessionStartBest == nil { sessionStartBest = storedBest }
+        if isMath, !appModel.settings.hasSeenMathHint {
+            var settings = appModel.settings
+            settings.hasSeenMathHint = true
+            appModel.settings = settings
+            withAnimation(.easeOut(duration: 0.3)) { showMathHint = true }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(7))
+                withAnimation(.easeOut(duration: 0.3)) { showMathHint = false }
+            }
+        }
         viewModel.onMerge = { round in
             appModel.haptics.merge(round: round)
             appModel.sounds.merge(round: max(1, round))
@@ -167,6 +215,14 @@ struct GameScreen: View {
                 appModel.haptics.iceChip()
                 appModel.sounds.chip()
             }
+        }
+        viewModel.onBondCleared = {
+            appModel.haptics.merge(round: 2)
+            appModel.sounds.merge(round: 2)
+        }
+        viewModel.onStageAdvance = { _ in
+            appModel.haptics.milestone()
+            appModel.sounds.milestone()
         }
         viewModel.onBoulderSpawned = {
             guard !appModel.settings.hasSeenBoulderHint else { return }
@@ -240,6 +296,7 @@ struct GameScreen: View {
         case .endless: "Gravitile"
         case .zen: "Zen"
         case .sprint: "Sprint"
+        case .math: "Math Pop"
         case .daily: "Daily #\(dailyNumber)"
         }
     }
@@ -256,6 +313,7 @@ struct GameScreen: View {
         case .endless: max(appModel.persisted.bestEndlessScore, viewModel.game.score)
         case .zen: max(appModel.persisted.bestZenTile, viewModel.game.bestTile)
         case .sprint: max(appModel.persisted.bestSprintScore, viewModel.game.score)
+        case .math: max(appModel.persisted.bestMathScore, viewModel.game.score)
         case .daily: max(appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0, viewModel.game.score)
         }
     }
@@ -266,6 +324,7 @@ struct GameScreen: View {
         case .endless: appModel.persisted.bestEndlessScore
         case .zen: appModel.persisted.bestZenTile
         case .sprint: appModel.persisted.bestSprintScore
+        case .math: appModel.persisted.bestMathScore
         case .daily: appModel.persisted.dailyRecords[dailyNumber]?.score ?? 0
         }
     }
@@ -348,7 +407,7 @@ struct GameScreen: View {
     private var showsStasis: Bool {
         switch viewModel.game.mode {
         case .endless, .zen: true
-        case .daily, .sprint: false
+        case .daily, .sprint, .math: false
         }
     }
 
@@ -462,6 +521,29 @@ struct MilestoneCelebration: View {
                 ? "Milestone: reached tile \(value), earned a stasis hold"
                 : "Milestone: reached tile \(value)"
         )
+    }
+}
+
+/// Full-board flourish when Math Pop moves to its next target.
+struct StageCelebration: View {
+    let advance: StageAdvance
+
+    var body: some View {
+        ZStack {
+            ParticleBurstView(round: 5, milestone: true)
+                .frame(width: 260, height: 260)
+            VStack(spacing: 6) {
+                Text("Make \(advance.newTarget)!")
+                    .font(Theme.display(38))
+                    .foregroundStyle(Theme.accent)
+                    .shadow(color: .black.opacity(0.55), radius: 14)
+                Text("+\(advance.bonusPoints) bonus")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(Theme.textPrimary)
+                    .shadow(color: .black.opacity(0.55), radius: 10)
+            }
+        }
+        .accessibilityLabel("Stage up: now make \(advance.newTarget), plus \(advance.bonusPoints) bonus points")
     }
 }
 

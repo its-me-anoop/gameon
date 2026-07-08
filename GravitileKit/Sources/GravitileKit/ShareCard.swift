@@ -37,6 +37,8 @@ public enum ShareCard {
             title = "Gravitile Zen — \(formatted(score))"
         case .sprint:
             title = "Gravitile Sprint — \(formatted(score))"
+        case .math:
+            title = "Gravitile Math Pop — \(formatted(score))"
         }
 
         let tiersReached = max(1, Int(log2(Double(max(2, bestTile)))))

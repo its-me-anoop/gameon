@@ -35,6 +35,10 @@ final class GameViewModel {
     private(set) var celebrationEarnedCharge = false
     /// Stasis is armed: the next swipe holds gravity in place.
     private(set) var stasisArmed = false
+    /// Floating "3 + 7 = 10" equations over freshly popped bonds; self-expire.
+    private(set) var equationPops: [EquationPop] = []
+    /// Math Pop stage-up currently being celebrated ("Now make 12!").
+    private(set) var stageCelebration: StageAdvance?
     private var milestones: MilestoneTracker
     private var nextPopID = 0
     /// Bumped whenever the board is wholesale replaced (new game, undo).
@@ -48,6 +52,8 @@ final class GameViewModel {
     var onMilestone: ((Int) -> Void)?   // first big tile of the game
     var onIceChip: ((Int) -> Void)?     // hpAfter; 0 = shattered free
     var onBoulderSpawned: (() -> Void)? // first-sighting hint hook
+    var onBondCleared: (() -> Void)?    // a number bond popped (Math Pop)
+    var onStageAdvance: ((Int) -> Void)?  // new target — fanfare
     var onGameOver: (() -> Void)?
     var onMoveCommitted: ((GameState) -> Void)?   // checkpoint persistence
 
@@ -110,6 +116,8 @@ final class GameViewModel {
         celebrationValue = nil
         celebrationEarnedCharge = false
         stasisArmed = false
+        equationPops = []
+        stageCelebration = nil
         withAnimation(.easeInOut(duration: 0.25)) {
             syncTilesToBoard()
         }
@@ -131,6 +139,16 @@ final class GameViewModel {
             // shake, nudge, or pops; milestones still sound and announce.
             let rounds = result.phases.filter { !$0.merges.isEmpty }.count
             if !result.slide.merges.isEmpty || rounds > 0 { onMerge?(max(1, rounds)) }
+            if let advance = result.stageAdvance {
+                onStageAdvance?(advance.newTarget)
+                withAnimation(.easeInOut(duration: 0.25)) { stageCelebration = advance }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.5))
+                    if stageCelebration == advance {
+                        withAnimation(.easeOut(duration: 0.25)) { stageCelebration = nil }
+                    }
+                }
+            }
             withAnimation(.easeInOut(duration: 0.25)) {
                 syncTilesToBoard()
             }
@@ -216,6 +234,43 @@ final class GameViewModel {
                 onIceChip?(hit.hpAfter)
             }
 
+        case let .clears(clears):
+            // The bond result grows and fades — a pop, not a vanish. Ghosts at
+            // opacity 0 are reconciled away by the end-of-move sync.
+            withAnimation(.easeOut(duration: AnimationPlanner.clearDuration)) {
+                for clear in clears {
+                    if let index = tiles.firstIndex(where: { $0.id == clear.tileID }) {
+                        tiles[index].scale = 1.4
+                        tiles[index].opacity = 0
+                    }
+                }
+            }
+            for clear in clears {
+                burstCells.append((clear.at, 2))
+                addEquationPop(for: clear)
+                onBondCleared?()
+            }
+
+        case let .stageSweep(advance):
+            withAnimation(.easeOut(duration: AnimationPlanner.sweepDuration * 0.7)) {
+                for index in tiles.indices where advance.sweptTileIDs.contains(tiles[index].id) {
+                    tiles[index].scale = 0.5
+                    tiles[index].opacity = 0
+                }
+            }
+            tiles.removeAll { advance.sweptTileIDs.contains($0.id) }
+            addScorePop(points: advance.bonusPoints, round: 2)
+            onStageAdvance?(advance.newTarget)
+            withAnimation(.spring(duration: 0.35, bounce: 0.4)) { stageCelebration = advance }
+            let generation = boardGeneration
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.5))
+                guard generation == boardGeneration else { return }
+                if stageCelebration == advance {
+                    withAnimation(.easeOut(duration: 0.3)) { stageCelebration = nil }
+                }
+            }
+
         case let .spawn(spawns):
             if spawns.contains(where: { $0.tile.ice > 0 }) {
                 onBoulderSpawned?()
@@ -247,6 +302,23 @@ final class GameViewModel {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.95))
             scorePops.removeAll { $0.id == pop.id }
+        }
+    }
+
+    /// The bond's equation floats up from the popped cell — Math Pop's whole
+    /// point is that the player reads "3 + 7 = 10" a hundred times.
+    private func addEquationPop(for clear: ClearEvent) {
+        guard clear.addends.count == 2 else { return }
+        let pop = EquationPop(
+            id: nextPopID,
+            text: "\(clear.addends[0]) + \(clear.addends[1]) = \(clear.value)",
+            coordinate: clear.at
+        )
+        nextPopID += 1
+        equationPops.append(pop)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.2))
+            equationPops.removeAll { $0.id == pop.id }
         }
     }
 

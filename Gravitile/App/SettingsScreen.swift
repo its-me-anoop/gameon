@@ -14,6 +14,20 @@ struct SettingsScreen: View {
             }
             .listRowBackground(Theme.bgBoard)
 
+            Section("Theme") {
+                ForEach(Theme.palettes) { palette in
+                    Button {
+                        var settings = appModel.settings
+                        settings.themeID = palette.id
+                        appModel.settings = settings
+                    } label: {
+                        themeRow(palette)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .listRowBackground(Theme.bgBoard)
+
             Section("Gravitile Plus") {
                 NavigationLink(value: Route.paywall) {
                     HStack {
@@ -74,6 +88,35 @@ struct SettingsScreen: View {
         } message: {
             Text("Your tip genuinely helps keep Gravitile independent.")
         }
+    }
+
+    private func themeRow(_ palette: ThemePalette) -> some View {
+        HStack(spacing: 12) {
+            // A five-tile taste of the ramp, on the palette's own board color.
+            HStack(spacing: 3) {
+                ForEach([2, 16, 128, 1024, 8192], id: \.self) { value in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(palette.tileColors[value] ?? palette.accent)
+                        .frame(width: 12, height: 12)
+                }
+            }
+            .padding(5)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(palette.bgBoard))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(palette.name)
+                Text(palette.tagline)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Spacer()
+            if appModel.settings.themeID == palette.id {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Theme.accent)
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(appModel.settings.themeID == palette.id ? .isSelected : [])
     }
 
     private func binding(_ keyPath: WritableKeyPath<Settings, Bool>) -> Binding<Bool> {

@@ -53,6 +53,37 @@ struct GravityCompass: View {
     private func label(for direction: Direction) -> String { direction.rawValue }
 }
 
+/// Math Pop's goal, worn like the compass: "MAKE 10" plus one dot per bond
+/// toward the next stage.
+struct TargetChip: View {
+    let target: Int
+    let progress: Int
+    let total: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("MAKE \(target)")
+                .font(.system(size: 14, weight: .heavy))
+                .tracking(1.2)
+                .foregroundStyle(Theme.accent)
+                .contentTransition(.numericText())
+            HStack(spacing: 4) {
+                ForEach(0..<total, id: \.self) { index in
+                    Circle()
+                        .fill(index < progress ? Theme.accent : Theme.cellWell)
+                        .frame(width: 6, height: 6)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Theme.bgBoard))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Target: make \(target). \(progress) of \(total) bonds this stage.")
+        .accessibilityIdentifier("mathTarget")
+    }
+}
+
 struct ScoreBadge: View {
     let title: String
     let value: Int
@@ -69,6 +100,8 @@ struct ScoreBadge: View {
                 .foregroundStyle(emphasized ? Theme.accent : Theme.textPrimary)
                 .contentTransition(.numericText())
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
         }
         .accessibilityElement(children: .combine)
     }
@@ -95,7 +128,7 @@ struct GameOverOverlay: View {
                 Text("Score \(game.score)")
                     .font(Theme.display(20, weight: .semibold))
                     .foregroundStyle(Theme.accent)
-                Text("Best tile \(game.bestTile) · \(game.cascadeCount) cascades")
+                Text(statsLine)
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -132,8 +165,17 @@ struct GameOverOverlay: View {
         switch game.mode {
         case .daily: "Daily Done"
         case .sprint: game.hasLegalMove ? "Out of Moves" : "Board Locked"
-        case .endless, .zen: "Board Locked"
+        case .endless, .zen, .math: "Board Locked"
         }
+    }
+
+    /// Math brags about bonds; the doubling modes about tiles and cascades.
+    private var statsLine: String {
+        if case .math = game.mode {
+            let bondNoun = game.bondsCleared == 1 ? "bond" : "bonds"
+            return "\(game.bondsCleared) \(bondNoun) · reached Make \(game.mathTarget ?? 0)"
+        }
+        return "Best tile \(game.bestTile) · \(game.cascadeCount) cascades"
     }
 }
 

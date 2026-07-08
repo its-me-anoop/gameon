@@ -51,6 +51,11 @@ struct HomeScreen: View {
                     }
                     .accessibilityIdentifier("playDaily")
 
+                    NavigationLink(value: Route.math) {
+                        mathCard
+                    }
+                    .accessibilityIdentifier("playMath")
+
                     // Two compact chips, a deliberate visual step down from the
                     // full-width cards above — modes, not the main event.
                     HStack(spacing: 14) {
@@ -132,6 +137,46 @@ struct HomeScreen: View {
         )
     }
 
+    /// Math Pop gets full-card billing: it's the mode no other merge game
+    /// has, and the door for young players.
+    private var mathCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text("Math Pop")
+                        .font(Theme.display(18, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("NEW")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.bgDeep)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Theme.accent))
+                }
+                Text(mathSubtitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            Spacer()
+            Image(systemName: "plus.forwardslash.minus")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.bgBoard)
+        )
+    }
+
+    private var mathSubtitle: String {
+        if appModel.persisted.bestMathScore > 0 {
+            return "Make the target. Best \(appModel.persisted.bestMathScore)"
+        }
+        return "Make the target. Pop the tiles."
+    }
+
     private func modeChip(title: String, subtitle: String, systemImage: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 7) {
@@ -166,6 +211,7 @@ enum Route: Hashable {
     case endless
     case zen
     case sprint
+    case math
     case daily
     case dailyPuzzle(Int)
     case stats

@@ -12,6 +12,11 @@ enum AnimationStep: Equatable {
     case gravityCue(Direction)
     /// Boulders chipped by the merges just shown (hpAfter 0 = shattered).
     case iceChips([IceHit])
+    /// Completed number bonds pop off the board with their equations.
+    case clears([ClearEvent])
+    /// Math Pop stage-up: leftover tiles sweep away, the banner announces the
+    /// new target; the planner follows with a `.spawn` of the starters.
+    case stageSweep(StageAdvance)
     /// Fresh tiles drop in from the entry edge together.
     case spawn([SpawnEvent])
 }
@@ -23,6 +28,8 @@ enum AnimationPlanner {
     static let spawnDuration: TimeInterval = 0.12
     static let cueDuration: TimeInterval = 0.08
     static let chipDuration: TimeInterval = 0.12
+    static let clearDuration: TimeInterval = 0.22
+    static let sweepDuration: TimeInterval = 0.5
 
     static func steps(for result: MoveResult) -> [AnimationStep] {
         var steps: [AnimationStep] = []
@@ -35,6 +42,9 @@ enum AnimationPlanner {
         if !result.slide.iceHits.isEmpty {
             steps.append(.iceChips(result.slide.iceHits))
         }
+        if !result.slide.clears.isEmpty {
+            steps.append(.clears(result.slide.clears))
+        }
         // Stasis holds the world still — no rotation cue to show.
         if !result.heldGravity {
             steps.append(.gravityCue(result.newGravity))
@@ -46,12 +56,21 @@ enum AnimationPlanner {
             if !phase.iceHits.isEmpty {
                 steps.append(.iceChips(phase.iceHits))
             }
+            if !phase.clears.isEmpty {
+                steps.append(.clears(phase.clears))
+            }
             if !phase.falls.isEmpty {
                 steps.append(.moves(phase.falls, duration: fallDuration))
             }
         }
         if !result.spawns.isEmpty {
             steps.append(.spawn(result.spawns))
+        }
+        if let advance = result.stageAdvance {
+            steps.append(.stageSweep(advance))
+            if !advance.starterSpawns.isEmpty {
+                steps.append(.spawn(advance.starterSpawns))
+            }
         }
         return steps
     }
@@ -62,6 +81,8 @@ enum AnimationPlanner {
         case .merges: mergeDuration
         case .gravityCue: cueDuration
         case .iceChips: chipDuration
+        case .clears: clearDuration
+        case .stageSweep: sweepDuration
         case .spawn: spawnDuration
         }
     }

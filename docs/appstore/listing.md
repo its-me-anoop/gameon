@@ -12,8 +12,8 @@
 
 ## Promotional text (170 chars max)
 
-Merge tiles while gravity rotates beneath you. Zen, Sprint, Endless and the
-Daily — now on Apple Watch too. No ads. No tracking. Just the tumble. (146)
+Gravity rotates under every merge. Now with Math Pop — a number-bonds mode
+kids can learn from — and five hand-tuned color themes. No ads. No tracking. (152)
 
 ## Description (4000 chars max)
 
@@ -31,13 +31,23 @@ the swipe — they plan the fall.
 • Cascades chain automatically as tiles tumble, multiplying points ×2, ×3, ×4…
 • The pressure builds the longer you survive. Every game has an ending.
 
-**FOUR WAYS TO PLAY**
+**FIVE WAYS TO PLAY**
 • Endless — chase your best score through rising pressure
 • The Daily — one seeded puzzle a day, identical for every player on Earth,
   40 moves. Share your result as an emoji card and keep your streak alive
   (one missed day a week is forgiven).
+• Math Pop — the learning mode. Tiles carry small numbers, and two tiles that
+  ADD UP to the target pop together: make 5, make 10, make 16… Every pop
+  shows its equation ("3 + 7 = 10"), and tiles wear the Cuisenaire rod colors
+  used in real classrooms. Number bonds are the backbone of early arithmetic —
+  here they're also how you score. Made for kids; sneaky-fun for adults.
 • Zen — no clock, no pressure, no ending. Just the tumble.
 • Sprint — 60 moves. Post your biggest score.
+
+**FIVE COLOR WORLDS**
+Ember's navy night, Tidepool's ocean deeps, Meadow's cream daylight, Aurora's
+polar dusk, Sorbet's candy brights — every palette hand-tuned for contrast,
+including two full light themes. Pick yours in Settings.
 
 **ON APPLE WATCH**
 The full tumbling-merge game, playable on your wrist — swipe, tumble, merge.
@@ -59,9 +69,22 @@ The rules take ten seconds to learn. The tumble takes a lifetime to master.
 
 ## Keywords (100 chars max)
 
-merge,2048,puzzle,daily,gravity,cascade,zen,relax,tile,logic,brain,streak,offline
+merge,puzzle,daily,gravity,cascade,zen,math,kids,learn,numbers,tile,logic,brain,offline
 
-(81 chars)
+(87 chars — "2048" dropped: Math Pop and the tumble are the identity, not the
+comparison; math/kids/learn/numbers cover the new audience)
+
+## What's New — v1.3
+
+• NEW MODE: Math Pop — merge tiles that ADD UP to the target and watch them
+  pop with their equation. Stages climb from Make 5 to Make 16, teaching the
+  number bonds kids drill in school. Tiles wear classroom Cuisenaire colors.
+• FIVE THEMES: Ember, Tidepool, Meadow, Aurora and Sorbet — hand-tuned color
+  worlds including two light boards. Pick yours in Settings.
+• Stasis powerup: bank a Hold at 256/512/1024 and freeze gravity for one move.
+• Boulders: iced tiles that never merge — crack them with adjacent merges.
+• Share beautiful rendered result cards, browse achievements in Stats, and
+  explore the new records block, score distribution and month calendar.
 
 ## What's New — v1.1
 
@@ -150,3 +173,14 @@ are standard IAP. The daily puzzle is seeded from the UTC date — no server.
 v1.1: The Apple Watch app is a standalone game (runs independently, no phone
 or account required) — swipe on the board to play. Zen and Sprint modes are
 free and reachable from the home screen chips below the Daily card.
+
+v1.3 (response to the 4.3(a) rejection of 1.0 (8)): every line of code and
+every asset is original and written for this app — the deterministic
+tumbling-gravity engine (gravity rotates 90° after every move; cascades
+resolve on seeded RNG streams), the synthesized audio, the OKLCH-derived
+palettes and the Unbounded/SF-Rounded design are all first-party (source
+history available on request). This build adds content no similar app has:
+the Math Pop number-bonds learning mode (Home → Math Pop card) with
+Cuisenaire-colored tiles, equation pops and staged targets, plus five
+selectable color themes (Settings → Theme). See the reply in Resolution
+Center for the full walkthrough.

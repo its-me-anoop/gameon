@@ -34,11 +34,22 @@ public struct IceHit: Equatable, Codable, Sendable {
     public let hpAfter: Int
 }
 
+/// A completed number bond popping off the board (Math Pop, v1.3 spec §3.3).
+/// `addends` are the two values that met — the UI's "3 + 7 = 10".
+public struct ClearEvent: Equatable, Codable, Sendable {
+    public let tileID: Int
+    public let at: Coordinate
+    public let value: Int
+    public let addends: [Int]
+}
+
 public struct SlideOutcome: Equatable, Sendable {
     public let board: Board
     public let moves: [TileMove]
     public let merges: [MergeEvent]
     public var iceHits: [IceHit] = []
+    /// Bond pops under `.sumTarget`; always empty under `.doubling`.
+    public var clears: [ClearEvent] = []
     /// A swipe is legal iff its slide outcome changed the board.
     public var changed: Bool { !(moves.isEmpty && merges.isEmpty) }
 }

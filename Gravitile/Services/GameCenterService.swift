@@ -48,8 +48,10 @@ final class GameCenterService {
 
     /// Pure routing — which scores land on which boards — split out so tests
     /// don't need GameKit. Daily scores go to both the classic all-time board
-    /// and the weekly recurring one.
+    /// and the weekly recurring one. Math Pop submits nothing: no board exists
+    /// for it yet, and its 1–9 tiles would corrupt the doubling-tile records.
     static func leaderboardEntries(for game: GameState) -> [(score: Int, board: String)] {
+        if case .math = game.mode { return [] }
         var entries: [(score: Int, board: String)] = [(game.bestTile, bestTileLeaderboardID)]
         switch game.mode {
         case .endless:
@@ -61,12 +63,17 @@ final class GameCenterService {
             entries.append((game.bestTile, zenTileLeaderboardID))
         case .sprint:
             entries.append((game.score, sprintLeaderboardID))
+        case .math:
+            break
         }
         return entries
     }
 
     func submit(game: GameState) {
         guard isAuthenticated else { return }
+        // Math Pop is off the boards entirely — including achievements, whose
+        // merge/tile wording describes the doubling modes.
+        if case .math = game.mode { return }
         for entry in Self.leaderboardEntries(for: game) {
             if entry.board == Self.dailyWeeklyLeaderboardID {
                 // Occurrence-scoped submit: a late-arriving network call must

@@ -28,6 +28,13 @@ struct ScorePop: Identifiable, Equatable {
     let round: Int
 }
 
+/// One floating "3 + 7 = 10" over a popped bond — Math Pop's teaching moment.
+struct EquationPop: Identifiable, Equatable {
+    let id: Int
+    let text: String
+    let coordinate: Coordinate
+}
+
 /// Decaying horizontal jitter; `travel` animates in whole-number increments,
 /// one unit per shake, so the board always comes to rest centred.
 struct ShakeEffect: GeometryEffect {

@@ -25,6 +25,9 @@ struct ShareCardModel {
         case let .sprint(budget):
             modeLabel = "Sprint"
             movesLine = "\(game.moveCount)/\(budget) moves"
+        case .math:
+            modeLabel = "Math Pop"
+            movesLine = game.bondsCleared == 1 ? "1 bond" : "\(game.bondsCleared) bonds"
         }
         score = game.score
         bestTile = game.bestTile

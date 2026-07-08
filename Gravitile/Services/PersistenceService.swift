@@ -8,6 +8,7 @@ struct Settings: Codable, Equatable {
     var themeID = "ember"
     var hasSeenTutorial = false
     var hasSeenBoulderHint = false
+    var hasSeenMathHint = false
 
     init() {}
 
@@ -22,6 +23,7 @@ struct Settings: Codable, Equatable {
         themeID = try c.decodeIfPresent(String.self, forKey: .themeID) ?? "ember"
         hasSeenTutorial = try c.decodeIfPresent(Bool.self, forKey: .hasSeenTutorial) ?? false
         hasSeenBoulderHint = try c.decodeIfPresent(Bool.self, forKey: .hasSeenBoulderHint) ?? false
+        hasSeenMathHint = try c.decodeIfPresent(Bool.self, forKey: .hasSeenMathHint) ?? false
     }
 }
 
@@ -94,9 +96,11 @@ struct PersistedState: Codable, Equatable {
     var dailyGame: GameState?
     var zenGame: GameState?
     var sprintGame: GameState?
+    var mathGame: GameState?
     var bestEndlessScore = 0
     var bestZenTile = 0
     var bestSprintScore = 0
+    var bestMathScore = 0
     var bestTileEver = 0
     var dailyRecords: [Int: DailyRecord] = [:]
     var streak = StreakState()
@@ -112,9 +116,11 @@ struct PersistedState: Codable, Equatable {
         dailyGame = try c.decodeIfPresent(GameState.self, forKey: .dailyGame)
         zenGame = try c.decodeIfPresent(GameState.self, forKey: .zenGame)
         sprintGame = try c.decodeIfPresent(GameState.self, forKey: .sprintGame)
+        mathGame = try c.decodeIfPresent(GameState.self, forKey: .mathGame)
         bestEndlessScore = try c.decodeIfPresent(Int.self, forKey: .bestEndlessScore) ?? 0
         bestZenTile = try c.decodeIfPresent(Int.self, forKey: .bestZenTile) ?? 0
         bestSprintScore = try c.decodeIfPresent(Int.self, forKey: .bestSprintScore) ?? 0
+        bestMathScore = try c.decodeIfPresent(Int.self, forKey: .bestMathScore) ?? 0
         bestTileEver = try c.decodeIfPresent(Int.self, forKey: .bestTileEver) ?? 0
         dailyRecords = try c.decodeIfPresent([Int: DailyRecord].self, forKey: .dailyRecords) ?? [:]
         streak = try c.decodeIfPresent(StreakState.self, forKey: .streak) ?? StreakState()

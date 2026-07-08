@@ -28,7 +28,7 @@ struct BoardView: View {
 
                 // Tiles
                 ForEach(viewModel.tiles) { tile in
-                    TileView(value: tile.value, size: cell, ice: tile.ice)
+                    TileView(value: tile.value, size: cell, ice: tile.ice, isMath: isMath)
                         .scaleEffect(tile.scale)
                         .opacity(tile.opacity)
                         .position(center(of: tile.coordinate, cell: cell, side: side))
@@ -43,6 +43,14 @@ struct BoardView: View {
                             .position(center(of: burst.0, cell: cell, side: side))
                             .allowsHitTesting(false)
                     }
+                }
+
+                // Floating equations over popped bonds (Math Pop)
+                ForEach(viewModel.equationPops) { pop in
+                    EquationPopView(text: pop.text)
+                        .position(center(of: pop.coordinate, cell: cell, side: side))
+                        .allowsHitTesting(false)
+                        .zIndex(100_000)
                 }
             }
             .offset(viewModel.boardNudge)
@@ -62,6 +70,11 @@ struct BoardView: View {
             Button("Swipe left") { onSwipe(.left) }
             Button("Swipe right") { onSwipe(.right) }
         }
+    }
+
+    private var isMath: Bool {
+        if case .math = viewModel.game.mode { return true }
+        return false
     }
 
     private func center(of coordinate: Coordinate, cell: CGFloat, side: CGFloat) -> CGPoint {
@@ -99,10 +112,12 @@ struct TileView: View {
     let size: CGFloat
     /// Boulder ice HP; 0 renders a normal tile, 1 a cracked shell, 2 intact.
     var ice: Int = 0
+    /// Math Pop tiles use the Cuisenaire digit colors instead of the ramp.
+    var isMath: Bool = false
 
     var body: some View {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(ice > 0 ? Theme.frost.opacity(0.28) : Theme.tileColor(for: value))
+            .fill(ice > 0 ? Theme.frost.opacity(0.28) : fillColor)
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(
@@ -116,7 +131,7 @@ struct TileView: View {
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .padding(4)
-                    .foregroundStyle(ice > 0 ? Theme.frost : Theme.tileTextColor(for: value))
+                    .foregroundStyle(ice > 0 ? Theme.frost : textColor)
             )
             .overlay(alignment: .topTrailing) {
                 if ice > 0 {
@@ -131,6 +146,14 @@ struct TileView: View {
             .accessibilityLabel(ice > 0 ? "Iced tile \(value), \(ice) hits to free" : "Tile \(value)")
     }
 
+    private var fillColor: Color {
+        isMath ? Theme.mathTileColor(for: value) : Theme.tileColor(for: value)
+    }
+
+    private var textColor: Color {
+        isMath ? Theme.mathTileTextColor(for: value) : Theme.tileTextColor(for: value)
+    }
+
     private var numeralSize: CGFloat {
         switch value {
         case ..<100: size * 0.44
@@ -138,5 +161,23 @@ struct TileView: View {
         case ..<10000: size * 0.3
         default: size * 0.26
         }
+    }
+}
+
+/// Rises and fades from a popped bond, like ScorePopView but board-anchored.
+struct EquationPopView: View {
+    let text: String
+    @State private var risen = false
+
+    var body: some View {
+        Text(text)
+            .font(Theme.display(15, weight: .bold))
+            .foregroundStyle(Theme.textPrimary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Theme.bgBoard.opacity(0.92)))
+            .offset(y: risen ? -46 : -10)
+            .opacity(risen ? 0 : 1)
+            .onAppear { withAnimation(.easeOut(duration: 1.1)) { risen = true } }
     }
 }
