@@ -12,8 +12,11 @@
 
 ## Promotional text (170 chars max)
 
-Gravity rotates under every merge. Now with Math Pop — a number-bonds mode
-kids can learn from — and five hand-tuned color themes. No ads. No tracking. (152)
+Gravity rotates under every merge. Now with Math Pop — a playful number-bonds
+learning mode — and five hand-tuned color themes. No ads. No tracking. (150)
+
+(Deliberately no "for kids" phrasing anywhere in public metadata — Guideline
+2.3.8 reserves it for Kids Category apps, which the paywall/tip jar rule out.)
 
 ## Description (4000 chars max)
 
@@ -37,11 +40,12 @@ the swipe — they plan the fall.
   40 moves. Share your result as an emoji card and keep your streak alive
   (one missed day a week is forgiven).
 • Math Pop — the learning mode. Tiles carry small numbers, and two tiles that
-  ADD UP to the target pop together: make 5, make 10, make 16… Every pop
+  ADD UP to the target pop together: make 5, make 10 … make 16. Every pop
   shows its equation ("3 + 7 = 10"), and tiles wear the Cuisenaire rod colors
   used in real classrooms. Number bonds are the backbone of early arithmetic —
-  here they're also how you score. Made for kids; sneaky-fun for adults.
-• Zen — no clock, no pressure, no ending. Just the tumble.
+  here they're also how you score. Gentle enough for young learners, sneakily
+  fun for grown-ups.
+• Zen — no clock, no pressure. Just the tumble.
 • Sprint — 60 moves. Post your biggest score.
 
 **FIVE COLOR WORLDS**
@@ -50,7 +54,7 @@ polar dusk, Sorbet's candy brights — every palette hand-tuned for contrast,
 including two full light themes. Pick yours in Settings.
 
 **ON APPLE WATCH**
-The full tumbling-merge game, playable on your wrist — swipe, tumble, merge.
+The tumbling-merge game, playable on your wrist — swipe, tumble, merge.
 Your watch game is its own little world, ready anywhere.
 
 **MADE WITH CARE**
@@ -69,10 +73,11 @@ The rules take ten seconds to learn. The tumble takes a lifetime to master.
 
 ## Keywords (100 chars max)
 
-merge,puzzle,daily,gravity,cascade,zen,math,kids,learn,numbers,tile,logic,brain,offline
+merge,puzzle,daily,gravity,cascade,zen,math,education,learn,numbers,tile,logic,brain,offline
 
-(87 chars — "2048" dropped: Math Pop and the tumble are the identity, not the
-comparison; math/kids/learn/numbers cover the new audience)
+(92 chars — "2048" dropped: Math Pop and the tumble are the identity, not the
+comparison; "kids" swapped for "education" to stay clear of Kids Category
+phrasing rules)
 
 ## What's New — v1.3
 

@@ -160,6 +160,7 @@
 		9AA96A4FE6B2A7105134A92B /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		A070AD2BA84FDD1C349F8918 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
 		A5705875316B8AC5B1EABF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A6FA1AE9C6DA227B609D428C /* GravitileWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GravitileWatch.entitlements; sourceTree = "<group>"; };
 		A84A244D85F634BE5623F4FF /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		B16951E6477320C328C1ED34 /* GravitileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GravitileUITests.swift; sourceTree = "<group>"; };
 		BBA685458A62BAB7C0CED357 /* fanfare.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = fanfare.wav; sourceTree = "<group>"; };
@@ -265,6 +266,7 @@
 			isa = PBXGroup;
 			children = (
 				DB12E2E61011B067132CC8BA /* Assets.xcassets */,
+				A6FA1AE9C6DA227B609D428C /* GravitileWatch.entitlements */,
 				1264165B1E0E149EDE255C5D /* GravitileWatchApp.swift */,
 				DC89E26D3BDC34E15E5F9870 /* Info.plist */,
 				79A52B5F4E871F5A9EB94252 /* WatchGameStore.swift */,
@@ -696,7 +698,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -834,6 +836,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GravitileWatch/GravitileWatch.entitlements;
 				INFOPLIST_FILE = GravitileWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.gravitile.watchkitapp;
 				SDKROOT = watchos;
@@ -877,7 +880,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -904,6 +907,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GravitileWatch/GravitileWatch.entitlements;
 				INFOPLIST_FILE = GravitileWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.flutterly.gravitile.watchkitapp;
 				SDKROOT = watchos;
