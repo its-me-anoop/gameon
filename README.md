@@ -17,6 +17,12 @@ multiplying scores.
   cruise → tension → collapse arc (tuned by Monte-Carlo simulation).
 - **Daily** — one seeded puzzle per UTC day, identical worldwide, 40 moves,
   emoji share cards, streaks with a weekly freeze.
+- **Math Pop** — the learning mode: tiles carry 1–9 and merge when they
+  *sum to the stage target* (Make 5 → Make 16), popping with their equation.
+  Tile colors follow the classroom Cuisenaire rod system.
+- **Zen** — no clock, no ending. **Sprint** — 60 moves, biggest score.
+
+Five OKLCH-derived color themes (two of them light) live in Settings.
 
 Monetization: free, no ads, no tracking. One non-consumable (**Gravitile
 Plus**: daily archive + unlimited undo) and a tip jar.
