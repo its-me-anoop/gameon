@@ -1,8 +1,8 @@
 import CoreHaptics
 import UIKit
 
-/// CoreHaptics wrapper. Merge taps sharpen and intensify with cascade round;
-/// everything degrades to a no-op on unsupported hardware.
+/// CoreHaptics wrapper. Everything degrades to a no-op on hardware without
+/// haptics, and every call is safe to make from anywhere.
 @MainActor
 final class HapticsService {
     private var engine: CHHapticEngine?
@@ -17,105 +17,66 @@ final class HapticsService {
         try? engine?.start()
     }
 
-    func merge(round: Int) {
-        guard isEnabled else { return }
-        let intensity = min(1.0, 0.45 + Double(round) * 0.18)
-        let sharpness = min(1.0, 0.3 + Double(round) * 0.2)
-        play(events: [
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(intensity)),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(sharpness)),
-            ], relativeTime: 0),
-        ])
+    /// Machine set down: a firm, short knock.
+    func place() {
+        transient(intensity: 0.7, sharpness: 0.55)
     }
 
-    /// Feather-light tick as gravity rotates — paired with the whoosh.
-    func rotationTick() {
-        guard isEnabled else { return }
-        play(events: [
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.28),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.2),
-            ], relativeTime: 0),
-        ])
+    func tap() {
+        transient(intensity: 0.3, sharpness: 0.35)
     }
 
-    /// Soft settle when falling tiles land.
-    func landing() {
-        guard isEnabled else { return }
-        play(events: [
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.12),
-            ], relativeTime: 0),
-        ])
+    /// Meteor caught — the most physical moment in the game.
+    func impact() {
+        transient(intensity: 1.0, sharpness: 0.8)
     }
 
-    /// Ice chipped off a boulder — bright, glassy.
-    func iceChip() {
-        guard isEnabled else { return }
-        play(events: [
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
+    /// Meteor entering the atmosphere: a rising rumble.
+    func approach() {
+        continuousRumble(duration: 0.6, intensity: 0.35, sharpness: 0.15)
+    }
+
+    func quake() {
+        continuousRumble(duration: 0.9, intensity: 0.75, sharpness: 0.1)
+    }
+
+    /// The world imploding, and then the new one arriving.
+    func collapse() {
+        guard isEnabled, let engine else { return }
+        let events: [CHHapticEvent] = [
+            CHHapticEvent(eventType: .hapticContinuous, parameters: [
                 CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9),
-            ], relativeTime: 0),
-        ])
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.1),
+            ], relativeTime: 0, duration: 0.8),
+            CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.6),
+            ], relativeTime: 0.85),
+        ]
+        try? engine.makePlayer(with: CHHapticPattern(events: events, parameters: []))
+            .start(atTime: CHHapticTimeImmediate)
     }
 
-    /// The boulder shattered free.
-    func shatter() {
-        guard isEnabled else { return }
+    private func transient(intensity: Float, sharpness: Float) {
         play(events: [
             CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.85),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8),
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
             ], relativeTime: 0),
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.4),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-            ], relativeTime: 0.07),
         ])
     }
 
-    /// First 256/512/1024/… of the game: three rising taps into a short purr.
-    func milestone() {
-        guard isEnabled else { return }
-        var events = (0..<3).map { index in
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5 + Float(index) * 0.2),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-            ], relativeTime: Double(index) * 0.09)
-        }
-        events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [
-            CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.32),
-            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25),
-        ], relativeTime: 0.27, duration: 0.3))
-        play(events: events)
-    }
-
-    /// Passing your personal best mid-game.
-    func newBest() {
-        guard isEnabled else { return }
-        play(events: [0, 0.12].enumerated().map { index, time in
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.7 + Float(index) * 0.2),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.6),
-            ], relativeTime: time)
-        })
-    }
-
-    func gameOver() {
-        guard isEnabled else { return }
-        play(events: (0..<3).map { index in
-            CHHapticEvent(eventType: .hapticTransient, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8 - Float(index) * 0.2),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.4),
-            ], relativeTime: Double(index) * 0.12)
-        })
+    private func continuousRumble(duration: TimeInterval, intensity: Float, sharpness: Float) {
+        play(events: [
+            CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+            ], relativeTime: 0, duration: duration),
+        ])
     }
 
     private func play(events: [CHHapticEvent]) {
-        guard let engine else { return }
+        guard isEnabled, let engine else { return }
         guard let pattern = try? CHHapticPattern(events: events, parameters: []) else { return }
         try? engine.makePlayer(with: pattern).start(atTime: CHHapticTimeImmediate)
     }

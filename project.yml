@@ -2,7 +2,9 @@ name: Gravitile
 options:
   bundleIdPrefix: com.flutterly
   deploymentTarget:
-    iOS: "17.0"
+    # RealityView (SwiftUI) needs 18; SceneKit is deprecated on the iOS 26 SDK
+    # and is not an option for new work.
+    iOS: "18.0"
   createIntermediateGroups: true
 packages:
   GravitileKit:
@@ -10,8 +12,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 12
-    MARKETING_VERSION: "1.3"
+    CURRENT_PROJECT_VERSION: 13
+    MARKETING_VERSION: "2.0"
 targets:
   Gravitile:
     type: application
@@ -19,7 +21,7 @@ targets:
     sources: [Gravitile]
     dependencies:
       - package: GravitileKit
-      - target: GravitileWatch
+        product: OrbitKit
     entitlements:
       path: Gravitile/Gravitile.entitlements
       properties:
@@ -35,8 +37,8 @@ targets:
         CFBundleIconName: AppIcon
         UILaunchScreen:
           UIColorName: LaunchBackground
-        # iPhone locks portrait; iPad supports every orientation and
-        # resizable windows (required for new apps on the iOS 26 SDK).
+        # iPhone locks portrait; iPad supports every orientation and resizable
+        # windows (required for new apps on the iOS 26 SDK).
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
@@ -52,41 +54,6 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1,2"
-  GravitileWatch:
-    type: application
-    platform: watchOS
-    deploymentTarget: "10.0"
-    sources:
-      - GravitileWatch
-      # Shared design tokens — SwiftUI-only, no UIKit, safe on watchOS.
-      - Gravitile/App/Theme.swift
-    dependencies:
-      - package: GravitileKit
-    # ASC validates that every nested app bundle carries the Game Center
-    # entitlement once the version has GC configured — build 11 (the first
-    # watch-bundled store candidate) was rejected at submission with
-    # STATE_ERROR.BUILD_INDICATES_GAME_CENTER_DISABLED without this.
-    entitlements:
-      path: GravitileWatch/GravitileWatch.entitlements
-      properties:
-        com.apple.developer.game-center: true
-    info:
-      path: GravitileWatch/Info.plist
-      properties:
-        CFBundleDisplayName: Gravitile
-        # Embedded watch app versions must match the iOS app exactly, and
-        # hand-authored plists don't get CFBundleIconName injected by actool
-        # (the ITMS-90713 lesson from v1.0).
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleIconName: AppIcon
-        WKApplication: true
-        WKCompanionAppBundleIdentifier: com.flutterly.gravitile
-        WKRunsIndependentlyOfCompanionApp: true
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.flutterly.gravitile.watchkitapp
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   GravitileTests:
     type: bundle.unit-test
     platform: iOS
@@ -111,12 +78,6 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 schemes:
-  GravitileWatch:
-    build:
-      targets:
-        GravitileWatch: all
-    run:
-      config: Debug
   Gravitile:
     build:
       targets:
