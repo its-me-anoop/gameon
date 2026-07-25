@@ -1,191 +1,184 @@
-# App Store Listing — Gravitile
+# App Store Listing — Gravitile 2.0
 
 ## Identity
 
-- **Name (30 chars max):** `Gravitile — Tumbling Merge` (26)
-- **Subtitle (30 chars max):** `Gravity turns. Tiles cascade.` (29)
+- **Name (30 chars max):** `Gravitile — Tilt a World` (24)
+- **Subtitle (30 chars max):** `Build a world. Steer its spin.` (30)
 - **Bundle ID:** `com.flutterly.gravitile`
 - **SKU:** `gravitile-ios-001`
-- **Primary category:** Games › Puzzle
-- **Secondary category:** Games › Board
+- **Primary category:** Games › Simulation
+- **Secondary category:** Games › Strategy
 - **Price:** Free, with in-app purchases
+
+Category note: 1.x shipped in Games › Puzzle and was rejected under 4.3(a) for
+resembling other apps in that category. 2.0 is a different genre and belongs in
+a different aisle. The name deliberately avoids "Idle Planet …", which would
+collide with an existing popular title — metadata similarity is part of what
+4.3(a) tests.
 
 ## Promotional text (170 chars max)
 
-Gravity rotates under every merge. Now with Math Pop — a playful number-bonds
-learning mode — and five hand-tuned color themes. No ads. No tracking. (150)
-
-(Deliberately no "for kids" phrasing anywhere in public metadata — Guideline
-2.3.8 reserves it for Kids Category apps, which the paywall/tip jar rule out.)
+Everything you build has weight, and weight pulls itself toward the equator.
+Build heavy on one side and your whole world turns. No ads. No tracking. (149)
 
 ## Description (4000 chars max)
 
-Gravitile is a merge puzzle with a twist you can feel: after every swipe,
-gravity turns 90 degrees — and the whole board tumbles.
+Gravitile is a world you build one hexagon at a time — and a world that answers
+back.
 
-Swipe to slide and merge numbered tiles. Then watch the tumble: tiles fall
-toward the new gravity, and matching tiles crash together on their own,
-chaining cascades that multiply your score. The best players don't just plan
-the swipe — they plan the fall.
+Every machine you set down has mass. Mass wants to sit on the equator. So the
+moment you build heavily on one side, your planet begins to turn: the pole
+drifts, the frost line crawls across your ground, and machines that were basking
+in sunlight find themselves in the dark.
+
+That is not a scripted event. It is what actually happens to a spinning body
+when you load it unevenly, worked out properly and put at the center of a game.
 
 **HOW IT PLAYS**
-• Swipe to merge — equal tiles fuse and double, classic and instant
-• Gravity rotates after every move — the compass shows what's coming
-• Cascades chain automatically as tiles tumble, multiplying points ×2, ×3, ×4…
-• The pressure builds the longer you survive. Every game has an ending.
+• Tap a machine, tap the ground, and it is built
+• Every machine has a temperature it likes — and the temperature of a tile
+  depends on where your axis is pointing
+• Mass drifts to the equator; emptiness drifts to the poles. That one sentence
+  is the whole strategy
+• Production keeps running while the app is closed
 
-**FIVE WAYS TO PLAY**
-• Endless — chase your best score through rising pressure
-• The Daily — one seeded puzzle a day, identical for every player on Earth,
-  40 moves. Share your result as an emoji card and keep your streak alive
-  (one missed day a week is forgiven).
-• Math Pop — the learning mode. Tiles carry small numbers, and two tiles that
-  ADD UP to the target pop together: make 5, make 10 … make 16. Every pop
-  shows its equation ("3 + 7 = 10"), and tiles wear the Cuisenaire rod colors
-  used in real classrooms. Number bonds are the backbone of early arithmetic —
-  here they're also how you score. Gentle enough for young learners, sneakily
-  fun for grown-ups.
-• Zen — no clock, no pressure. Just the tumble.
-• Sprint — 60 moves. Post your biggest score.
+**SEVEN MACHINES**
+• Solar Array — charge, and it wants all the light it can get
+• Ore Mine — works anywhere, loves rich crust
+• Ice Condenser — water, and it peaks exactly on the frost line
+• Smelter — alloy from ore and charge, but only where it is hot
+• Greenhouse — biomass, and only on mild ground
+• Beacon — lifts every neighbor, and weighs almost nothing
+• Ballast — produces nothing at all. It is pure weight. It is how you steer.
 
-**FIVE COLOR WORLDS**
-Ember's navy night, Tidepool's ocean deeps, Meadow's cream daylight, Aurora's
-polar dusk, Sorbet's candy brights — every palette hand-tuned for contrast,
-including two full light themes. Pick yours in Settings.
+**THE WOBBLE**
+The gauge in the corner is the angle between where your world spins and where
+its mass wants it to spin. Low is calm. High means you are steering — and past
+25 degrees, the ground starts to crack.
 
-**ON APPLE WATCH**
-The tumbling-merge game, playable on your wrist — swipe, tumble, merge.
-Your watch game is its own little world, ready anywhere.
+**AIM AT THE STAR**
+Tilt far enough and one pole falls into permanent daylight — three times the
+solar yield of any equator — while the other half of the world freezes solid.
+Whether that is brilliant or ruinous depends on what you built there.
+
+**COLLAPSE**
+When your world is heavy enough, crush it into its own core. The surface is
+lost; the Gravity you earn is permanent, and the next world is bigger: 162
+tiles, then 252, then 362, then 492.
 
 **MADE WITH CARE**
-• One free undo per game — experiment without fear
-• Game Center leaderboards and achievements — including a weekly Daily board
-• A calm ambient soundtrack, with haptics and sound tuned to every cascade
-• Celebrations when you forge your first 256, 512, 1024…
+• Meteors to catch, quakes to repair, and a calm ambient bed under all of it
+• Game Center leaderboards and achievements
+• Five color worlds — and a theme repaints the planet, not just the menus
 • Works fully offline. No account. No ads. No tracking. Ever.
 
-**GRAVITILE PLUS (one-time purchase)**
-• Replay any past daily from the archive
-• Unlimited undo
-• Support one independent developer
-
-The rules take ten seconds to learn. The tumble takes a lifetime to master.
+The rules take a minute. Aiming a planet takes longer.
 
 ## Keywords (100 chars max)
 
-merge,puzzle,daily,gravity,cascade,zen,math,education,learn,numbers,tile,logic,brain,offline
+idle,planet,build,space,sim,tycoon,incremental,gravity,orbit,3d,relax,offline,colony,strategy
 
-(92 chars — "2048" dropped: Math Pop and the tumble are the identity, not the
-comparison; "kids" swapped for "education" to stay clear of Kids Category
-phrasing rules)
+(93 chars — no "merge", "puzzle" or "2048": the 1.x keyword set actively placed
+us next to the apps we were compared against.)
 
-## What's New — v1.3
+## What's New — v2.0
 
-• NEW MODE: Math Pop — merge tiles that ADD UP to the target and watch them
-  pop with their equation. Stages climb from Make 5 to Make 16, teaching the
-  number bonds kids drill in school. Tiles wear classroom Cuisenaire colors.
-• FIVE THEMES: Ember, Tidepool, Meadow, Aurora and Sorbet — hand-tuned color
-  worlds including two light boards. Pick yours in Settings.
-• Stasis powerup: bank a Hold at 256/512/1024 and freeze gravity for one move.
-• Boulders: iced tiles that never merge — crack them with adjacent merges.
-• Share beautiful rendered result cards, browse achievements in Stats, and
-  explore the new records block, score distribution and month calendar.
+Gravitile is a different game.
 
-## What's New — v1.1
+The merge board is gone. In its place is a world you build on — a small,
+spinning planet where everything you construct has weight, and weight steers
+where the axis points. Build heavy on one side and the pole drifts, the frost
+line moves across your ground, and every machine's yield changes with it.
 
-• Two new ways to play: Zen (no clock, no pressure) and Sprint (60 moves to
-  post your biggest score).
-• Gravitile comes to Apple Watch — the full tumbling-merge game on your wrist.
-• A calm ambient soundtrack now plays under the game, with its own toggle.
-• Bigger celebrations: floating score pops, board shake on deep cascades, and
-  fanfare the first time you forge a 256, 512, 1024…
-• New sounds and haptics for gravity turns, tile landings, and beating your
-  personal best.
-• New Game Center leaderboards for Zen and Sprint, plus a weekly Daily board —
-  a fresh shot at the podium every week.
-• Fixed: swiping from the left edge no longer interrupts your game.
-
-## What's New — v1.0.0
-
-Gravitile arrives: swipe-merge puzzling where gravity rotates after every
-move. Endless mode, a global daily puzzle with streaks and share cards,
-Game Center leaderboards, and not a single ad.
+• Seven machines, each wanting a different climate — including Ballast, which
+  produces nothing and exists only to turn your world
+• The Wobble gauge: how far your world is from where its mass wants it to spin
+• Meteors to catch, quakes to repair, offline production while you are away
+• Collapse your world into its core for permanent Gravity and a bigger planet
+• Rendered in 3D, with a sky and a sound set generated in-app
+• Five color worlds that repaint the planet itself
 
 ## Support & marketing URLs
 
 - Support URL: https://github.com/its-me-anoop/gravitile-support
 - Marketing URL (optional): repository page until a site exists
 - Privacy Policy URL: https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md
-  (GitHub Pages or repo raw link)
 
 ## Age rating questionnaire answers
 
-All content descriptors: **None** (no violence, no fear themes, no gambling,
-no unrestricted web, no user-generated content, no messaging). Expected
-rating: **4+**.
+All content descriptors: **None** (no violence, no fear themes, no gambling, no
+unrestricted web, no user-generated content, no messaging). Expected rating: **4+**.
 
 ## App Privacy (nutrition labels)
 
 - **Data collected by the developer: none.**
-- The app stores all game data on-device only. No analytics, no ads, no
-  third-party SDKs, no network calls made by app code.
-- Game Center (leaderboards/achievements) and In-App Purchase are Apple
-  services; when the user signs into Game Center, Apple's own privacy terms
-  apply. In App Store Connect's questionnaire, answer "Do you or your
-  third-party partners collect data from this app?" → **No** — Apple services
-  are exempt as data collected by Apple, not the developer.
+- All game data is stored on-device. No analytics, no ads, no third-party SDKs,
+  no network calls made by app code.
+- Game Center and In-App Purchase are Apple services; answer "Do you or your
+  third-party partners collect data from this app?" → **No**.
 
 ## Export compliance
 
-Uses only Apple OS encryption (HTTPS via system frameworks); qualifies for
-the exemption. `ITSAppUsesNonExemptEncryption` is already `false` in the
-Info.plist, so no yearly self-classification report is needed.
+Uses only Apple OS encryption; qualifies for the exemption.
+`ITSAppUsesNonExemptEncryption` is already `false` in the Info.plist.
 
-## In-App Purchases to create in App Store Connect
+## In-App Purchases
 
-| Reference name | Product ID | Type | Price tier |
+| Reference name | Product ID | Type | Price |
 |---|---|---|---|
-| Gravitile Plus | com.flutterly.gravitile.plus | Non-consumable | $2.99 |
 | Nice Tip | com.flutterly.gravitile.tip.small | Consumable | $0.99 |
 | Generous Tip | com.flutterly.gravitile.tip.medium | Consumable | $2.99 |
 | Heroic Tip | com.flutterly.gravitile.tip.large | Consumable | $9.99 |
 
-Plus: family sharing ON. Localized display names/descriptions in
-`Gravitile/Gravitile.storekit` are the canonical copy.
+**`com.flutterly.gravitile.plus` is removed from sale in 2.0.** It gated the
+daily archive and unlimited undo in a game that no longer exists, and gating an
+idle game's offline cap behind a purchase is exactly the kind of thing that
+invites review scrutiny. 2.0 ships with no gated content; tips remain tips.
 
 ## Game Center configuration
 
-Leaderboards:
+The `grv.*` boards describe a game that no longer exists. They are retired, not
+reused — reusing them would mix merge scores with world masses.
+
 | ID | Name | Sort | Type |
 |---|---|---|---|
-| grv.endless.best | Endless Best | High to low | classic |
-| grv.daily.score | Daily Score | High to low | classic |
-| grv.best.tile | Biggest Tile | High to low | classic |
-| grv.zen.tile | Zen Biggest Tile | High to low | classic (v1.1) |
-| grv.sprint.best | Sprint Best | High to low | classic (v1.1) |
-| grv.daily.weekly | Daily — This Week | High to low | recurring weekly, Mon 00:00 UTC (v1.1) |
+| grv2.mass.best | Heaviest World | High to low | classic |
+| grv2.gravity | Total Gravity | High to low | classic |
+| grv2.collapse.tier | Deepest Collapse | High to low | classic |
+| grv2.speedrun.first | First Collapse | **Low to high** | classic |
 
-Achievements: grv.first.merge, grv.first.cascade, grv.tile.256, grv.tile.512,
-grv.tile.1024, grv.tile.2048, grv.streak.7, grv.streak.30 (points 10–100 to
-taste; all visible).
+Achievements: `grv2.first.machine`, `grv2.first.meteor`, `grv2.steered`,
+`grv2.first.collapse`, `grv2.tier.three`, `grv2.mass.2000`, `grv2.gravity.100`
+(points 10–100 to taste; all visible).
 
 ## Review notes (for App Review)
 
-Gravitile is fully offline and needs no account. To reach the paywall:
-Settings → Unlock Plus, or Daily → any locked archive row. StoreKit products
-are standard IAP. The daily puzzle is seeded from the UTC date — no server.
+Gravitile 2.0 is fully offline and needs no account.
 
-v1.1: The Apple Watch app is a standalone game (runs independently, no phone
-or account required) — swipe on the board to play. Zen and Sprint modes are
-free and reachable from the home screen chips below the Daily card.
+**This is a complete replacement, not an update.** Version 1.x was a merge
+puzzle and was rejected under 4.3(a) as resembling other apps. Rather than
+argue, we rebuilt the app as a different game in a different genre. The merge
+board, its modes and its engine have been deleted from the project; the app now
+contains a 3D idle world-builder.
 
-v1.3 (response to the 4.3(a) rejection of 1.0 (8)): every line of code and
-every asset is original and written for this app — the deterministic
-tumbling-gravity engine (gravity rotates 90° after every move; cascades
-resolve on seeded RNG streams), the synthesized audio, the OKLCH-derived
-palettes and the Unbounded/SF-Rounded design are all first-party (source
-history available on request). This build adds content no similar app has:
-the Math Pop number-bonds learning mode (Home → Math Pop card) with
-Cuisenaire-colored tiles, equation pops and staged targets, plus five
-selectable color themes (Settings → Theme). See the reply in Resolution
-Center for the full walkthrough.
+**To see what is original here in about twenty seconds:**
+1. Launch and skip the four intro cards.
+2. Tap **Ballast** in the tray at the bottom, then tap any tile near the top of
+   the planet (near the bright axis shaft).
+3. Watch the **Wobble** gauge climb, and watch the pale shaft separate from the
+   bright one — that pale shaft is where the world's mass wants it to spin.
+4. Over the next minute the planet visibly turns, and the pale frost ring
+   crawls across the surface. Tiles change color as their climate changes.
+
+That behaviour is a real rigid-body result — a body that dissipates energy ends
+up spinning about its maximum-inertia axis, which is why concentrated mass
+migrates to the equator. The eigen-decomposition that computes it is in
+`OrbitKit/AxisDynamics.swift`, and the insolation model is the standard
+rotation-averaged formula in `OrbitKit/Climate.swift`.
+
+Every asset is generated by tools in this repository, not licensed or bought:
+the tiling and all meshes are computed at runtime (`PlanetMesh.swift`), the
+sound set is synthesized (`Tools/gensounds.swift`), the app icon is drawn by
+`Tools/genicon.py`, and the color palettes are hand-derived in OKLCH. We are
+happy to provide the full git history, the balance-simulation reports and our
+design documents as evidence of original authorship.

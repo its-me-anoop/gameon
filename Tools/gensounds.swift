@@ -1,47 +1,107 @@
 #!/usr/bin/env swift
-// Generates Gravitile's sound effects as 16-bit mono WAV files.
+// Generates Gravitile's sound set as 16-bit mono WAV files.
 // Usage: swift Tools/gensounds.swift Gravitile/Resources/Sounds
-// Pure synthesis (sine + partials with exponential decay) — no source samples,
-// so assets are license-clean and regenerable.
+//
+// Pure synthesis — sines, filtered noise and exponential envelopes. No source
+// samples, so every asset in the app is license-clean and regenerable from
+// this file. That is also the honest answer when a reviewer asks where the
+// audio came from.
 
 import Foundation
 
 let sampleRate = 44_100.0
 
-func synth(frequency: Double, duration: Double, partial: Double = 2.0, noise: Double = 0.0) -> [Int16] {
+// MARK: - Primitives
+
+var rngState: UInt64 = 0x9E37_79B9_7F4A_7C15
+func whiteNoise() -> Double {
+    rngState ^= rngState << 13
+    rngState ^= rngState >> 7
+    rngState ^= rngState << 17
+    return Double(Int64(bitPattern: rngState)) / Double(Int64.max)
+}
+
+/// One tone with an exponential decay and an optional partial.
+func tone(
+    frequency: Double, duration: Double, attack: Double = 0.002,
+    decay: Double = 14, partial: Double = 2.0, partialGain: Double = 0.3,
+    detune: Double = 0, gain: Double = 0.6
+) -> [Double] {
     let count = Int(duration * sampleRate)
-    var rngState: UInt64 = 0x9E3779B97F4A7C15
-    func whiteNoise() -> Double {
-        rngState ^= rngState << 13; rngState ^= rngState >> 7; rngState ^= rngState << 17
-        return Double(Int64(bitPattern: rngState)) / Double(Int64.max)
-    }
-    return (0..<count).map { i in
-        let t = Double(i) / sampleRate
-        let envelope = exp(-t * 14) * (1 - exp(-t * 900)) // fast attack, exp decay
-        let fundamental = sin(2 * .pi * frequency * t)
-        let overtone = 0.35 * sin(2 * .pi * frequency * partial * t)
-        let hiss = noise * whiteNoise()
-        let sample = (fundamental + overtone + hiss) * envelope * 0.6
-        return Int16(max(-1, min(1, sample)) * 32_000)
+    return (0..<count).map { index in
+        let t = Double(index) / sampleRate
+        let envelope = exp(-t * decay) * min(1, t / max(attack, 1e-4))
+        var sample = sin(2 * .pi * frequency * t)
+        if detune > 0 { sample = (sample + sin(2 * .pi * frequency * (1 + detune) * t)) / 2 }
+        sample += partialGain * sin(2 * .pi * frequency * partial * t)
+        return sample * envelope * gain
     }
 }
 
-func mix(_ tracks: [(offset: Double, samples: [Int16])]) -> [Int16] {
+/// A tone whose pitch glides — the backbone of the meteor and the collapse.
+func sweep(
+    from startFrequency: Double, to endFrequency: Double, duration: Double,
+    curve: Double = 1, attack: Double = 0.01, release: Double = 0.25, gain: Double = 0.6
+) -> [Double] {
+    let count = Int(duration * sampleRate)
+    var phase = 0.0
+    return (0..<count).map { index in
+        let t = Double(index) / sampleRate
+        let progress = pow(t / duration, curve)
+        let frequency = startFrequency + (endFrequency - startFrequency) * progress
+        phase += 2 * .pi * frequency / sampleRate
+        let attackEnvelope = min(1, t / max(attack, 1e-4))
+        let releaseEnvelope = min(1, (duration - t) / max(release, 1e-4))
+        return sin(phase) * attackEnvelope * releaseEnvelope * gain
+    }
+}
+
+/// White noise through a one-pole lowpass whose cutoff moves over time.
+func filteredNoise(
+    duration: Double, startCutoff: Double, endCutoff: Double,
+    attack: Double = 0.01, decay: Double = 4, gain: Double = 0.5
+) -> [Double] {
+    let count = Int(duration * sampleRate)
+    var previous = 0.0
+    return (0..<count).map { index in
+        let t = Double(index) / sampleRate
+        let progress = t / duration
+        let cutoff = startCutoff + (endCutoff - startCutoff) * progress
+        let alpha = min(1, 2 * .pi * cutoff / sampleRate)
+        previous += alpha * (whiteNoise() - previous)
+        let envelope = exp(-t * decay) * min(1, t / max(attack, 1e-4))
+        return previous * envelope * gain
+    }
+}
+
+func mix(_ tracks: [(offset: Double, samples: [Double])]) -> [Double] {
     let total = tracks.map { Int($0.offset * sampleRate) + $0.samples.count }.max() ?? 0
-    var out = [Double](repeating: 0, count: total)
+    var output = [Double](repeating: 0, count: total)
     for track in tracks {
         let start = Int(track.offset * sampleRate)
-        for (i, sample) in track.samples.enumerated() {
-            out[start + i] += Double(sample)
+        for (index, sample) in track.samples.enumerated() {
+            output[start + index] += sample
         }
     }
-    return out.map { Int16(max(-32_000, min(32_000, $0))) }
+    return output
+}
+
+/// Normalizes to a headroom-safe peak so no effect clips against another.
+func render(_ samples: [Double], peak: Double = 0.86) -> [Int16] {
+    let maximum = samples.map(abs).max() ?? 1
+    guard maximum > 1e-9 else { return samples.map { _ in 0 } }
+    let scale = peak / maximum
+    return samples.map { Int16(max(-1, min(1, $0 * scale)) * 32_000) }
 }
 
 func writeWAV(_ samples: [Int16], to url: URL) throws {
     var data = Data()
-    func append(_ value: UInt32) { withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) } }
-    func append16(_ value: UInt16) { withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) } }
+    func append(_ value: UInt32) {
+        withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
+    }
+    func append16(_ value: UInt16) {
+        withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
+    }
     let byteCount = UInt32(samples.count * 2)
     data.append("RIFF".data(using: .ascii)!); append(36 + byteCount)
     data.append("WAVE".data(using: .ascii)!)
@@ -52,154 +112,166 @@ func writeWAV(_ samples: [Int16], to url: URL) throws {
     try data.write(to: url)
 }
 
-/// Tone with controllable envelope — the fixed-envelope `synth` stays
-/// untouched so the original effect files regenerate byte-identically.
-func tone(
-    frequency: Double, duration: Double, attack: Double = 0.002,
-    decayRate: Double = 14, partial: Double = 2.0, partialGain: Double = 0.35,
-    detune: Double = 0, gain: Double = 0.6
-) -> [Int16] {
-    let count = Int(duration * sampleRate)
-    return (0..<count).map { i in
-        let t = Double(i) / sampleRate
-        let envelope = exp(-t * decayRate) * min(1, t / max(attack, 1e-4))
-        var sample = sin(2 * .pi * frequency * t)
-        if detune > 0 { sample = (sample + sin(2 * .pi * frequency * (1 + detune) * t)) / 2 }
-        sample += partialGain * sin(2 * .pi * frequency * partial * t)
-        return Int16(max(-1, min(1, sample * envelope * gain)) * 32_000)
-    }
-}
+// MARK: - The set
+//
+// Everything is tuned around D minor pentatonic (D F G A C) so effects that
+// land on top of each other, and on top of the ambient bed, stay consonant.
 
-/// Band-ish noise sweep for the gravity-rotation whoosh: white noise through a
-/// crude one-pole lowpass whose cutoff falls with an amplitude swell.
-func noiseSweep(duration: Double, gain: Double = 0.5) -> [Int16] {
-    let count = Int(duration * sampleRate)
-    var rngState: UInt64 = 0x2545F4914F6CDD1D
-    var lowpassState = 0.0
-    return (0..<count).map { i in
-        let t = Double(i) / sampleRate
-        let progress = t / duration
-        rngState ^= rngState << 13; rngState ^= rngState >> 7; rngState ^= rngState << 17
-        let noise = Double(Int64(bitPattern: rngState)) / Double(Int64.max)
-        // Cutoff sweeps 0.35 → 0.04; swell peaks a third of the way through.
-        let alpha = 0.35 - 0.31 * progress
-        lowpassState += alpha * (noise - lowpassState)
-        let swell = sin(.pi * min(1, progress * 1.15))
-        return Int16(max(-1, min(1, lowpassState * swell * gain * 2.2)) * 32_000)
-    }
-}
+let D3 = 146.83, F3 = 174.61, G3 = 196.00, A3 = 220.00, C4 = 261.63
+let D4 = 293.66, F4 = 349.23, A4 = 440.00, D5 = 587.33, A5 = 880.00
 
-/// 48-second seamless generative ambient loop. Four slow pad chords
-/// (Am–F–C–G, low register, detuned sine pairs) that each swell in and out —
-/// the loop point lands in a trough so it wraps cleanly. A sparse pentatonic
-/// bell keeps it from feeling static. Deliberately quiet: the app plays it at
-/// low volume under gameplay.
-func ambientLoop() -> [Int16] {
-    let chordSeconds = 6.0
-    let chords: [[Double]] = [
-        [110.00, 130.81, 164.81],  // Am: A2 C3 E3
-        [87.31, 110.00, 130.81],   // F:  F2 A2 C3
-        [130.81, 164.81, 196.00],  // C:  C3 E3 G3
-        [98.00, 123.47, 146.83],   // G:  G2 B2 D3
+/// A machine set down: a wooden knock with a low body.
+let place = mix([
+    (0, filteredNoise(duration: 0.09, startCutoff: 2600, endCutoff: 500, decay: 42, gain: 0.5)),
+    (0, tone(frequency: D3, duration: 0.22, decay: 26, partial: 2, partialGain: 0.22, gain: 0.55)),
+    (0.004, tone(frequency: A3, duration: 0.14, decay: 34, partialGain: 0.1, gain: 0.28)),
+])
+
+/// Upgrade: two notes up the scale, the second brighter.
+let upgrade = mix([
+    (0, tone(frequency: A3, duration: 0.2, decay: 17, gain: 0.42)),
+    (0.075, tone(frequency: D4, duration: 0.3, decay: 12, partial: 3, partialGain: 0.24, gain: 0.5)),
+    (0.075, tone(frequency: A4, duration: 0.26, decay: 15, partialGain: 0.12, gain: 0.22)),
+])
+
+/// Demolish: the same shape, backwards and duller.
+let demolish = mix([
+    (0, filteredNoise(duration: 0.3, startCutoff: 1800, endCutoff: 260, decay: 11, gain: 0.55)),
+    (0.02, tone(frequency: F3, duration: 0.24, decay: 16, gain: 0.3)),
+    (0.09, tone(frequency: D3, duration: 0.3, decay: 13, gain: 0.34)),
+])
+
+/// A tick, barely there. It plays constantly, so it has to stay out of the way.
+let tap = mix([
+    (0, tone(frequency: D5, duration: 0.06, attack: 0.001, decay: 70, partialGain: 0.05, gain: 0.3)),
+])
+
+/// Denied: a short, flat, low buzz. Unpleasant on purpose, but not harsh.
+let denied = mix([
+    (0, tone(frequency: 116, duration: 0.14, decay: 24, partial: 1.5, partialGain: 0.5, gain: 0.45)),
+    (0.055, tone(frequency: 104, duration: 0.16, decay: 22, partial: 1.5, partialGain: 0.5, gain: 0.4)),
+])
+
+/// Repair: a bright, clean ping that says "fixed".
+let repair = mix([
+    (0, tone(frequency: A4, duration: 0.26, decay: 13, partial: 3, partialGain: 0.2, gain: 0.4)),
+    (0.045, tone(frequency: D5, duration: 0.3, decay: 11, partialGain: 0.15, gain: 0.34)),
+])
+
+/// A meteor on approach: a long falling whistle under a rising hiss.
+let meteor = mix([
+    (0, sweep(from: 1650, to: 340, duration: 1.5, curve: 1.7, attack: 0.18, release: 0.5, gain: 0.3)),
+    (0, filteredNoise(duration: 1.5, startCutoff: 900, endCutoff: 4200, attack: 0.5, decay: 0.6, gain: 0.28)),
+])
+
+/// Caught: impact, then a scatter of ore.
+let catchSound = mix([
+    (0, filteredNoise(duration: 0.22, startCutoff: 5200, endCutoff: 700, decay: 26, gain: 0.7)),
+    (0, tone(frequency: D3, duration: 0.34, decay: 15, partial: 1.5, partialGain: 0.3, gain: 0.6)),
+    (0.05, tone(frequency: D5, duration: 0.24, decay: 18, gain: 0.22)),
+    (0.1, tone(frequency: A5, duration: 0.2, decay: 20, gain: 0.16)),
+    (0.16, tone(frequency: D5 * 1.5, duration: 0.18, decay: 22, gain: 0.12)),
+])
+
+/// A quake: low rumble, no pitch to speak of.
+let quake = mix([
+    (0, filteredNoise(duration: 1.1, startCutoff: 240, endCutoff: 90, attack: 0.08, decay: 3.4, gain: 0.9)),
+    (0.03, tone(frequency: 58, duration: 0.9, attack: 0.05, decay: 4.5, partial: 1.5, partialGain: 0.4, gain: 0.5)),
+])
+
+/// The collapse: everything falls inward, and the new core lands.
+let collapse = mix([
+    (0, sweep(from: 780, to: 62, duration: 1.9, curve: 2.2, attack: 0.25, release: 0.35, gain: 0.5)),
+    (0, filteredNoise(duration: 1.9, startCutoff: 3200, endCutoff: 160, attack: 0.4, decay: 1.1, gain: 0.4)),
+    (1.86, tone(frequency: 47, duration: 1.5, attack: 0.004, decay: 3.2, partial: 2, partialGain: 0.3, gain: 1.0)),
+    (1.9, tone(frequency: D4, duration: 1.3, attack: 0.02, decay: 3.6, partial: 1.5, partialGain: 0.3, gain: 0.3)),
+    (2.02, tone(frequency: A4, duration: 1.2, attack: 0.03, decay: 3.4, gain: 0.2)),
+])
+
+/// The ambient bed: slow detuned pads on the pentatonic, arranged so the loop
+/// point falls where every voice is near silence.
+func ambientBed(duration: Double) -> [Double] {
+    let count = Int(duration * sampleRate)
+    let voices: [(frequency: Double, period: Double, phase: Double, gain: Double)] = [
+        (D3 / 2, 21.0, 0.00, 0.55),
+        (A3 / 2, 27.0, 0.35, 0.34),
+        (F3, 33.0, 0.62, 0.22),
+        (C4, 39.0, 0.18, 0.15),
+        (D4, 45.0, 0.80, 0.10),
     ]
-    let sequence = chords + chords // 8 bars, 48 s
-    let total = Int(Double(sequence.count) * chordSeconds * sampleRate)
-    var mixBuffer = [Double](repeating: 0, count: total)
-
-    for (index, chord) in sequence.enumerated() {
-        let start = Int(Double(index) * chordSeconds * sampleRate)
-        let count = Int(chordSeconds * sampleRate)
-        for (noteIndex, frequency) in chord.enumerated() {
-            let level = 0.16 / Double(chord.count) * (noteIndex == 0 ? 1.3 : 1.0)
-            for i in 0..<count {
-                let t = Double(i) / sampleRate
-                // Full swell within the chord's window: silent → peak → silent.
-                let envelope = pow(sin(.pi * t / chordSeconds), 1.6)
-                let a = sin(2 * .pi * frequency * t)
-                let b = sin(2 * .pi * frequency * 1.004 * t)  // slow beating
-                let shimmer = 0.18 * sin(2 * .pi * frequency * 2.0 * t)
-                mixBuffer[start + i] += (a + b + shimmer) / 2.2 * envelope * level
-            }
+    var samples = [Double](repeating: 0, count: count)
+    for voice in voices {
+        var phase = 0.0
+        var detunedPhase = 0.0
+        for index in 0..<count {
+            let t = Double(index) / sampleRate
+            // Each voice swells on its own period; the periods are coprime-ish
+            // so the texture never repeats inside the loop.
+            let swell = pow(max(0, sin(2 * .pi * (t / voice.period + voice.phase))), 2.4)
+            phase += 2 * .pi * voice.frequency / sampleRate
+            detunedPhase += 2 * .pi * voice.frequency * 1.004 / sampleRate
+            samples[index] += (sin(phase) + 0.6 * sin(detunedPhase)) * swell * voice.gain
         }
     }
-
-    // Sparse bell: pentatonic A C D E G, one gentle strike every 3 s on a
-    // deterministic pattern, decayed fully before the loop point.
-    let bellNotes: [Double] = [440.0, 523.25, 587.33, 659.25, 783.99]
-    let pattern = [0, 2, 4, 1, 3, 0, 4, 2, 1, 4, 0, 3, 2, 0, 1]
-    for (strike, noteIndex) in pattern.enumerated() {
-        let start = Int((Double(strike) * 3.0 + 1.2) * sampleRate)
-        let frequency = bellNotes[noteIndex]
-        let count = Int(1.6 * sampleRate)
-        guard start + count < total else { continue }
-        for i in 0..<count {
-            let t = Double(i) / sampleRate
-            let envelope = exp(-t * 3.4) * min(1, t / 0.004)
-            let body = sin(2 * .pi * frequency * t) + 0.3 * sin(2 * .pi * frequency * 2.01 * t)
-            mixBuffer[start + i] += body * envelope * 0.045
-        }
+    // Fade the seam so the loop is inaudible.
+    let fade = Int(2.5 * sampleRate)
+    for index in 0..<fade {
+        let gain = Double(index) / Double(fade)
+        samples[index] *= gain
+        samples[count - 1 - index] *= gain
     }
-
-    return mixBuffer.map { Int16(max(-0.95, min(0.95, $0)) * 32_000) }
+    return samples
 }
 
-let outDir = URL(fileURLWithPath: CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Sounds")
-try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+// MARK: - Write
 
-// Merge blips: pentatonic steps rising with cascade round (C5 E5 G5 A5 C6).
-let mergePitches: [Double] = [523.25, 659.25, 783.99, 880.0, 1046.5]
-for (index, pitch) in mergePitches.enumerated() {
-    try writeWAV(synth(frequency: pitch, duration: 0.14), to: outDir.appendingPathComponent("merge\(index + 1).wav"))
+let arguments = CommandLine.arguments
+let directory = URL(
+    fileURLWithPath: arguments.count > 1 ? arguments[1] : "Gravitile/Resources/Sounds"
+)
+try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+let set: [(String, [Double])] = [
+    ("place", place),
+    ("upgrade", upgrade),
+    ("demolish", demolish),
+    ("tap", tap),
+    ("denied", denied),
+    ("repair", repair),
+    ("meteor", meteor),
+    ("catch", catchSound),
+    ("quake", quake),
+    ("collapse", collapse),
+    ("drift", ambientBed(duration: 64)),
+]
+
+/// The ambient bed is a minute of audio; as 16-bit PCM that is megabytes of
+/// app for something the ear cannot tell from 64 kbps AAC. Everything else is
+/// under a second and stays uncompressed.
+func compress(_ wav: URL, to m4a: URL) -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/afconvert")
+    process.arguments = ["-f", "m4af", "-d", "aac", "-b", "64000", wav.path, m4a.path]
+    try? process.run()
+    process.waitUntilExit()
+    return process.terminationStatus == 0
 }
-// Slide tick — short, soft, noisy.
-try writeWAV(synth(frequency: 220, duration: 0.05, partial: 1.5, noise: 0.15), to: outDir.appendingPathComponent("slide.wav"))
-// Game over — descending minor phrase.
-try writeWAV(mix([
-    (0.00, synth(frequency: 392.0, duration: 0.25)),
-    (0.16, synth(frequency: 311.1, duration: 0.25)),
-    (0.32, synth(frequency: 261.6, duration: 0.45)),
-]), to: outDir.appendingPathComponent("gameover.wav"))
-// Daily fanfare — rising major phrase.
-try writeWAV(mix([
-    (0.00, synth(frequency: 523.25, duration: 0.2)),
-    (0.12, synth(frequency: 659.25, duration: 0.2)),
-    (0.24, synth(frequency: 784.0, duration: 0.35)),
-]), to: outDir.appendingPathComponent("fanfare.wav"))
 
-// Gravity-rotation whoosh — filtered noise sweep with a faint falling tone.
-try writeWAV(mix([
-    (0.00, noiseSweep(duration: 0.22, gain: 0.42)),
-    (0.02, tone(frequency: 480, duration: 0.18, decayRate: 18, partial: 0.5, partialGain: 0.2, gain: 0.12)),
-]), to: outDir.appendingPathComponent("whoosh.wav"))
-// Tile landing — soft low thock.
-try writeWAV(tone(frequency: 92, duration: 0.09, decayRate: 42, partial: 2.4, partialGain: 0.15, gain: 0.55),
-             to: outDir.appendingPathComponent("land.wav"))
-// UI tap — tiny tick.
-try writeWAV(tone(frequency: 1000, duration: 0.035, decayRate: 70, partialGain: 0.1, gain: 0.3),
-             to: outDir.appendingPathComponent("tap.wav"))
-// Milestone chime — two shimmering notes for a first-of-the-game big tile.
-try writeWAV(mix([
-    (0.00, tone(frequency: 1046.5, duration: 0.55, decayRate: 6, partial: 2.01, partialGain: 0.3, detune: 0.003, gain: 0.5)),
-    (0.09, tone(frequency: 1318.5, duration: 0.6, decayRate: 5, partial: 2.01, partialGain: 0.3, detune: 0.003, gain: 0.5)),
-]), to: outDir.appendingPathComponent("milestone.wav"))
-// New best — quick rising sting.
-try writeWAV(mix([
-    (0.00, tone(frequency: 880.0, duration: 0.22, decayRate: 12, gain: 0.45)),
-    (0.08, tone(frequency: 1108.7, duration: 0.22, decayRate: 12, gain: 0.45)),
-    (0.16, tone(frequency: 1318.5, duration: 0.4, decayRate: 7, detune: 0.003, gain: 0.5)),
-]), to: outDir.appendingPathComponent("newbest.wav"))
-// Ice chip — bright glassy tick.
-try writeWAV(mix([
-    (0.00, tone(frequency: 2200, duration: 0.06, decayRate: 55, partial: 1.5, partialGain: 0.25, gain: 0.4)),
-    (0.00, noiseSweep(duration: 0.05, gain: 0.10)),
-]), to: outDir.appendingPathComponent("chip.wav"))
-// Ice shatter — glassy burst falling away.
-try writeWAV(mix([
-    (0.00, noiseSweep(duration: 0.16, gain: 0.30)),
-    (0.00, tone(frequency: 1900, duration: 0.12, decayRate: 26, partial: 2.7, partialGain: 0.35, detune: 0.006, gain: 0.4)),
-    (0.05, tone(frequency: 1250, duration: 0.16, decayRate: 20, partial: 2.3, partialGain: 0.3, gain: 0.3)),
-]), to: outDir.appendingPathComponent("shatter.wav"))
-// Ambient loop under gameplay.
-try writeWAV(ambientLoop(), to: outDir.appendingPathComponent("bgm.wav"))
+for (name, samples) in set {
+    let peak = name == "drift" ? 0.5 : (name == "tap" ? 0.4 : 0.86)
+    let wav = directory.appendingPathComponent("\(name).wav")
+    try writeWAV(render(samples, peak: peak), to: wav)
+    let seconds = String(format: "%.1f", Double(samples.count) / sampleRate)
 
-print("Wrote sounds to \(outDir.path)")
+    if name == "drift" {
+        let m4a = directory.appendingPathComponent("\(name).m4a")
+        if compress(wav, to: m4a) {
+            try? FileManager.default.removeItem(at: wav)
+            let size = (try? FileManager.default.attributesOfItem(atPath: m4a.path)[.size] as? Int) ?? 0
+            print("wrote \(name).m4a  (\(seconds)s, \((size ?? 0) / 1024) KB)")
+            continue
+        }
+        print("afconvert unavailable — left \(name).wav uncompressed")
+    }
+    print("wrote \(name).wav  (\(seconds)s)")
+}

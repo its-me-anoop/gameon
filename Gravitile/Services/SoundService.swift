@@ -27,7 +27,7 @@ final class SoundService {
             player.volume = 0.7
             players[name] = player
         }
-        if let url = Bundle.main.url(forResource: "drift", withExtension: "wav"),
+        if let url = Bundle.main.url(forResource: "drift", withExtension: "m4a"),
            let player = try? AVAudioPlayer(contentsOf: url) {
             player.numberOfLoops = -1
             player.volume = 0.2

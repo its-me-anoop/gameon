@@ -1,82 +1,93 @@
-# Resolution Center reply — Guideline 4.3(a), submission fd880674-4641-4e42-9d36-843002440e91
+# Resolution Center reply — Guideline 4.3(a)
 
-Context: v1.0 (build 8) was rejected 2026-07-08 under 4.3(a) — Design — Spam
-("similar binary, metadata, and/or concept as apps submitted by other
-developers"). The plan is NOT to argue alone: v1.3 (build 11) adds visibly
-distinctive content (Math Pop learning mode + five themes), and this reply
-accompanies the new binary. Paste the text below into Resolution Center when
-the 1.3 build is attached to the submission.
+## History
+
+- **2026-07-08** — v1.0 (build 8) rejected under 4.3(a): "similar binary,
+  metadata, and/or concept as apps submitted by other developers."
+- **2026-07-08** — v1.3 (build 12) submitted in response, adding content (the
+  Math Pop learning mode, five themes) *inside the same genre*, with a reply
+  arguing originality of implementation.
+- **2026-07-25** — that approach is abandoned. Adding content does not answer a
+  genre-similarity objection: a swipe-to-merge board of doubling numbered tiles
+  reads as one of a thousand 2048 descendants at a glance, however original the
+  engine underneath is. v2.0 replaces the game.
+
+## What changed in the binary
+
+The merge board, its five modes, the daily puzzle, the watch app and the whole
+`GravitileKit` engine are **deleted from the project**, not disabled. In their
+place is a 3D idle world-builder with a new engine (`OrbitKit`), a new
+renderer, a new sound set, a new icon, and a new App Store category.
+
+Only the name, the developer and the reusable service layer (Game Center,
+haptics, persistence, the OKLCH palettes) carry over.
 
 ---
+
+## Reply to paste into Resolution Center
 
 Hello, and thank you for the review.
 
-We understand the concern — the merge-puzzle category is crowded. We'd like
-to explain why Gravitile is an original work, and what we've added in the new
-build (1.3) to make its distinctiveness unmistakable.
+We accepted the finding rather than argue with it. Our previous submission was
+a merge puzzle, and we agree that at a glance it was hard to distinguish from
+other apps in that category. We have not tried to add content to it. We have
+replaced the game.
 
-**Original engine and assets.** Gravitile is not a template or repackaged
-code. Every line was written for this app: a deterministic engine in a
-custom Swift package where **gravity rotates 90° after every move** and the
-whole board tumbles, chaining cascade merges — a mechanic we have not found
-in any other App Store title. The sound set is synthesized by our own tool,
-the color palettes are hand-derived in OKLCH, and the UI is entirely custom
-SwiftUI. We're happy to provide the full git history, the balance-simulation
-reports, and our design documents as evidence of original authorship.
+**Gravitile 2.0 is a different app in a different genre** — a 3D idle
+world-builder, submitted under Games › Simulation. The previous game's board,
+its five modes, its daily puzzle, its Apple Watch app and its entire engine
+have been removed from the project. What remains of version 1 is the app's name
+and our own service code.
 
-**What's new in 1.3 — content no similar app has:**
+**The new game's mechanic, which we believe is genuinely original:** you build
+machines on the surface of a small spinning planet, and everything you build
+has *mass*. A rotating body that dissipates energy internally ends up spinning
+about its axis of maximum moment of inertia — which is why concentrated mass on
+a spinning body migrates toward the equator. We compute that continuously, so
+where the player builds determines where their planet's axis ends up pointing,
+and the axis determines which parts of the world get sunlight. Building heavily
+on one side visibly turns the whole planet, and the frost line crawls across the
+player's machines as it does.
 
-1. **Math Pop, an arithmetic-learning mode** (Home → "Math Pop"). Tiles
-   carry small numbers, and two tiles merge only when they **add up to the
-   stage target** ("Make 5" → "Make 10" → … → "Make 16"). Each completed
-   bond pops off the board showing its equation ("3 + 7 = 10"), and tiles
-   are colored using the **Cuisenaire rod system** used in real classrooms —
-   so children practice number bonds, the foundation of early arithmetic,
-   while playing the same tumbling-gravity game. This mode is free,
-   original, and designed with young players in mind.
+We are not aware of another App Store title where mass placement steers a
+planet's rotation axis and the resulting climate bands drive the economy.
 
-2. **Five hand-tuned color themes** (Settings → Theme): Ember, Tidepool,
-   Meadow, Aurora and Sorbet — including two full light themes — each a
-   complete palette for board, tiles and chrome.
+**To verify quickly on device (about twenty seconds):**
 
-3. Alongside the modes already in the binary you reviewed: the rotating-
-   gravity cascade system, a globally-seeded Daily with streaks, Zen and
-   Sprint, the Stasis hold powerup, iced "boulder" tiles, a standalone
-   Apple Watch game, rendered share cards, and detailed statistics.
+1. Launch and skip the four intro cards.
+2. Tap **Ballast** in the tray at the bottom of the screen. Ballast is a machine
+   that produces nothing at all — its only purpose is weight.
+3. Tap any tile near the top of the planet, beside the bright axis shaft.
+4. The **Wobble** gauge in the top-right climbs, and a second, pale shaft
+   appears at an angle to the bright one. That pale shaft is where the world's
+   mass now wants it to spin.
+5. Over the next minute the planet turns to meet it, and the pale frost ring
+   moves across the surface. Tiles change color as their climate changes.
 
-**To verify quickly on your device:** launch the app → tap "Math Pop" (the
-card with the NEW badge) → swipe: tiles that sum to the target pop with
-their equation; the compass shows gravity turning after every swipe. Then
-Settings → Theme to switch between the five palettes live.
+**On original authorship.** Every asset in the binary is generated by tools in
+our own repository — there are no licensed or purchased assets of any kind. The
+planet's tiling and every mesh in the scene are computed at runtime from a
+Goldberg polyhedron we construct ourselves; the sound set is synthesized by
+`Tools/gensounds.swift`; the app icon is drawn by `Tools/genicon.py`; the color
+palettes are hand-derived in OKLCH. The physics is in `OrbitKit/AxisDynamics.swift`
+and the climate model in `OrbitKit/Climate.swift`, both covered by unit tests.
+We are happy to provide the full git history, our balance-simulation reports and
+our design documents.
 
-We're an independent developer and this game is our own design from first
-principles. If any specific similarity to another app concerns the review
-team, we'd genuinely appreciate a pointer to it so we can address it
-directly.
-
-Thank you for taking a second look at build 11 (version 1.3).
+We are an independent developer, this is our own design from first principles,
+and we would rather build something that clearly is not like anything else than
+argue that something is. Thank you for taking another look.
 
 ---
 
-## Submission record — EXECUTED 2026-07-08 (user-approved)
+## Submission checklist for 2.0
 
-All steps completed via Tools/publish_v13.py + the ASC API:
-
-1. Version renamed 1.0 → 1.3 on the same appStoreVersion (9a76a036…);
-   copy/promo/keywords + review notes pushed (the review notes carry the
-   originality response above, so the reviewer sees it with the binary).
-2. Screenshots rebuilt as flattened JPEGs (ASC rejects alpha PNGs):
-   APP_IPHONE_67 ×8 (incl. Math Pop equation pop + theme picker),
-   APP_IPAD_PRO_3GEN_129 ×5, APP_WATCH_SERIES_10 ×1; the stale 6.5" set was
-   deleted only after the replacement polled COMPLETE.
-3. Build 11 was refused at submission (BUILD_INDICATES_GAME_CENTER_DISABLED):
-   a GC-enabled version needs the game-center entitlement on every nested
-   bundle, and the watch app lacked it. Fixed (GravitileWatch.entitlements +
-   GAME_CENTER on watch App ID 2MDHT8B4NL) → build 12 → attached.
-4. Old submission fd880674 (its REJECTED item is undeletable once submitted)
-   was canceled; new submission f76cd03d created, version added, submitted.
-   State: WAITING_FOR_REVIEW at 2026-07-08T19:28Z. Release is manual
-   (AFTER_APPROVAL) once approved.
-
-If App Review responds, reply in the NEW submission's Resolution Center
-thread using the message above.
+- [ ] App Store Connect: change primary category to **Games › Simulation**,
+      secondary to **Games › Strategy**
+- [ ] Rename the app to `Gravitile — Tilt a World`; update subtitle, promo text,
+      description, keywords and What's New from [listing.md](listing.md)
+- [ ] Remove `com.flutterly.gravitile.plus` from sale (see listing.md)
+- [ ] Create the four `grv2.*` leaderboards and seven achievements; retire the
+      `grv.*` set
+- [ ] Fresh screenshots from `-gravitile-demo` (the old ones show the merge board)
+- [ ] Paste the reply above into the Resolution Center thread with the build
