@@ -221,6 +221,72 @@ namespace LittleLifeline.Tests
             Assert.That(body.max.x,Is.LessThanOrEqualTo(mattress.max.x+.02f));
         }
 
+        [Test]
+        public void ConsultationPatientUsesTheImportedChairBesideTheDesk()
+        {
+            var state=new SimulationState();
+            state.Carriages.Add(new CarriageState { Id=8,Slot=1,Kind=RoomKind.Consultation });
+            state.Patients.Add(new PatientState { Id=42,RoomId=8,ToSlot=1,Phase=PatientPhase.Treating });
+            world.Render(state,true);
+            var interior=host.transform.Find("Railway diorama/Carriage slot 1/Consultation");
+            var resident=host.transform.Find("Railway diorama/Resident 42");
+            var chair=MaterialPart(interior,"Berry").bounds;
+            var desk=MaterialPart(interior,"Oat").bounds;
+            var body=ActorPart(resident,"Body").bounds;
+            Assert.That(body.center.x,Is.EqualTo(chair.center.x).Within(.035f),"The resident must sit on the imported chair, whose X axis is mirrored from Blender.");
+            Assert.That(body.center.z,Is.InRange(chair.min.z,chair.max.z));
+            Assert.That(body.Intersects(desk),Is.False,"The resident's torso must not intersect the desk.");
+            Assert.That(Vector3.Dot(resident.forward,desk.center-resident.position),Is.GreaterThan(0),"The consultation pose must face the desk.");
+        }
+
+        [TestCase(RoomKind.Consultation,-1)]
+        [TestCase(RoomKind.Consultation,42)]
+        [TestCase(RoomKind.Diagnostics,-1)]
+        [TestCase(RoomKind.Diagnostics,42)]
+        [TestCase(RoomKind.Recovery,-1)]
+        [TestCase(RoomKind.Recovery,42)]
+        [TestCase(RoomKind.Recovery,43)]
+        public void StationaryCrewRemainClearOfImportedCareEquipment(RoomKind kind,int patientId)
+        {
+            var state=new SimulationState();
+            state.Carriages.Add(new CarriageState { Id=8,Slot=1,Kind=kind });
+            state.Crew.Add(new CrewState { Id=4,CurrentRoomId=8,PositionSlot=1,TaskPatientId=patientId });
+            if(patientId>=0) state.Patients.Add(new PatientState { Id=patientId,RoomId=8,ToSlot=1,Phase=PatientPhase.Treating });
+            world.Render(state,true);
+            var interior=host.transform.Find("Railway diorama/Carriage slot 1/"+kind);
+            var person=host.transform.Find("Railway diorama/Crew 4");
+            AssertClearOfFurniture(person,interior);
+            Assert.That(person.position.y,Is.EqualTo(.79f).Within(.01f),"Stationary staff stand on the carriage floor.");
+            Assert.That(Vector3.Dot(person.forward,interior.position-person.position),Is.GreaterThan(0),"Staff face the care station from the aisle.");
+            if(kind==RoomKind.Recovery && patientId>=0)
+            {
+                var cover=MaterialPart(interior,patientId%2==0 ? "Blue" : "Flower").bounds;
+                Assert.That(person.position.z,Is.EqualTo(cover.center.z).Within(.035f),"Nell must stand beside the bed occupied by her current patient.");
+            }
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void UnassignedStationaryCrewRemainClearOfPlatformBenches(int crewIndex)
+        {
+            var state=new SimulationState();
+            for(int i=0;i<3;i++) state.Crew.Add(new CrewState { Id=i,CurrentRoomId=-1,PositionSlot=-1,TaskPatientId=-1 });
+            world.Render(state,true);
+            var person=host.transform.Find("Railway diorama/Crew "+crewIndex);
+            foreach(var item in host.GetComponentsInChildren<Transform>())
+                if(item.name=="Bench") AssertClearOfFurniture(person,item);
+        }
+
+        private static void AssertClearOfFurniture(Transform actor,Transform furniture)
+        {
+            foreach(var part in actor.GetComponentsInChildren<MeshRenderer>())
+                foreach(var equipment in furniture.GetComponentsInChildren<MeshRenderer>())
+                    Assert.That(part.bounds.Intersects(equipment.bounds),Is.False,
+                        actor.name+" "+part.name+" intersects "+furniture.name+" "+equipment.name+
+                        "; actor="+part.bounds+" equipment="+equipment.bounds);
+        }
+
         private static MeshRenderer ActorPart(Transform root,string name)
         {
             foreach(var item in root.GetComponentsInChildren<MeshRenderer>())

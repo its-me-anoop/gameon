@@ -12,11 +12,11 @@ The existing Plus non-consumable (`com.flutterly.gravitile.plus`) becomes the **
 
 ## Current release status — 12 September 2026
 
-The Unity player has built, installed and rendered on the iPhone 17 Pro / iOS 26.5 simulator. App-scoped XCTest actions and the actual checksummed save confirm opening the clinic, building Diagnostics, and assigning Ivo. The compact icon controls operate over the full-height 3D world. The scanner and recovery alignment issues found in that runtime check have been corrected; the new simulator visual check remains pending. Physical-device performance, real StoreKit transactions and live Game Center behavior remain unverified. See [the evidence record](qa/little-lifeline.md).
+The Unity player has built, installed and rendered on the iPhone 17 Pro / iOS 26.5 simulator. App-scoped XCTest actions and the actual checksummed save confirm opening the clinic, building Diagnostics, and assigning Ivo. The compact icon controls operate over the full-height 3D world. Scanner and recovery patient poses were observed corrected on simulator. Follow-up placement checks found staff intersecting equipment and the consultation resident at the wrong furniture; their bounded correction now passes the full suite and awaits a rebuilt visual check. Physical-device performance, real StoreKit transactions and live Game Center behavior remain unverified. See [the evidence record](qa/little-lifeline.md).
 
-The latest complete Unity EditMode run passed **137/137** (`build/lifeline-tests-pose.xml`), including three imported-bed geometry regressions. The generated Swift-header import was subsequently corrected to the framework-qualified form and the actual simulator Xcode build passed. All eleven native bridge exports also compile and link in the independent bridge check. The renderer correction has a fresh passing test report; its simulator check follows the rebuild.
+The latest complete Unity EditMode run passed **148/148** (`build/lifeline-tests-aisle.xml`), including imported-furniture checks for patients and stationary crew. The generated Swift-header import was subsequently corrected to the framework-qualified form and the actual simulator Xcode build passed. All eleven native bridge exports also compile and link in the independent bridge check. The renderer correction has a fresh passing test report; its simulator check follows the rebuild.
 
-**No Little Lifeline TestFlight build has been uploaded yet.** Source `241304b8082602745e5dc36df29a84344e5538e0` has a sealed Device SDK export and archive-only CI run [34657640594](https://github.com/its-me-anoop/gameon/actions/runs/34657640594). That candidate is being superseded by the renderer fix; it must not be promoted. The previous run [34657229754](https://github.com/its-me-anoop/gameon/actions/runs/34657229754) was cancelled after the native header problem was identified. Neither is delivery evidence.
+**No Little Lifeline TestFlight build has been uploaded yet.** Source `241304b8082602745e5dc36df29a84344e5538e0` has a sealed Device SDK export and archive-only CI run [34657640594](https://github.com/its-me-anoop/gameon/actions/runs/34657640594). That archive passed all signing, native-symbol, product, privacy and entitlement gates, but was superseded and must not be promoted. The subsequent `3b4e901` run [34658491720](https://github.com/its-me-anoop/gameon/actions/runs/34658491720) was cancelled before upload for the stationary actor correction. The final corrected export is pending. The previous run [34657229754](https://github.com/its-me-anoop/gameon/actions/runs/34657229754) was cancelled after the native header problem was identified. Neither is delivery evidence.
 
 ## Verified App Store Connect configuration
 
@@ -111,7 +111,7 @@ Local Xcode **27.0 (27A266a)** is a beta and is used only for simulator QA. Rele
 
 Remaining order:
 
-1. Verify the renderer correction against imported bed geometry and actual simulator play; confirm relaunch persistence and offline collection.
+1. Verify the final stationary actor correction in actual simulator play. Imported-geometry tests and prior-candidate relaunch/offline collection already pass.
 2. Commit the reviewed changes, run final Unity tests, export Device SDK from that clean source and package with the new passing report.
 3. Transfer through an unpublished draft, create the signed archive, and pass all identity, native export, privacy, signing and entitlement checks.
 4. Recheck build-number availability, promote that exact archive and wait for App Store Connect processing to become VALID and internally available. Attach the prepared per-build testing notes.

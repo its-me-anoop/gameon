@@ -78,8 +78,8 @@ namespace LittleLifeline.Presentation
                     }
                     else
                     {
-                        position = new Vector3(-.60f,.89f,z+.69f);
-                        direction = Vector3.right;
+                        position = new Vector3(.62f,.89f,z+.80f);
+                        direction = Vector3.left;
                     }
                 }
                 actor.Apply(position,direction,pose,walking,working,reducedMotion,now*.1,patient.Id);
@@ -101,9 +101,20 @@ namespace LittleLifeline.Presentation
                 {
                     var room = FindRoom(state,person.CurrentRoomId);
                     double slot = room != null ? room.Slot : person.PositionSlot;
-                    if (slot < 0) position = new Vector3(-3.50f,.45f,-6.2f+i*.57f);
-                    else position = new Vector3(-.56f,.79f,LifelineWorld.SlotZ(slot)-.59f);
-                    direction = new Vector3(1,0,.18f);
+                    if (slot < 0)
+                    {
+                        position = new Vector3(-3.50f,.45f,-6.2f+i*.57f);
+                        direction = new Vector3(1,0,.18f);
+                    }
+                    else
+                    {
+                        // Imported care furniture occupies negative X; the positive aisle
+                        // clears both the scanner ring and the recovery mattress edges.
+                        float careZ = room != null && room.Kind == RoomKind.Recovery && working
+                            ? (person.TaskPatientId%2==0 ? -.76f : .76f) : -.59f;
+                        position = new Vector3(.84f,.79f,LifelineWorld.SlotZ(slot)+careZ);
+                        direction = Vector3.left;
+                    }
                 }
                 actor.Apply(position,direction,Quaternion.identity,walking,working,reducedMotion,now*.1,person.Id);
             }
