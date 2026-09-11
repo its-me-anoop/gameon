@@ -1,6 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <GameKit/GameKit.h>
-#import "UnityFramework-Swift.h"
+#import <UnityFramework/UnityFramework-Swift.h>
 
 // Unity copies the UTF-8 message into its message queue before this call returns.
 extern "C" void UnitySendMessage(const char *object, const char *method, const char *message);

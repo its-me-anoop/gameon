@@ -5,14 +5,16 @@ SOURCE_DIR="$(cd "$(dirname "$0")/Native~" && pwd)"
 CHECK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/orchard-unity-bridge.XXXXXX")"
 SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 TARGET=arm64-apple-ios18.0-simulator
+FRAMEWORK_DIR="$CHECK_DIR/UnityFramework.framework"
+mkdir -p "$FRAMEWORK_DIR/Headers"
 
 xcrun swiftc -emit-module -emit-objc-header \
-  -emit-objc-header-path "$CHECK_DIR/UnityFramework-Swift.h" \
+  -emit-objc-header-path "$FRAMEWORK_DIR/Headers/UnityFramework-Swift.h" \
   -emit-module-path "$CHECK_DIR/UnityFramework.swiftmodule" \
   -module-name UnityFramework -swift-version 6 -sdk "$SDK_PATH" -target "$TARGET" \
   "$SOURCE_DIR/OrchardStoreService.swift" "$SOURCE_DIR/OrchardGameCenterService.swift" "$SOURCE_DIR/OrchardAppleBridge.swift"
 xcrun clang++ -fobjc-arc -fmodules -std=c++17 -isysroot "$SDK_PATH" -target "$TARGET" \
-  -I "$CHECK_DIR" -c "$SOURCE_DIR/OrchardApplePlugin.mm" -o "$CHECK_DIR/OrchardApplePlugin.o"
+  -F "$CHECK_DIR" -c "$SOURCE_DIR/OrchardApplePlugin.mm" -o "$CHECK_DIR/OrchardApplePlugin.o"
 
 # Test-only callback symbol. The real Unity player supplies this at app linkage.
 cat > "$CHECK_DIR/UnityMessageStub.cpp" <<'CPP'
