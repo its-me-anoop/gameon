@@ -187,6 +187,54 @@ namespace LittleLifeline.Tests
             Assert.That(Vector3.Dot(resident.forward,Vector3.up),Is.GreaterThan(.99f));
         }
 
+        [TestCase(RoomKind.Diagnostics,42)]
+        [TestCase(RoomKind.Recovery,42)]
+        [TestCase(RoomKind.Recovery,43)]
+        public void RestingPatientsAlignWithTheImportedMattress(RoomKind kind,int patientId)
+        {
+            var state=new SimulationState();
+            state.Carriages.Add(new CarriageState { Id=8,Slot=1,Kind=kind });
+            state.Patients.Add(new PatientState { Id=patientId,RoomId=8,ToSlot=1,Phase=PatientPhase.Treating });
+            world.Render(state,true);
+            var interior=host.transform.Find("Railway diorama/Carriage slot 1/"+kind);
+            var resident=host.transform.Find("Railway diorama/Resident "+patientId);
+            var body=ActorPart(resident,"Body").bounds;
+            var head=ActorPart(resident,"Head").bounds;
+            var mattress=MaterialPart(interior,kind==RoomKind.Diagnostics ? "Blue" : "Linen").bounds;
+            var cover=MaterialPart(interior,kind==RoomKind.Diagnostics || patientId%2==0 ? "Blue" : "Flower").bounds;
+            Debug.Log("CARE_GEOMETRY "+kind+" id="+patientId+
+                " mattress="+mattress.center.ToString("F3")+" size="+mattress.size.ToString("F3")+
+                " cover="+cover.center.ToString("F3")+" size="+cover.size.ToString("F3")+
+                " body="+body.center.ToString("F3")+" head="+head.center.ToString("F3"));
+            if(kind==RoomKind.Diagnostics)
+                Assert.That(body.center.x,Is.EqualTo(mattress.center.x).Within(.035f),"The torso must share the scanner mattress centerline.");
+            else
+            {
+                Assert.That(body.center.z,Is.EqualTo(cover.center.z).Within(.035f),"Each resident must align with their actual recovery bed.");
+                var headboard=MaterialPart(interior,"Seaweed").bounds;
+                Debug.Log("CARE_HEADBOARD "+headboard.center.ToString("F3"));
+                Assert.That((head.center.x-body.center.x)*(headboard.center.x-body.center.x),Is.GreaterThan(0),"The head must point toward the imported headboard.");
+            }
+            Assert.That(head.center.x,Is.InRange(mattress.min.x,mattress.max.x),"The head must remain over the mattress footprint.");
+            Assert.That(head.center.z,Is.InRange(cover.min.z,cover.max.z),"The head must remain over its own bed.");
+            Assert.That(body.min.x,Is.GreaterThanOrEqualTo(mattress.min.x-.02f));
+            Assert.That(body.max.x,Is.LessThanOrEqualTo(mattress.max.x+.02f));
+        }
+
+        private static MeshRenderer ActorPart(Transform root,string name)
+        {
+            foreach(var item in root.GetComponentsInChildren<MeshRenderer>())
+                if(item.name.StartsWith(name,System.StringComparison.Ordinal)) return item;
+            Assert.Fail("Missing authored actor part "+name);return null;
+        }
+
+        private static MeshRenderer MaterialPart(Transform root,string role)
+        {
+            foreach(var item in root.GetComponentsInChildren<MeshRenderer>())
+                if(item.sharedMaterial!=null && item.sharedMaterial.name=="Lifeline "+role) return item;
+            Assert.Fail("Missing authored material geometry "+role);return null;
+        }
+
         [Test]
         public void StationEntranceFacesTheOverviewCamera()
         {

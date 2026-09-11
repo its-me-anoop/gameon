@@ -66,13 +66,15 @@ namespace LittleLifeline.Presentation
                     float z = LifelineWorld.SlotZ(slot);
                     if (room != null && room.Kind == RoomKind.Diagnostics)
                     {
-                        position = new Vector3(.22f,1.31f,z+.50f);
+                        // FBX import mirrors the authored X axis: the mattress center is at -.22.
+                        position = new Vector3(-.22f,1.31f,z+.50f);
                         pose = Quaternion.Euler(-90,0,0);
                     }
                     else if (room != null && room.Kind == RoomKind.Recovery)
                     {
-                        position = new Vector3(-.30f,1.43f,z+(patient.Id%2==0 ? -.76f : .76f));
-                        pose = Quaternion.Euler(-90,0,-90);
+                        // The imported pillows and headboards are toward negative X.
+                        position = new Vector3(.30f,1.43f,z+(patient.Id%2==0 ? -.76f : .76f));
+                        pose = Quaternion.Euler(-90,0,90);
                     }
                     else
                     {

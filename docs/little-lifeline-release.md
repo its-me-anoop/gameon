@@ -10,46 +10,36 @@ The Weekly Call gives everyone the same deterministic arrival pattern, starting 
 
 The existing Plus non-consumable (`com.flutterly.gravitile.plus`) becomes the **Founder’s Carriage Collection**. Sunrise, Coastal and Heritage finishes are cosmetic. Verified previous Plus purchases retain access. The three existing consumable tips grant no entitlement. Campaign and challenge content remain free. There are no ads, subscriptions, paid speed-ups, energy purchases or charity claims.
 
-## Live preflight, 11 September 2026
+## Current release status — 12 September 2026
 
-These are read-only observations, not delivery evidence:
+The Unity player has built, installed and rendered on the iPhone 17 Pro / iOS 26.5 simulator. App-scoped XCTest actions and the actual checksummed save confirm opening the clinic, building Diagnostics, and assigning Ivo. The compact icon controls operate over the full-height 3D world. The scanner and recovery alignment issues found in that runtime check have been corrected; the new simulator visual check remains pending. Physical-device performance, real StoreKit transactions and live Game Center behavior remain unverified. See [the evidence record](qa/little-lifeline.md).
 
-| Record | Readback |
-|---|---|
-| App Store Connect app | `6786840477`; bundle `com.flutterly.gravitile` |
-| Current app name | Gravitile: Orbit Orchard |
-| Editable app-info state | REJECTED; one editable en-US localization |
-| Latest uploaded build | 12, VALID, uploaded 8 July 2026 |
-| Existing Plus | `6786847881`, NON_CONSUMABLE, READY_TO_SUBMIT; family sharing enabled |
-| Plus localization | Orchard Pass; WAITING_FOR_REVIEW |
-| Existing Plus base price | USA, $2.99; read back and preserved |
-| Three tips | Existing small, medium and large products; all READY_TO_SUBMIT |
-| Little Lifeline weekly board | Not created |
-| Prior leaderboard records | Preserved; the new client does not read or submit their queues |
-| GitHub secrets | `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` names present; values not printed |
-| Last release workflow run | [28969361839](https://github.com/its-me-anoop/gameon/actions/runs/28969361839), successful historical native release |
+The latest complete Unity EditMode run passed **137/137** (`build/lifeline-tests-pose.xml`), including three imported-bed geometry regressions. The generated Swift-header import was subsequently corrected to the framework-qualified form and the actual simulator Xcode build passed. All eleven native bridge exports also compile and link in the independent bridge check. The renderer correction has a fresh passing test report; its simulator check follows the rebuild.
 
-The current beta description and review notes still describe Orbit Orchard. No Little Lifeline provider write, app-review submission, external invitation or tester message was performed during this preparation. Agreements, banking and tax readiness are not verified by product `READY_TO_SUBMIT` status.
+**No Little Lifeline TestFlight build has been uploaded yet.** Source `241304b8082602745e5dc36df29a84344e5538e0` has a sealed Device SDK export and archive-only CI run [34657640594](https://github.com/its-me-anoop/gameon/actions/runs/34657640594). That candidate is being superseded by the renderer fix; it must not be promoted. The previous run [34657229754](https://github.com/its-me-anoop/gameon/actions/runs/34657229754) was cancelled after the native header problem was identified. Neither is delivery evidence.
 
-## Reviewable provider changes
+## Verified App Store Connect configuration
 
-`python3 Tools/configure_lifeline_services.py --weekly-start 2026-09-14T00:00:00Z` performs only reads and prints the exact plan. Its live plan contains seven changes:
+Seven authorized changes were applied and read back on 11 September at 23:11 UTC (12 September in London). Evidence: `build/lifeline-provider-apply-20260912.log` and `build/lifeline-provider-readback-20260912.json`. The helper reports an empty remaining-actions list.
 
-1. Create `grv3.lifeline.weekly.v1`, reference/display name **Little Lifeline · Weekly Call**.
-2. Add its en-US localization.
-3. Change the editable app title to **Little Lifeline**, subtitle **A little care. A moving world.**
-4. Replace the beta description with [the prepared description](testflight-lifeline-description.txt).
-5. Replace beta reviewer instructions with [the prepared review notes](testflight-lifeline-review-notes.txt), retaining existing contact details and requiring no demo account.
-6. Update the existing Plus reference name and review instructions.
-7. Set the Plus localized name to **Founder’s Carriage Collection** and description to **Sunrise, Coastal and Heritage. Cosmetic train finishes.**
+| Record | Verified value |
+| --- | --- |
+| App | `6786840477`, bundle `com.flutterly.gravitile`, name **Little Lifeline** |
+| Editable subtitle | **A little care. A moving world.** |
+| Beta description and review instructions | Match the prepared Lifeline files; existing contact details retained |
+| Weekly board | `grv3.lifeline.weekly.v1`, resource `1945e115-3481-4d76-91f7-b73c2c51d8a5` |
+| Weekly schedule | First start **14 September 2026, 00:00 UTC**, seven-day duration and recurrence |
+| Scoring | BEST_SCORE, descending integer, range 0–2147483647 |
+| Existing Plus | `com.flutterly.gravitile.plus`, NON_CONSUMABLE, READY_TO_SUBMIT |
+| Plus name | **Founder’s Carriage Collection**; Sunrise, Coastal and Heritage cosmetic finishes |
+| Plus pricing / sharing | Existing USA **$2.99** price and family sharing retained |
+| Tips and historical boards | Existing records preserved |
+| Latest uploaded build at preflight | **12**, VALID and IN_BETA_TESTING; historical native app |
+| Internal group | Existing tester and access to all builds; no invitation needed |
 
-The weekly leaderboard uses integer scores, BEST_SCORE, descending order and range 0–2147483647. Its first start is **Monday 14 September 2026, 00:00 UTC**, duration **168 hours**, recurring every **seven days**. The API representation is `PT168H` and `FREQ=DAILY;INTERVAL=7`; this matches the recurrence format already present on an unrelated existing weekly board. The native client checks that the loaded occurrence starts at the exact challenge Monday and lasts seven days before submitting.
+The current week is practice only. A new Apple recurring leaderboard cannot start in the past, so the first live week opens on September 14; earlier results never enter that occurrence. The client checks the loaded occurrence against the scenario's UTC Monday and seven-day duration. [Apple recurring leaderboard setup](https://developer.apple.com/videos/play/wwdc2021/10067/), [leaderboard properties](https://developer.apple.com/help/app-store-connect/reference/game-center/leaderboards).
 
-Apple states that a new recurring leaderboard cannot start in the past. Therefore a September 7 start cannot activate this new board immediately. Before September 14 the game explains the opening date and lets players practise locally; those earlier results never enter the first live week. The script rejects a past start before any mutation. If setup occurs after the proposed start, choose the next future Monday and update the native availability date and copy before exporting. [Apple recurring leaderboard setup](https://developer.apple.com/videos/play/wwdc2021/10067/), [UTC leaderboard properties](https://developer.apple.com/help/app-store-connect/reference/game-center/leaderboards).
-
-After the runtime candidate is ready, the root agent can execute the already-authorized scoped changes with the same command plus `--apply`. No further user authorization is needed for this approved release scope. The helper preserves prices, product IDs, family sharing, tips, legacy boards, contacts, agreements and tester settings. It stops on an unexpected existing leaderboard configuration and re-reads all requested metadata after applying. A second read-only run should have an empty `actions` list. If an API call fails partway through, inspect that read-only plan before retrying; do not reset the board or replace the entitlement product.
-
-The per-build [What to Test text](testflight-lifeline-what-to-test.txt) is deliberately separate. Attach it only to the exact processed Little Lifeline build, after upload, through its en-US beta build localization. Beta app localizations have no independent app-title field; the app-info localization supplies the TestFlight identity.
+`Tools/configure_lifeline_services.py --weekly-start 2026-09-14T00:00:00Z` is read-only unless passed `--apply`. Do not recreate the configured board or entitlement. Product READY_TO_SUBMIT status does not establish agreement, banking, tax or purchase readiness. The prepared [What to Test](testflight-lifeline-what-to-test.txt) must be attached only to the exact processed Unity build.
 
 ## Purchase and leaderboard acceptance
 
@@ -113,60 +103,18 @@ Archive artifacts and logs last seven days; the intermediate export artifact las
 
 Recheck the latest App Store Connect build before upload. After upload, verify build **14**, version **3.0**, `processingState=VALID` and internal TestFlight availability, then attach the exact candidate’s testing notes. Upload-command success is not availability. The workflow does not submit app review, invite external testers or send tester messages.
 
-## Verification and recovery
+## Candidate preservation and remaining gates
 
-| Check at this release-preparation update | Evidence |
-|---|---|
-| Read-only provider plan | Seven scoped actions; `build/lifeline-provider-plan.json` |
-| Provider helper logic | 6 pure unit tests passed; no network writes |
-| Export/identity rejection tests | 14 synthetic fixture tests passed |
-| Workflow and shell validation | actionlint and shellcheck passed |
-| Native Swift 6/ObjC++ compile and link | Passed; 11 exports |
-| Native recurring boundary/account-model checks | 16 passed |
-| Actual Unity import, tests and runtime | Root owns current evidence; use the latest QA log rather than this static checklist |
-| Root’s initial runtime observation | Actual 3D app launch and new-carriage action observed; full scenario QA remains separate |
-| Little Lifeline provider mutations | NOT RUN |
-| Signed Unity archive/upload and processed TestFlight build | NOT RUN |
-| Real signed Unity purchases and active weekly score | NOT RUN |
+The isolated branch is `codex/orbit-orchard` at the public [gameon repository](https://github.com/its-me-anoop/gameon). Unity source and scoped release tools are committed; the user's separate native Swift/Xcode work remains in place. Stage only reviewed paths. Generated exports, caches, simulator data, transfer ZIPs and `.blend1` backups are excluded from source. A source change requires a new commit, export and distinct sealed package; do not overwrite or force-push a candidate.
 
-If export/archive fails, fix the cause and create a new committed candidate. If upload is uncertain, inspect App Store Connect before retrying the retained archive. A rejected binary requires a new build number and export. Do not force-push or overwrite a sealed candidate. An unwanted TestFlight candidate can later be expired by its exact build ID; no automatic deletion or expiration is performed here. Local save rollback uses the last valid snapshot with its matching accounted time, so offline progress cannot be credited independently of the state.
+Local Xcode **27.0 (27A266a)** is a beta and is used only for simulator QA. Release CI selected **Xcode 26.6 (17F113)** on released macOS **25G83**. Successful local simulator compilation cannot substitute for the CI signed-device archive or TestFlight processing.
 
+Remaining order:
 
-## Independent readiness audit, 12 September 2026
+1. Verify the renderer correction against imported bed geometry and actual simulator play; confirm relaunch persistence and offline collection.
+2. Commit the reviewed changes, run final Unity tests, export Device SDK from that clean source and package with the new passing report.
+3. Transfer through an unpublished draft, create the signed archive, and pass all identity, native export, privacy, signing and entitlement checks.
+4. Recheck build-number availability, promote that exact archive and wait for App Store Connect processing to become VALID and internally available. Attach the prepared per-build testing notes.
+5. Record physical iPhone, StoreKit and Game Center gaps explicitly. Do not claim live weekly score submission before September 14.
 
-**Ready to continue release preparation; not ready to claim TestFlight delivery.** Runtime QA and the final source freeze are still in progress. This audit did not start Unity, upload a build, change provider records or touch the interface.
-
-Fresh readback still shows build 12 as VALID and IN_BETA_TESTING, the Internal group with access to all builds, the Orbit Orchard app/Plus text, and no `grv3.lifeline.weekly.v1` leaderboard. The exact registered `com.flutterly.gravitile` bundle has both GAME_CENTER and IN_APP_PURCHASE capabilities. Existing certificate metadata includes unexpired development certificates, while the local keychain reports two valid signing identities. These observations do not prove hosted distribution signing: the new Unity CI archive remains the decisive check. The same three GitHub signing-secret names are present.
-
-The iOS module is installed under `/Applications/Unity/Hub/Editor/6000.3.24f1/PlaybackEngines/iOSSupport` and registered in the actual Unity preparation log. The local Editor is 6000.3.24f1 and licensed preparation has succeeded. Local Xcode is still **27A266a**, a beta build; it is not the Xcode 27 RC permitted by Apple. Use hosted Xcode 26.6 for this release. Fresh [runner inventory](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md) shows macOS **26.6.2 (25G83)**, image **20260907.0351.1**, with released Xcode **26.6 (17F113)**. No Unity Device SDK export currently exists. Approximately **9.7 GiB** was free locally; measure export and ZIP requirements again after the build.
-
-`build/lifeline-tests.xml` contains **97 passed, zero failed/skipped**, completed at **2026-09-11 22:45 UTC**. The package helper accepts its test-fixture structure, but subsequent HUD/CSS edits make it historical evidence. Run the complete tests again after the final interface changes. Root reports a newer full-suite run at **129/131 with two failures under repair**; that incomplete run is not release evidence either. The older `build/unity-tests.xml` contains failures and must not be packaged. Current release-helper checks pass: 14 packaging tests, six configuration-plan tests, actionlint, shellcheck and diff whitespace checks.
-
-### Preserve the shared checkout
-
-The current branch is `codex/orbit-orchard`, based on `2557a03fa20a49cdc13c692f30dd9f4a5f9af387`. Fresh remote inspection finds no remote branch of that name. Remote main is `78b08ab35526d97fbd9920edfc758660662f9af8`; current HEAD is five commits ahead with no divergence. Those existing commits remain part of this branch’s history; do not reset or rewrite them during the release. All Unity project files are still untracked. Native Swift/Xcode files, earlier concept files and other pre-existing work also remain modified/untracked. None needs to be removed, reset, stashed or swept into the Unity release commit.
-
-Freeze edits with the other agents, then stage only reviewed release paths: the complete `Unity/OrbitOrchard` source tree including `.meta` files and licenses; `Tools/package_unity_export.py`, `Tools/select_released_xcode.sh` and their packaging tests; `.github/workflows/release.yml`; the Lifeline provider helper/test, release notes and necessary documentation. Review `.gitignore` and README hunks separately if including them. Do not use a blanket `git add -A`. Inspect `git diff --cached --name-status` before committing, and leave unrelated/native work in place.
-
-Unity’s own ignore file excludes Library, Temp, Logs, UserSettings and Builds. The committed Assets/Packages/ProjectSettings source is approximately 8.6 MB before git compression; generated exports and caches are not source. The packager intentionally checks only the Unity source and required release tooling for dirtiness, so preserved changes outside that scope do not block a reproducible Unity export. It now refuses an existing ZIP, checksum, manifest sidecar or dangling output symlink rather than overwriting earlier candidate evidence.
-
-### Exact remaining order
-
-1. Finish interactive UI/runtime QA and fixes; retain device/window size, screenshots and actual observations. Verify the compact controls still expose restore, preferences, crew/route management and weekly planning.
-2. Prepare the final Unity project, review generated scene/settings and metadata, freeze agent edits, then create the scoped source commit above. Push the isolated branch without force. Use its full SHA throughout; changes after this point require another commit and export.
-3. Run final full Unity EditMode tests from that candidate. Export a **Device SDK** iOS project via `OrchardBuild.BuildIOS`, check success provenance and inspect the actual native postprocessor output. Measure space and package with the new passing report. The helper must accept the clean candidate; do not bypass its gates.
-4. After runtime QA is accepted, apply the seven already-authorized provider changes and verify empty remaining actions. Confirm the September 14 opening, retained Plus price/family sharing and unchanged tips. Update the prepared reviewer/testing copy if final navigation differs from its current wording.
-5. Transfer the checked ZIP through an unpublished draft release, dispatch the registered Unity workflow for an archive, and inspect the signing/Unity/product/bridge/privacy gates. This is the first verification of generated IL2CPP, the real Unity native linkage and hosted signing together.
-6. Promote that same signed archive to TestFlight. Recheck Apple’s latest build before upload; use a higher build if 14 is no longer available. Wait for processing VALID and internal TestFlight availability, then attach testing notes to the exact build. Do not report delivery on upload-command success alone.
-7. Verify the installed TestFlight candidate’s real purchase/restore/cancellation/pending behavior and Game Center authentication/dashboard. Live recurring score submission remains NOT RUN until the first Monday occurrence actually opens; the pre-opening UI must explicitly say practice is available now. No external invitations, tester messages or app-review submission are included.
-
-The source repository is public. Transfer releases must remain drafts; signed archive artifacts remain subject to repository Actions access and seven-day retention. Secrets stay out of source, release assets and logs. There is no reason to publish the generated Xcode project or transport draft publicly.
-
-
-The root’s latest runtime observations include building Recovery, assigning Nell, travel to Copperhill with distinct scenery, weekly start/crew planning and an actual Sunrise preview. These observations do not replace the still-needed final suite, player export, native signing or sandbox checks. The reviewer and testing text now use **Open clinic**, the top-right **gear** for the depot, **palette / Finishes**, the bottom **people** icon for crew, **map** for Route and **trophy** for The Weekly Call. No crew-outfit content is advertised.
-
-An explicit proposed staging list is saved in `build/lifeline-stage-paths.txt`. It includes the Unity source, release/provider/asset-generation helpers and their tests, Lifeline-only docs/QA/concept files, and the authored `assets/little-lifeline-game.blend`. It excludes `.blend1` backups, previous concept files, native Swift/Xcode work and caches. Nothing has been staged or committed by the release audit. After the root confirms the source freeze, inspect the list and use `git add --pathspec-from-file=build/lifeline-stage-paths.txt`; review README and `.gitignore` separately. Review the staged diff and scan the paths for secrets before committing. A dirty file outside the release paths can remain untouched throughout packaging.
-
-### Latest local candidate checks
-
-The complete repaired Unity suite passed 134/134 at 23:06:53 UTC on 11 September (12 September in London), including 30 renderer cases and five compact management UI cases. The standalone compiler passed 13 assemblies and 66 managed tests. Final source-freeze tests and device export remain tracked in the QA record.
+The release authorization includes TestFlight upload. No app-review submission, external tester invitations, messages or agreement acceptance is included. An uncertain upload must be resolved by provider readback before retrying. A rejected binary needs a new build number and candidate. Retain exact run IDs, checksums and processing evidence in the QA record.

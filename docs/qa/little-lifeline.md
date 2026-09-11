@@ -1,71 +1,46 @@
-# Little Lifeline — verification record
+# Little Lifeline — current verification record
 
-## Current state
+Updated 12 September 2026. Little Lifeline is the selected Unity hospital-on-rails concept. The game has passed the baseline checks below and runs on an iPhone simulator. **The scanner and recovery pose corrections passed all 137 Unity tests; the updated iOS build and visual check are pending. Nothing has been uploaded to TestFlight.**
 
-The user selected the hospital-on-rails concept on 11 September 2026 after a review of popular idle games, management interfaces and leaderboard design. [Selected brief](../concepts/little-lifeline.md). Unity 6000.3.24f1 with iOS support is installed and licensed. The Unity game now runs in the Editor with the portrait interface; final regression checks and device release work remain. It has not been uploaded to TestFlight.
+The evidence belongs to the builds named below. Passing tests do not establish physical-device behavior. Generated concept art and Blender authoring previews are not gameplay screenshots.
 
-The generated concept image is art direction, not an image of the running Unity game.
+## Current evidence
 
-## Required evidence
-
-| Area | Status |
+| Area | Verified result and scope |
 | --- | --- |
-| Deterministic care simulation and economy | 31 current Core cases passed in the latest Editor run; device behavior NOT ASSESSED |
-| Save recovery and offline accounting | 18 profile cases passed in the latest Editor run; process-kill/resume runtime checks remain |
-| Original Blender models and Unity world | Imported and observed in portrait Editor gameplay; renderer source review complete |
-| Unity import and test suite | Initial 97/97 passed; subsequent 131-case run had 129 passes and two failures; fixes written, final rerun pending |
-| Actual phone-format gameplay and input | Observed by root through CUA in portrait Unity Editor; physical iPhone NOT RUN |
-| Crew/layout decisions and first-town progression | NOT ASSESSED in runtime |
-| Resume, process-kill recovery and offline reward collection | NOT RUN in runtime |
-| Weekly challenge and real Game Center | NOT RUN |
-| Real StoreKit purchase and restore | NOT RUN |
-| iOS performance and accessibility pass | NOT RUN |
-| Fresh device export and signed archive | NOT RUN |
-| TestFlight processing and internal availability | NOT RUN |
+| Unity EditMode suite | **137 passed, 0 failed, 0 skipped** in [lifeline-tests-pose.xml](../../build/lifeline-tests-pose.xml). Little Lifeline: 31 Core, 18 profile, 38 presentation/HUD cases. Retained Orchard: 24 Core, 15 profile, 11 presentation cases. Three new cases check the actual imported bed geometry; each failed before the pose correction and passed after it. |
+| Standalone source and managed rules | [Source checker](../../Tools/check_unity_sources.py) compiled **13 assemblies** and passed **66 managed tests**: 24 Orchard Core, 31 Lifeline Core, six Orchard profile rules, five Lifeline weekly-date rules. [Summary](../../build/qa-lifeline/source-check/summary.txt). These overlap the Editor suite; they do not exercise Unity native JSON, rendering, or touch input. |
+| Native Apple bridge | The framework-qualified Swift header import fixed the simulator build failure. The [native validator](../../Unity/OrbitOrchard/Assets/OrbitOrchard/Plugins/iOS/validate-native.sh) now reproduces Xcode's framework header layout; native Swift/Objective-C++ compilation and linking passed with **11 bridge exports**. Its independent link check uses a test-only Unity message callback, so it does not establish live Apple-service behavior. |
+| iOS simulator build | Xcode build, installation, launch, and initial rendering succeeded for source commit `241304b8082602745e5dc36df29a84344e5538e0`, on **iPhone 17 Pro / iOS 26.5**, using Xcode **27.0 (27A266a)**. [Build evidence and log location](../../build/qa-lifeline/ios/runtime-build-evidence.json). |
+| Simulator interaction and saving | Clinic opening, second-carriage selection, Diagnostics construction, Ivo assignment, and return to Hospital were exercised through XCTest input and checked against screenshots plus the real saved profile. [Smoke record](../../build/qa-lifeline/ios-smoke/README.md). |
+| Relaunch, background recovery, and offline collection | **NOT YET VERIFIED in runtime.** Reading a saved file and activating the foreground app do not prove termination/relaunch continuity. Deterministic offline and save-recovery logic have test coverage above. |
+| Scanner care pose | **Source correction verified; simulator recheck pending.** FBX import reverses the authored X axis. The scanner anchor now matches the actual mattress center; both recovery poses face the imported headboards. Actual geometry regressions pass; the newly built candidate still needs visual inspection. |
+| Physical iPhone performance and accessibility | **NOT VERIFIED.** No sustained device CPU/GPU, frame-time, memory, thermal, touch-latency, or VoiceOver assessment. The simulator accessibility snapshot exposed generic application/window/views, without individual Unity controls. |
+| StoreKit and Game Center | Real purchase, restore, entitlement delivery, authentication, leaderboard submission/display, and weekly competition are **NOT VERIFIED**. No account or purchase operation was performed in the smoke run. |
+| Release | A device export/transfer package is recorded in the build evidence. A signed archive and the forthcoming scanner-fix candidate still need release verification. **TestFlight upload, processing, and tester availability have not occurred.** |
 
-Keep source checks, Unity tests, observed gameplay and live Apple-service/release proof separate. The previous native and orchard prototypes are historical evidence only.
+The build JSON records the later smoke outcome separately from compilation and rendering; only the workflow described below has been exercised.
 
-## Renderer and original assets
+## Observed simulator workflow
 
-[LifelineWorld](../../Unity/OrbitOrchard/Assets/LittleLifeline/Runtime/Presentation/LifelineWorld.cs) owns the camera, render texture and carriage selection. [LifelineActors](../../Unity/OrbitOrchard/Assets/LittleLifeline/Runtime/Presentation/LifelineActors.cs) moves pooled residents and crew from simulation endpoints and care phases. [LifelineTownView](../../Unity/OrbitOrchard/Assets/LittleLifeline/Runtime/Presentation/LifelineTownView.cs) caches each destination and switches the two restoration landmarks using `ProjectCompletionMask`, preserving which project was completed when traveling.
+The smoke harness targeted only `com.flutterly.gravitile`, using public XCTest UI APIs. It read the real simulator container; it did not seed, patch, or reset the profile. Four workflow XCTest executions passed, but their foreground assertions alone are not treated as functional proof. Screenshots show the visible result, and the profile verifier checks the corresponding saved state and SHA-256 envelope checksum.
 
-The current world contains a locomotive, four modular carriage slots, a platform and station, distinct consultation/scanning/recovery equipment, and articulated residents and crew. Willowbank has a river, station garden and village school; Copperhill has rock terraces, a workshop and clock tower; Seabrook has a bay, seaside clinic and lighthouse boardwalk. Focus hides foreground trees and town scenery and raises the selected room above the lower action dock.
+| Checkpoint | Saved-state evidence |
+| --- | --- |
+| Open clinic | The unopened baseline had Tick 0. [Open verification](../../build/qa-lifeline/ios-smoke/artifacts/verification-open.json) confirms Tick 460, four completed residents, 180 funds, and a valid checksum. |
+| Build Diagnostics | The second carriage was selected visually, then the Diagnostics/120 action was tapped. [Build verification](../../build/qa-lifeline/ios-smoke/artifacts/verification-built.json) confirms carriage `Id=1`, `Slot=1`, `Kind=Diagnostics`; Tick 760, six completed residents, and a valid checksum. |
+| Assign Ivo and return | [Assignment verification](../../build/qa-lifeline/ios-smoke/artifacts/verification-assigned.json) confirms Ivo's `PrimaryRoomId=1`, `CurrentRoomId=1`, and active `TaskPatientId=10`. Final revision 96 records Tick 1161, nine completed residents, 160 funds, and a valid checksum. |
 
-The original [Blender generator](../../Tools/create_lifeline_assets.py) produced 14 FBX assets totaling **1,514,536 bytes**. These are geometry and materials, without image textures. The editable Blender scene and rendered asset preview are authoring evidence, not gameplay screenshots. All 14 Unity model importers currently have CPU Read/Write disabled. The app icon is a separate opaque 1024×1024 Blender render.
+The [smoke record](../../build/qa-lifeline/ios-smoke/README.md) links each screenshot, XCTest result bundle, and accessibility snapshot. The initial calibration attempt made no change while the app was on Route; it is retained but excluded from successful clinic-open evidence. Coordinate input was necessary because individual Unity controls were absent from the accessibility tree.
 
-## Observed portrait gameplay
+## Editor and authoring observations
 
-Root reported these observations from actual CUA interaction with the running Unity Editor on 12 September 2026:
+Earlier direct interaction in the portrait Unity Editor showed the train under the compact HUD, carriage focus above the lower dock, Copperhill scenery after travel, a resident on the recovery bed, and the Sunrise finish applied to the train. Those observations establish only the exercised Editor behavior; the simulator smoke did not exercise travel, weekly play, or cosmetic purchasing.
 
-- The larger train fills the portrait game composition under the compact HUD and icon navigation.
-- Traveling to Copperhill visibly changes the destination scenery.
-- Selecting a room brings it into focus above the compact action dock.
-- A recovery resident lies correctly on the bed.
-- Previewing the Sunrise finish visibly changes the train model.
+Original Blender models are authored by [create_lifeline_assets.py](../../Tools/create_lifeline_assets.py). The world includes the train, modular care equipment, residents and crew, plus distinct Willowbank, Copperhill, and Seabrook settings. Tests cover projection/picking, separate restoration landmarks, actor-pool reuse, and lost render-texture recovery. Source review is not a performance measurement, and the scanner finding limits any claim that all treatment poses are visually correct.
 
-These observations are Editor runtime evidence. They do not establish physical-device frame rate, memory use, thermal behavior, VoiceOver support, StoreKit entitlement verification or real Game Center connectivity. Source-level support for all three towns and individual project bits is covered separately by tests; only the runtime observations above are claimed here.
+## Concise chronology and next verification
 
-## Test chronology and remaining rerun
+The initial 97-case Editor run and the later 131-case run with two failures are historical. The caption assertion and station-facing issues were corrected; the current baseline is the **134/134 b14 run**. The standalone checker then verified current assembly references and managed rules. The first Xcode simulator build exposed an app-style quoted Swift header import; changing it to the framework-qualified import produced a successful simulator build and launch. The subsequent clinic/Diagnostics/Ivo smoke established input and saved-state behavior and revealed the scanner alignment issue.
 
-The initial [Editor result](../../build/lifeline-tests.xml), completed at 22:45 UTC on 11 September, passed **97/97** cases. Of those, 47 were Little Lifeline cases: 19 Core, 18 profile and 10 renderer. The remaining 50 exercised the retained Orbit Orchard components. This run preceded the final town, portrait and care-pose changes.
-
-The subsequent [Editor result](../../build/lifeline-tests-final.xml), completed at 23:04 UTC on 11 September, ran **131 cases: 129 passed, two failed**. One failure was the compact-caption HUD assertion handled by the UI owner. The renderer failure was `StationEntranceFacesTheOverviewCamera`: the narrower portrait camera had moved east of the station while its entrance still faced west. The station now rotates +90 degrees toward the camera; the original positive-facing invariant remains unchanged.
-
-The renderer source review added two actor-reuse cases and one render-texture recovery case. The current [LifelineWorldTests](../../Unity/OrbitOrchard/Assets/LittleLifeline/Tests/Editor/LifelineWorldTests.cs) contains **30 renderer cases**, including portrait projection and picking, focus clearance, destination landmarks, independent restoration bits, travel persistence, treatment poses, pooled actor replacement and lost render-texture recovery. Core, renderer and these 30 test cases compile against the installed Unity 6000.3.24f1 assemblies. **The final Editor rerun after the station and lifecycle fixes is pending.**
-
-## Mobile renderer source review
-
-The steady `Render` path does not create meshes or clone materials, use LINQ, or build temporary scene hierarchies. Models, material roles and the three primitive meshes are shared; room interiors are cached after first use; the town hierarchy is created once. Actor collections and scratch storage are reused. New actor identities allocate a short debug name when assigned, and the pool can grow to the highest simultaneously needed roster; this is event-driven allocation, not a claim of zero garbage collection.
-
-Two lifecycle issues found during review were corrected:
-
-- Removed actors are retired before replacements are acquired. Replacing a full roster now reuses those actors instead of temporarily doubling the pool. Separate patient and crew identity tests cover this behavior.
-- A same-size render texture whose GPU surface has been lost is recreated through `IsCreated()`/`Create()` while retaining the same UI image reference. A regression explicitly releases and restores that surface.
-
-The render texture retains its aspect ratio, caps its longest edge at 1536 pixels, requests supported 2× MSAA, and releases the old surface when dimensions change or the world is destroyed. Owned material instances are disposed with the world. Source review found no further serious geometry or allocation issue; actual allocation counters, draw calls, GPU/CPU time, memory pressure, background graphics recovery and sustained iPhone performance remain **NOT MEASURED**.
-
-## Release candidate verification, 12 September 2026
-
-The complete Unity EditMode rerun passed **134/134** with zero failures or skips, completed 11 September 23:06:53 UTC (12 September in London). Evidence: `build/lifeline-tests-release.xml`. Both failures described above are resolved; the station-facing assertion was preserved. The three added renderer lifecycle tests also passed.
-
-The standalone source checker compiled 13 assemblies and passed 66 managed tests; evidence: `build/qa-lifeline/source-check/summary.txt`. These overlap parts of the Editor suite and are not 66 extra product features. The root then corrected the overview bottleneck icon to update live with its queue and next selected department. The source-freeze rerun is recorded separately below.
+The correction now passes all 137 Unity cases, including the three imported-geometry regressions. Next: build the updated candidate, repeat the relevant simulator visual/input checks, and verify actual termination/relaunch continuity. Physical-device performance, accessibility, Apple-service transactions, signed release validation, and TestFlight delivery remain separate outstanding evidence. The root release task will update this record after those actions complete.
