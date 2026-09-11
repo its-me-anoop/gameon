@@ -57,6 +57,8 @@ namespace OrbitOrchard.Editor
             var infoPath = Path.Combine(exportPath, "Info.plist");
             var info = new PlistDocument();
             info.ReadFromFile(infoPath);
+            // Seal the app identity explicitly for transport validation before Xcode expands settings.
+            info.root.SetString("CFBundleIdentifier", PlayerSettings.GetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS));
             info.root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
             info.WriteToFile(infoPath);
         }

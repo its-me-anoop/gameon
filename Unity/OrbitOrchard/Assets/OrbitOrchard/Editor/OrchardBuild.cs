@@ -58,7 +58,15 @@ namespace OrbitOrchard.Editor
             QualitySettings.shadowResolution = ShadowResolution.Medium;
             QualitySettings.shadowDistance = 24;
             IncludeRuntimeShaders();
-            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/LittleLifeline/Art/AppIcon.png");
+            const string iconPath = "Assets/LittleLifeline/Art/AppIcon.png";
+            var iconImporter = AssetImporter.GetAtPath(iconPath) as TextureImporter;
+            if (iconImporter != null && (iconImporter.textureCompression != TextureImporterCompression.Uncompressed || iconImporter.mipmapEnabled))
+            {
+                iconImporter.textureCompression = TextureImporterCompression.Uncompressed;
+                iconImporter.mipmapEnabled = false;
+                iconImporter.SaveAndReimport();
+            }
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
             if (icon != null) PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icon }, IconKind.Any);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets(); AssetDatabase.Refresh();
