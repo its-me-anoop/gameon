@@ -1,0 +1,13 @@
+Little Lifeline
+
+A little hospital. A whole world to care for.
+
+Build a hospital on rails and bring your crew to three small towns. Fit out four carriage slots with consultation, diagnostics and recovery rooms. Recruit and train a crew of up to six, assign their work, and arrange the train to shorten the walk between care.
+
+Residents arrive and move through the hospital automatically. Watch the queues, improve the rooms, and choose the town projects you want to restore. Your configured hospital keeps working while you are away, with up to 24 hours of catchup. There is no energy meter or missed-day penalty.
+
+The Weekly Call is an optional four-minute management challenge. Everyone starts with the same crew, budget and arrival pattern for that UTC week. Pause to plan, retry freely and compare your best completed shift through Game Center. Home upgrades and purchases never improve your challenge score. Rankings reset each Monday at 00:00 UTC.
+
+The campaign and weekly challenge are free. The optional, permanent Founder’s Carriage Collection includes Sunrise, Coastal and Heritage cosmetic finishes. Existing Gravitile Plus purchases include the collection. Restore purchases from the depot or collection screen. Optional tips support the game and do not unlock content. There are no ads or subscriptions.
+
+This beta replaces the earlier game with a new Unity 3D idle management experience. Progress is stored on your device. Please test the care flow, crew plans, town projects, returning after a break, smaller screens, Game Center and sandbox purchases.

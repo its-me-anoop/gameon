@@ -1,0 +1,8 @@
+{
+  "name": "LittleLifeline.Profile.Tests",
+  "references": ["LittleLifeline.Core", "LittleLifeline.Runtime"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

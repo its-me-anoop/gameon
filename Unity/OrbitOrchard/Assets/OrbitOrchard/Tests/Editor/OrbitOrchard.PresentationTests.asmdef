@@ -1,0 +1,8 @@
+{
+  "name": "OrbitOrchard.PresentationTests",
+  "rootNamespace": "OrbitOrchard.Tests",
+  "references": ["OrbitOrchard.Runtime", "OrbitOrchard.Core"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

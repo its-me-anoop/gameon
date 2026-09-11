@@ -1,0 +1,13 @@
+{
+  "name": "OrbitOrchard.Runtime",
+  "rootNamespace": "OrbitOrchard",
+  "references": [
+    "OrbitOrchard.Core",
+    "Unity.InputSystem",
+    "Unity.ugui"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true
+}

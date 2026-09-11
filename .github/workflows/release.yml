@@ -1,97 +1,278 @@
-name: Release to App Store Connect
-
-# Archives Gravitile on a RELEASED macOS runner and uploads to App Store
-# Connect. Exists because App Store review-submission validation rejects
-# binaries archived on beta macOS (BuildMachineOSBuild is sealed into every
-# bundle) — the primary dev machine runs the macOS beta. Same root cause and
-# pattern as WaterQuest/Sipli's release.yml.
-#
-# Requires repo secrets:
-#   ASC_KEY_ID      App Store Connect API key id
-#   ASC_ISSUER_ID   App Store Connect API issuer id
-#   ASC_KEY_P8      full contents of the AuthKey_<id>.p8 file
+name: Little Lifeline iOS TestFlight
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full reviewed source commit used by the Unity export
+        required: true
+        type: string
+      export_release_tag:
+        description: Draft release tag containing orbit-orchard-ios.zip (new archive only)
+        required: false
+        type: string
+      export_sha256:
+        description: Export ZIP SHA256 (new archive only)
+        required: false
+        type: string
+      archive_run_id:
+        description: Promote the signed archive from this successful run instead of rebuilding
+        required: false
+        type: string
+      upload_to_testflight:
+        description: Upload the signed archive; false keeps a reviewable archive only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: unity-testflight-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  SOURCE_SHA: ${{ inputs.source_sha }}
+  EXPORT_TAG: ${{ inputs.export_release_tag }}
+  EXPORT_SHA256: ${{ inputs.export_sha256 }}
 
 jobs:
-  release:
+  fetch-export:
+    if: inputs.archive_run_id == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Draft releases require repository push access. No source code is executed here.
+      contents: write
+    steps:
+      - name: Validate export identity
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPORT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$EXPORT_TAG" =~ ^unity-export-[A-Za-z0-9._-]+$ ]]
+
+      - name: Download the unpublished export
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$EXPORT_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,targetCommitish > release.json
+          python3 - <<'PY'
+          import json, os
+          release = json.load(open('release.json'))
+          assert release['isDraft'], 'Transfer release must remain a draft.'
+          assert release['targetCommitish'] == os.environ['SOURCE_SHA'], 'Draft target must be the exact source commit.'
+          PY
+          gh release download "$EXPORT_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern orbit-orchard-ios.zip --dir transfer
+          printf '%s  %s\n' "$EXPORT_SHA256" transfer/orbit-orchard-ios.zip | sha256sum --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-export-${{ inputs.source_sha }}
+          path: transfer/orbit-orchard-ios.zip
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  archive:
+    needs: fetch-export
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
 
-      - name: Select released Xcode
+      - uses: actions/download-artifact@v4
+        with:
+          name: unity-export-${{ inputs.source_sha }}
+          path: transfer
+
+      - name: Select released arm64 Xcode
+        run: Tools/select_released_xcode.sh
+
+      - name: Verify and unpack the Unity export
         run: |
-          XCODE="$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)"
-          XCODE="${XCODE:-/Applications/Xcode.app}"
-          sudo xcode-select -s "$XCODE"
-          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
-          xcodebuild -version
-          sw_vers
-          # Hard guards: refuse beta OS or beta Xcode.
-          [[ "$(sw_vers -buildVersion)" =~ [a-z]$ ]] && { echo "beta macOS runner"; exit 1; }
-          xcodebuild -version | grep -qi beta && { echo "beta Xcode"; exit 1; }
-          exit 0
+          python3 -m unittest discover -s Tools/tests -p test_package_unity_export.py
+          python3 Tools/package_unity_export.py \
+            --unpack transfer/orbit-orchard-ios.zip --destination unity-export \
+            --expected-sha256 "$EXPORT_SHA256" --expected-source "$SOURCE_SHA"
+          xcodebuild -list -project unity-export/Unity-iPhone.xcodeproj
 
-      - name: Install ASC API key
+      - name: Install signing credential
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_KEY_P8"
+          umask 077
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
 
-      - name: Archive
+      - name: Archive the Unity player once
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
+          mkdir -p build
           xcodebuild archive \
-            -project Gravitile.xcodeproj -scheme Gravitile \
-            -destination "generic/platform=iOS" \
-            -archivePath build/Gravitile.xcarchive \
+            -project unity-export/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/OrbitOrchard.xcarchive \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM=K6623R3GP5 | xcbeautify --quiet || \
-          xcodebuild archive \
-            -project Gravitile.xcodeproj -scheme Gravitile \
-            -destination "generic/platform=iOS" \
-            -archivePath build/Gravitile.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM=K6623R3GP5
+            DEVELOPMENT_TEAM=K6623R3GP5 CODE_SIGN_STYLE=Automatic \
+            | tee build/archive.log
 
-      - name: Preflight — assert non-beta build machine stamp
+      - name: Verify Unity binary and seal the archive
         run: |
-          STAMP=$(/usr/libexec/PlistBuddy -c "Print :BuildMachineOSBuild" \
-            build/Gravitile.xcarchive/Products/Applications/Gravitile.app/Info.plist)
-          echo "BuildMachineOSBuild: $STAMP"
-          [[ "$STAMP" =~ [a-z]$ ]] && { echo "beta build machine stamp — refusing to upload"; exit 1; }
-          exit 0
+          python3 - <<'PY'
+          import hashlib, json, os, plistlib, re, subprocess
+          from pathlib import Path
+          manifest = json.loads(Path('unity-export/orbit-orchard-export.json').read_text())
+          apps = list(Path('build/OrbitOrchard.xcarchive/Products/Applications').glob('*.app'))
+          assert len(apps) == 1, 'Expected exactly one archived app.'
+          app = apps[0]
+          info = plistlib.loads((app / 'Info.plist').read_bytes())
+          assert info['CFBundleIdentifier'] == 'com.flutterly.gravitile'
+          assert info['CFBundleDisplayName'] == 'Little Lifeline', 'Wrong game display name.'
+          assert manifest.get('product') == 'little-lifeline', 'Wrong game product.'
+          assert manifest.get('scenePath') == 'Assets/LittleLifeline/Scenes/Lifeline.unity', 'Wrong Unity scene.'
+          assert str(info['CFBundleVersion']) == manifest['buildNumber'], 'Build number drift.'
+          assert info['CFBundleShortVersionString'] == manifest['marketingVersion'], 'Version drift.'
+          assert not re.search(r'[a-z]$', info['BuildMachineOSBuild']), 'Beta archive stamp.'
+          framework = app / 'Frameworks/UnityFramework.framework/UnityFramework'
+          assert framework.is_file(), 'This is not an embedded Unity player.'
+          symbols = subprocess.check_output(['xcrun', 'nm', '-gU', str(framework)], text=True)
+          for symbol in ('Initialize', 'LoadProducts', 'Purchase', 'RestorePurchases', 'AuthenticateGameCenter', 'ShowLeaderboard', 'SubmitScore', 'RetryScores', 'Haptic', 'UseLifelineLeaderboards', 'ShowWeeklyLeaderboard'):
+              assert '_OO_' + symbol in symbols, 'Apple bridge export missing: ' + symbol
+          privacy = plistlib.loads((app / 'PrivacyInfo.xcprivacy').read_bytes())
+          reasons = [entry for entry in privacy['NSPrivacyAccessedAPITypes'] if entry['NSPrivacyAccessedAPIType'] == 'NSPrivacyAccessedAPICategoryUserDefaults']
+          assert any('CA92.1' in entry['NSPrivacyAccessedAPITypeReasons'] for entry in reasons), 'App-local defaults privacy reason missing.'
+          subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+          entitlements = subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL)
+          assert plistlib.loads(entitlements)['com.apple.developer.game-center'], 'Game Center entitlement missing.'
+          subprocess.run(['ditto', '-c', '-k', '--keepParent', 'build/OrbitOrchard.xcarchive', 'build/OrbitOrchard.xcarchive.zip'], check=True)
+          digest = hashlib.file_digest(open('build/OrbitOrchard.xcarchive.zip', 'rb'), 'sha256').hexdigest()
+          manifest.update(archiveSha256=digest, exportSha256=os.environ['EXPORT_SHA256'], workflowRun=os.environ['GITHUB_RUN_ID'], buildMachineOS=info['BuildMachineOSBuild'])
+          Path('build/archive-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print(json.dumps({key: manifest[key] for key in ('sourceCommit', 'marketingVersion', 'buildNumber', 'archiveSha256')}, indent=2))
+          PY
 
-      - name: Upload to App Store Connect
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-ios-archive-${{ inputs.source_sha }}
+          path: |
+            build/OrbitOrchard.xcarchive.zip
+            build/archive-manifest.json
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Remove signing credential
+        if: always()
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          xcodebuild -exportArchive \
-            -archivePath build/Gravitile.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          if [[ -n "$ASC_KEY_ID" ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          fi
 
-      - name: Keep archive as artifact
+      - name: Preserve archive diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcarchive
-          path: build/*.xcarchive
+          name: unity-archive-log-${{ github.run_id }}
+          path: build/archive.log
           retention-days: 7
           if-no-files-found: ignore
+
+  upload:
+    needs: archive
+    if: always() && inputs.upload_to_testflight && (needs.archive.result == 'success' || inputs.archive_run_id != '')
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Validate promotion input
+        env:
+          ARCHIVE_RUN_ID: ${{ inputs.archive_run_id || github.run_id }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ARCHIVE_RUN_ID" =~ ^[0-9]+$ ]]
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: unity-ios-archive-${{ inputs.source_sha }}
+          path: transfer
+          run-id: ${{ inputs.archive_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Select released arm64 Xcode
+        run: Tools/select_released_xcode.sh
+
+      - name: Verify and restore the signed archive
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          metadata = json.loads(Path('transfer/archive-manifest.json').read_text())
+          assert metadata['sourceCommit'] == os.environ['SOURCE_SHA'], 'Wrong source archive.'
+          assert metadata.get('product') == 'little-lifeline', 'Wrong game archive.'
+          assert metadata.get('scenePath') == 'Assets/LittleLifeline/Scenes/Lifeline.unity', 'Wrong archived Unity scene.'
+          digest = hashlib.file_digest(open('transfer/OrbitOrchard.xcarchive.zip', 'rb'), 'sha256').hexdigest()
+          assert digest == metadata['archiveSha256'], 'Signed archive checksum mismatch.'
+          subprocess.run(['ditto', '-x', '-k', 'transfer/OrbitOrchard.xcarchive.zip', 'build'], check=True)
+          print('Promoting Unity version ' + metadata['marketingVersion'] + ' build ' + metadata['buildNumber'])
+          PY
+
+      - name: Install signing credential
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_KEY_P8"
+          umask 077
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          python3 - <<'PY'
+          import plistlib
+          with open('build/ExportOptions.plist', 'wb') as output:
+              plistlib.dump({'method': 'app-store-connect', 'destination': 'upload', 'signingStyle': 'automatic', 'manageAppVersionAndBuildNumber': False, 'teamID': 'K6623R3GP5'}, output)
+          PY
+
+      - name: Upload the same archive to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive -archivePath build/OrbitOrchard.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo 'Upload completed. Verify App Store Connect processing and internal TestFlight availability before reporting delivery.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove signing credential
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          if [[ -n "$ASC_KEY_ID" ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          fi

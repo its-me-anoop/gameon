@@ -1,0 +1,13 @@
+{
+  "name": "OrbitOrchard.Editor",
+  "rootNamespace": "OrbitOrchard.Editor",
+  "references": [
+    "OrbitOrchard.Runtime",
+    "OrbitOrchard.Core",
+    "LittleLifeline.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

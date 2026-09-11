@@ -1,0 +1,11 @@
+Little Lifeline introduces a new 3D hospital-on-rails management game with compact icon controls.
+
+Tap Open clinic, watch consultation, then tap an empty carriage slot to add testing or recovery. Use the bottom people icon to assign crew, and the bottom map icon for projects and travel. Try improving a room, rearranging the train and visiting Willowbank, Copperhill and Seabrook as reputation grows.
+
+Leave the app for a few minutes and return. Check that the report matches your hospital, that returning again does not award the same progress twice, and that crew assignments, funds, carriage order and settings survive relaunch. Offline progress is capped at 24 hours.
+
+Use the bottom trophy icon for The Weekly Call. Plan or pause freely, finish its four-minute shift, change your plan and retry. Home funds and upgrades remain separate. Weekly rankings first open on 14 September 2026 at 00:00 UTC; before then, practise locally and check the opening message. After opening, test optional Game Center sign-in, the real leaderboard and result retry after a connection interruption. Expired-week results should stay local.
+
+Open the top-right gear, then the palette icon (Finishes). Preview Sunrise, Coastal and Heritage on the actual train. Use TestFlight sandbox purchases to check the permanent collection, cancellation and Restore. Existing Plus ownership should include the collection. Expanded optional tips must not unlock finishes or improve gameplay.
+
+Check small screens, readable labels, icon controls, sound and haptics, system Reduce Motion, backgrounding and returning from Apple windows. The depot’s help icon opens the fuller guide. Please report your device, iOS version and reproduction steps for any issue.

@@ -1,0 +1,15 @@
+{
+  "name": "OrbitOrchard.Core.Tests",
+  "rootNamespace": "OrbitOrchard.Core.Tests",
+  "references": ["OrbitOrchard.Core"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "versionDefines": [],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "noEngineReferences": false
+}

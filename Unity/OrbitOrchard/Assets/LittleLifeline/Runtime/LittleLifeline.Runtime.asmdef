@@ -1,0 +1,6 @@
+{
+  "name": "LittleLifeline.Runtime",
+  "rootNamespace": "LittleLifeline",
+  "references": ["LittleLifeline.Core", "OrbitOrchard.Runtime"],
+  "autoReferenced": true
+}

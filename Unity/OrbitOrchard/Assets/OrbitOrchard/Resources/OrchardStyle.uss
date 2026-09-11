@@ -1,0 +1,55 @@
+/* Warm botanical tokens converted from the OKLCH palette in OrchardColors.cs. */
+.root { flex-grow: 1; color: rgb(54,32,23); font-size: 16px; }
+.screen { flex-grow: 1; padding: 12px 25px 14px; align-self: center; width: 100%; max-width: 720px; }
+.row { flex-direction: row; align-items: center; flex-shrink: 0; }
+.column { flex-direction: column; flex-shrink: 0; }
+.eyebrow { font-size: 11px; -unity-font-style: bold; letter-spacing: 1.5px; white-space: normal; margin-top: 4px; margin-bottom: 8px; }
+.title { font-size: 43px; -unity-font-style: bold; letter-spacing: -1.5px; white-space: normal; margin-top: 23px; margin-bottom: 8px; }
+.title.smaller { font-size: 31px; margin-top: 17px; }
+.subtitle { font-size: 16px; white-space: normal; color: rgb(114,86,62); margin-bottom: 4px; }
+.hero { min-height: 190px; max-height: 340px; flex-grow: 1; flex-shrink: 1; }
+.playfield { min-height: 160px; flex-grow: 1; flex-shrink: 1; }
+.shop-world { height: 240px; flex-shrink: 0; }
+Button { color: rgb(54,32,23); font-size: 16px; border-width: 0; border-radius: 0; margin: 0; background-color: rgba(0,0,0,0); -unity-background-image-tint-color: rgba(0,0,0,0); white-space: normal; }
+Button:focus { border-width: 2px; border-color: rgb(54,32,23); }
+Button:hover { background-color: rgba(108,64,32,.07); }
+Button:active { scale: 0.98 0.98; }
+.primary { background-color: rgb(167,41,16); color: rgb(250,243,220); border-radius: 22px; height: 62px; padding-left: 21px; padding-right: 21px; -unity-font-style: bold; font-size: 18px; margin-top: 11px; margin-bottom: 5px; -unity-text-align: middle-left; }
+.primary:hover { background-color: rgb(153,36,17); }
+.primary:disabled { background-color: rgb(222,209,180); color: rgb(125,108,88); }
+.round { width: 44px; height: 44px; border-radius: 22px; background-color: rgb(239,226,197); font-size: 23px; -unity-text-align: middle-center; }
+.daily { height: 84px; -unity-text-align: middle-left; font-size: 16px; white-space: normal; }
+.nav { border-top-width: 1px; border-color: rgb(208,188,158); padding-top: 12px; margin-top: 1px; justify-content: space-between; }
+.nav-button { min-height: 48px; font-size: 14px; padding-left: 3px; padding-right: 3px; }
+.score { font-size: 46px; -unity-font-style: bold; margin-top: 0; margin-bottom: 0; }
+.clock { font-size: 25px; -unity-font-style: bold; margin-right: 16px; }
+.hearts { color: rgb(167,41,16); -unity-text-align: middle-right; font-size: 21px; margin-top: 10px; }
+.feedback { font-size: 14px; white-space: normal; -unity-text-align: middle-center; color: rgb(114,86,62); min-height: 52px; margin: 8px 0 12px; }
+.basket { font-size: 26px; -unity-font-style: bold; }
+.multiplier { font-size: 37px; -unity-font-style: bold; color: rgb(167,41,16); }
+.controls { margin-top: 13px; }
+.steer { width: 54px; height: 66px; border-radius: 20px; font-size: 28px; background-color: rgb(239,226,197); -unity-text-align: middle-center; }
+.bank { flex-grow: 1; height: 66px; margin: 0 11px; font-size: 17px; -unity-text-align: middle-center; }
+.footnote { font-size: 14px; white-space: normal; color: rgb(114,86,62); -unity-text-align: middle-center; margin-top: 14px; margin-bottom: 6px; }
+.result-score { font-size: 70px; -unity-font-style: bold; }
+.paragraph { font-size: 16px; white-space: normal; color: rgb(114,86,62); margin-top: 12px; margin-bottom: 20px; }
+.note { font-size: 14px; white-space: normal; color: rgb(114,86,62); margin-top: 9px; margin-bottom: 15px; }
+.section-title { font-size: 23px; -unity-font-style: bold; white-space: normal; margin-top: 19px; margin-bottom: 4px; }
+.text-button { min-height: 49px; -unity-text-align: middle-left; margin-top: 8px; font-size: 16px; }
+.page-scroll { flex-grow: 1; margin-top: 8px; }
+.scroll-content { padding-bottom: 26px; }
+.theme-option { -unity-text-align: middle-left; min-height: 77px; font-size: 16px; margin-bottom: 3px; border-bottom-width: 1px; border-bottom-color: rgb(208,188,158); }
+.preference { min-height: 54px; font-size: 17px; margin-top: 8px; }
+.overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; justify-content: center; padding: 30px; }
+.night Button { color: rgb(248,233,216); }
+.night .subtitle, .night .paragraph, .night .note, .night .footnote, .night .feedback { color: rgb(205,179,156); }
+.night .primary { color: rgb(54,32,23); background-color: rgb(255,176,89); }
+.night .round, .night .steer { background-color: rgb(80,56,48); }
+.night .hearts, .night .multiplier { color: rgb(255,176,89); }
+/* Compact portrait keeps the complete home navigation in reach. */
+.compact .screen { padding-left: 21px; padding-right: 21px; padding-top: 7px; }
+.compact .title { font-size: 38px; margin-top: 13px; }
+.compact .title.smaller { font-size: 30px; margin-top: 12px; }
+.compact .hero { min-height: 165px; }
+.compact .daily { height: 76px; }
+.compact .nav { padding-top: 7px; }

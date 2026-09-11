@@ -14,6 +14,10 @@ Package.resolved
 # macOS
 .DS_Store
 
+# Python tool caches
+__pycache__/
+*.pyc
+
 # Secrets — never commit signing keys or API keys
 *.p8
 *.p12
