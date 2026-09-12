@@ -53,6 +53,7 @@ namespace IdleClinic.Presentation
         public Vector3 CashPoint=>GetCashPoint(0);
 
         public void Initialize(ClinicLocation location) { Initialize();ConfigureLocation(location); }
+        public void ResetActorPlacement() => actors?.ResetPlacement();
         public void ConfigureLocation(ClinicLocation location)
         {
             Initialize();if(Location==location)return;

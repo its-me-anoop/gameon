@@ -20,6 +20,14 @@ namespace IdleClinic.Presentation
         internal ClinicActors(ClinicArt art,Transform parent,ClinicWorld world)
         { this.art=art;this.parent=parent;this.world=world; }
 
+        internal void ResetPlacement()
+        {
+            // Offline progress can skip several phases. The next render must sample
+            // the current journey rather than bridge from a stale on-screen pose.
+            foreach(var actor in patients.Values)actor.ResetPlacement(actor.WalkCycles);
+            foreach(var actor in staff.Values)actor.ResetPlacement(actor.WalkCycles);
+        }
+
         internal int MovingCount { get {int count=0;foreach(var a in patients.Values)if(a.Moving&&a.Root.gameObject.activeSelf)count++;foreach(var a in staff.Values)if(a.Moving&&a.Root.gameObject.activeSelf)count++;return count;} }
         internal void Render(ClinicState state,bool reducedMotion)
         {

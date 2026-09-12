@@ -1,10 +1,12 @@
 import argparse
 import base64
 import copy
+import errno
 from datetime import datetime, timedelta, timezone
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import plistlib
 import shutil
@@ -13,7 +15,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -141,6 +143,78 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(self.args.output.exists())
         self.assertFalse(any(call[0] == 'codesign' for call in self.calls))
         self.assertEqual(C.sha256(self.package), self.args.unsigned_sha256)
+
+    def test_clone_preflight_only_probes_and_preserves_unsigned_input(self):
+        self.args.clone_copies = True
+        with patch.object(C, 'clone_copyfile', side_effect=shutil.copy2) as clone, \
+                patch.object(C, 'inspect_macho', return_value={}):
+            report = C.sign_local(self.args)
+        self.assertTrue(report['cloneCopies'])
+        self.assertEqual(clone.call_count, 1)
+        self.assertFalse(self.args.output.exists())
+        self.assertFalse(any(call[0] == 'codesign' for call in self.calls))
+        self.assertEqual(C.sha256(self.package), self.args.unsigned_sha256)
+
+    def test_unsupported_clone_preflight_fails_before_extraction_or_signing(self):
+        self.args.clone_copies = True
+        with patch.object(C, 'clone_copyfile', side_effect=OSError(errno.ENOTSUP, 'unsupported')), \
+                patch.object(C, 'check_unsigned') as check:
+            with self.assertRaisesRegex(OSError, 'unsupported'):
+                C.sign_local(self.args)
+        check.assert_not_called()
+        self.assertFalse(self.calls)
+        self.assertFalse(self.args.output.exists())
+
+    def test_write_copy_modes_preserve_source_and_receipt_verification(self):
+        self.args.write = True
+        def signing_run(*args):
+            if args[0] == 'codesign':
+                return b''  # Fixtures never invoke actual signing.
+            return self.fake_run(*args)
+        for clone_copies in (False, True):
+            self.args.clone_copies = clone_copies
+            self.args.output = self.root / str(clone_copies)
+            with self.subTest(clone_copies=clone_copies), \
+                    patch.object(C, 'clone_copyfile', side_effect=shutil.copy2) as clone, \
+                    patch.object(C, 'run', side_effect=signing_run), \
+                    patch.object(C, 'inspect_macho', return_value={}), \
+                    patch.object(C, 'compare_macho', side_effect=self.fake_compare), \
+                    patch.object(C, 'verify_signature') as verify:
+                result = C.sign_local(self.args)
+            self.assertEqual(clone.call_count, 1 + len(C.files(self.archive)) if clone_copies else 0)
+            verify.assert_called_once()
+            self.assertEqual(result['archiveSha256'], C.sha256(self.args.output / C.SIGNED_ZIP))
+            self.assertEqual(result['transferSha256'], C.sha256(self.args.output / C.TRANSFER))
+            self.assertEqual(result['binaryIdentities'], C.json_read(self.args.output / C.RECEIPT)['binaryIdentities'])
+            self.assertEqual(C.inventory(self.archive), self.metadata['inventory'])
+
+    def test_clone_unsigned_snapshot_drift_prevents_sealing(self):
+        self.args.clone_copies = self.args.write = True
+        def signing_run(*args):
+            return b'' if args[0] == 'codesign' else self.fake_run(*args)
+        with patch.object(C, 'clone_copyfile', side_effect=shutil.copy2), \
+                patch.object(C, 'run', side_effect=signing_run), \
+                patch.object(C, 'inspect_macho', return_value={}), \
+                patch.object(C, 'verify_signature'), \
+                patch.object(C, 'inventory', side_effect=[self.metadata['inventory'], {'changed': {}}]):
+            with self.assertRaisesRegex(ValueError, 'Unsigned snapshot changed'):
+                C.sign_local(self.args)
+        self.assertFalse((self.args.output / C.RECEIPT).exists())
+        self.assertFalse((self.args.output / C.SIGNED_ZIP).exists())
+
+    def test_clone_archive_failure_never_falls_back_or_signs(self):
+        self.args.clone_copies = self.args.write = True
+        def clone(source, destination):
+            if Path(source).parent.name == 'clone-probe':
+                return shutil.copy2(source, destination)
+            raise OSError(errno.ENOTSUP, 'unsupported clone fixture')
+        with patch.object(C, 'clone_copyfile', side_effect=clone), \
+                patch.object(C, 'inspect_macho', return_value={}):
+            with self.assertRaisesRegex(shutil.Error, 'unsupported clone fixture'):
+                C.sign_local(self.args)
+        self.assertFalse(any(call[0] == 'codesign' for call in self.calls))
+        self.assertFalse((self.args.output / C.RECEIPT).exists())
+        self.assertFalse((self.args.output / C.SIGNED_ZIP).exists())
 
     def test_wrong_pinned_input_fails_before_tool_calls(self):
         self.args.unsigned_sha256 = 'c' * 64
@@ -361,6 +435,126 @@ class ArchiveTests(unittest.TestCase):
                         self.assertRaises(ValueError):
                     C.live_profile(self.profile_path, self.profile,
                                    self.args.signer_sha256, self.args.device_sha256)
+
+
+class CloneTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'Native macOS clonefile test')
+    def test_native_clone_tree_preserves_metadata_and_isolates_both_files(self):
+        source = self.root / 'source'
+        source.mkdir(mode=0o750)
+        nested = source / 'nested'
+        nested.mkdir(mode=0o700)
+        original = nested / 'payload'
+        original.write_bytes(b'original clone fixture' * 2048)
+        original.chmod(0o751)
+        C.run('/usr/bin/xattr', '-w', 'com.example.clinic-clone-test', 'original attribute', original)
+        timestamp = 1700000000123456789
+        for path in (original, nested, source):
+            os.utime(path, ns=(timestamp, timestamp))
+        baseline = {path.relative_to(source): path.stat() for path in (source, nested, original)}
+        destination = self.root / 'destination'
+        shutil.copytree(source, destination, copy_function=C.clone_copyfile)
+        for relative, before in baseline.items():
+            after = (destination / relative).stat()
+            self.assertEqual(stat.S_IMODE(after.st_mode), stat.S_IMODE(before.st_mode))
+            self.assertEqual(after.st_mtime_ns, before.st_mtime_ns)
+            self.assertEqual((after.st_uid, after.st_gid), (before.st_uid, before.st_gid))
+            self.assertNotEqual(after.st_ino, before.st_ino)
+        cloned = destination / 'nested/payload'
+        self.assertEqual(cloned.read_bytes(), original.read_bytes())
+        self.assertEqual(C.run('/usr/bin/xattr', '-p', 'com.example.clinic-clone-test', cloned).strip(),
+                         b'original attribute')
+        cloned.write_bytes(b'changed clone')
+        C.run('/usr/bin/xattr', '-w', 'com.example.clinic-clone-test', 'changed attribute', cloned)
+        self.assertEqual(original.read_bytes(), b'original clone fixture' * 2048)
+        self.assertEqual(C.run('/usr/bin/xattr', '-p', 'com.example.clinic-clone-test', original).strip(),
+                         b'original attribute')
+        original.write_bytes(b'changed source')
+        self.assertEqual(cloned.read_bytes(), b'changed clone')
+
+    def test_native_unsupported_error_has_no_copy_fallback(self):
+        source = self.root / 'source'
+        source.write_bytes(b'unchanged')
+        destination = self.root / 'destination'
+        native = Mock(return_value=-1)
+        with patch.object(C.sys, 'platform', 'darwin'), \
+                patch.object(C.ctypes, 'CDLL', return_value=SimpleNamespace(clonefile=native)), \
+                patch.object(C.ctypes, 'get_errno', return_value=errno.ENOTSUP), \
+                patch.object(C.shutil, 'copyfile') as copyfile:
+            with self.assertRaisesRegex(OSError, 'no ordinary-copy fallback') as raised:
+                C.clone_copyfile(source, destination)
+        self.assertEqual(raised.exception.errno, errno.ENOTSUP)
+        native.assert_called_once_with(os.fsencode(source), os.fsencode(destination), 5)
+        copyfile.assert_not_called()
+        self.assertFalse(destination.exists())
+        self.assertEqual(source.read_bytes(), b'unchanged')
+
+    def test_cross_volume_preflight_fails_without_clone_or_output(self):
+        temporary = self.root / 'temporary'
+        temporary.mkdir()
+        output = self.root / 'missing' / 'output'
+        real_stat = Path.stat
+        def changed_volume(path, *args, **kwargs):
+            value = real_stat(path, *args, **kwargs)
+            return SimpleNamespace(st_dev=-1) if path == temporary else value
+        with patch.object(Path, 'stat', changed_volume), patch.object(C, 'clone_copyfile') as clone:
+            with self.assertRaisesRegex(ValueError, 'same volume'):
+                C.preflight_clone_copies(temporary, output)
+        clone.assert_not_called()
+        self.assertFalse(output.parent.exists())
+
+    def test_clone_rejects_platform_symlink_and_existing_destination(self):
+        source = self.root / 'source'
+        source.write_bytes(b'original')
+        destination = self.root / 'destination'
+        with patch.object(C.sys, 'platform', 'linux'):
+            with self.assertRaisesRegex(ValueError, 'requires macOS'):
+                C.clone_copyfile(source, destination)
+        with patch.object(C.sys, 'platform', 'darwin'):
+            link = self.root / 'link'
+            link.symlink_to(source)
+            with self.assertRaisesRegex(ValueError, 'regular file'):
+                C.clone_copyfile(link, destination)
+            destination.write_bytes(b'keep existing')
+            with self.assertRaisesRegex(ValueError, 'already exists'):
+                C.clone_copyfile(source, destination)
+        self.assertEqual(destination.read_bytes(), b'keep existing')
+
+    def test_sign_cli_clone_flag_is_opt_in_and_does_not_imply_write(self):
+        argv = ['clinic_archive.py', 'sign', '--unsigned', 'unsigned.zip', '--manifest', 'manifest.json',
+                '--unsigned-run-id', '123', '--source', 'a' * 40, '--export-sha256', 'b' * 64,
+                '--unsigned-sha256', 'c' * 64, '--manifest-sha256', 'd' * 64,
+                '--signer-sha256', 'e' * 64, '--device-sha256', 'f' * 64,
+                '--identity', 'fixture', '--profile', 'fixture.mobileprovision', '--output', 'output']
+        for options, clone, write in (([], False, False), (['--clone-copies'], True, False),
+                                      (['--clone-copies', '--write'], True, True)):
+            with self.subTest(options=options), patch.object(sys, 'argv', argv + options), \
+                    patch.object(C, 'sign_local', return_value={}) as sign, patch('sys.stdout', new_callable=io.StringIO):
+                C.main()
+                args = sign.call_args.args[0]
+                self.assertEqual((args.clone_copies, args.write), (clone, write))
+
+    def test_other_cli_commands_reject_clone_flag(self):
+        common = ['--source', 'a' * 40, '--output', 'output', '--clone-copies']
+        cases = {
+            'seal-unsigned': ['--archive', 'archive', '--export-manifest', 'manifest', '--workflow-run', '123',
+                              '--export-sha256', 'b' * 64],
+            'adopt': ['--transfer', 'transfer', '--transfer-sha256', 'c' * 64, '--workflow-run', '456',
+                      '--unsigned', 'unsigned', '--manifest', 'manifest', '--unsigned-run-id', '123',
+                      '--signer-sha256', 'd' * 64, '--device-sha256', 'e' * 64, '--export-sha256', 'b' * 64],
+            'restore-signed': ['--transfer-directory', 'transfer', '--archive-run-id', '456']}
+        for command, options in cases.items():
+            with self.subTest(command=command), patch.object(sys, 'argv', ['clinic_archive.py', command] + common + options), \
+                    patch('sys.stderr', new_callable=io.StringIO) as stderr:
+                with self.assertRaises(SystemExit) as raised:
+                    C.main()
+                self.assertEqual(raised.exception.code, 2)
+                self.assertIn('unrecognized arguments: --clone-copies', stderr.getvalue())
 
 
 if __name__ == '__main__':

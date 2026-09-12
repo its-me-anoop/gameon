@@ -6,6 +6,7 @@ No command creates certificates, exports private keys, or writes to a provider.
 """
 import argparse
 import base64
+import ctypes
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.parse
@@ -352,6 +354,45 @@ def output_directory(path):
     path.mkdir(parents=True, exist_ok=False)
 
 
+def clone_copyfile(source, destination):
+    """Clone one regular file on macOS; never fall back to copying its data."""
+    require(sys.platform == 'darwin', '--clone-copies requires macOS clonefile support.')
+    source, destination = Path(source), Path(destination)
+    require(stat.S_ISREG(source.lstat().st_mode), 'Clone source must be a regular file.')
+    require(not destination.exists() and not destination.is_symlink(), 'Clone destination already exists.')
+    require(source.stat().st_dev == destination.parent.stat().st_dev,
+            'Clone source and destination must be on the same volume.')
+    clone = ctypes.CDLL('/usr/lib/libSystem.B.dylib', use_errno=True).clonefile
+    clone.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32)
+    clone.restype = ctypes.c_int
+    # CLONE_NOFOLLOW | CLONE_ACL: preserve source attributes/ACLs without following a file symlink.
+    if clone(os.fsencode(source), os.fsencode(destination), 0x0001 | 0x0004) != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, 'clonefile failed; no ordinary-copy fallback: ' + os.strerror(error))
+    shutil.copystat(source, destination, follow_symlinks=False)
+    return str(destination)
+
+
+def preflight_clone_copies(temporary, output):
+    """Check the output volume and a tiny temporary clone without creating output."""
+    ancestor = output.parent
+    while not ancestor.exists():
+        require(not ancestor.is_symlink(), 'Broken output ancestor symlink.')
+        ancestor = ancestor.parent
+    require(ancestor.is_dir() and ancestor.stat().st_dev == temporary.stat().st_dev,
+            'Clone source and output must be on the same volume; set TMPDIR accordingly.')
+    probe = temporary / 'clone-probe'
+    probe.mkdir()
+    source, destination = probe / 'source', probe / 'destination'
+    original = b'Clinic clone isolation probe\n'
+    source.write_bytes(original)
+    clone_copyfile(source, destination)
+    require(destination.read_bytes() == original and source.stat().st_ino != destination.stat().st_ino,
+            'Clone probe did not produce an independent file.')
+    destination.write_bytes(b'changed clone\n')
+    require(source.read_bytes() == original, 'Clone probe changed its source.')
+
+
 def seal_unsigned(args):
     metadata = json_read(args.export_manifest)
     verify_metadata(metadata, args.source, args.export_sha256)
@@ -378,6 +419,9 @@ def seal_unsigned(args):
 
 def sign_local(args):
     with tempfile.TemporaryDirectory(prefix='clinic-sign-preflight-') as temporary:
+        clone_copies = getattr(args, 'clone_copies', False)
+        if clone_copies:
+            preflight_clone_copies(Path(temporary), args.output)
         source, metadata, app = check_unsigned(args, Path(temporary) / 'unsigned')
         profile = read_profile(args.profile, args.signer_sha256, args.device_sha256)
         identities = run('security', 'find-identity', '-v', '-p', 'codesigning').decode()
@@ -395,11 +439,16 @@ def sign_local(args):
                   'signingCertificateSha256': args.signer_sha256, 'deviceSha256': args.device_sha256,
                   'profileSha256': sha256(args.profile), 'profileUUID': profile['UUID'],
                   'signingIdentity': args.identity, 'codeObjectCount': len(paths)}
+        if clone_copies:
+            report['cloneCopies'] = True
         if not args.write:
             return report
         output_directory(args.output)
         signed = args.output / ARCHIVE
-        shutil.copytree(source, signed)
+        if clone_copies:
+            shutil.copytree(source, signed, copy_function=clone_copyfile)
+        else:
+            shutil.copytree(source, signed)
         signed_app = signed / app.relative_to(source)
         shutil.copyfile(args.profile, signed_app / 'embedded.mobileprovision')
         entitlements = Path(temporary) / 'entitlements.plist'
@@ -416,6 +465,8 @@ def sign_local(args):
         outer_path.write_bytes(plistlib.dumps(outer))
         verify_app(signed, metadata)
         verify_signature(signed_app, args.signer_sha256)
+        if clone_copies:
+            require(inventory(source) == metadata['inventory'], 'Unsigned snapshot changed during clone signing.')
         report['binaryIdentities'] = compare_archives(source, signed)
         report['format'] = 1
         report['signedAt'] = datetime.now(timezone.utc).isoformat()
@@ -535,6 +586,8 @@ def main():
     sign.add_argument('--manifest-sha256', required=True)
     sign.add_argument('--identity', required=True)
     sign.add_argument('--profile', type=Path, required=True)
+    sign.add_argument('--clone-copies', action='store_true',
+                      help='Require macOS same-volume clonefile copies; fail instead of falling back to data copies.')
     adoption = commands.add_parser('adopt')
     adoption.add_argument('--transfer', type=Path, required=True)
     adoption.add_argument('--transfer-sha256', required=True)

@@ -320,7 +320,7 @@ namespace IdleClinic.App
         private void ResumeClinic()
         {
             var report=saves.ApplyOffline(DateTimeOffset.UtcNow);profile=saves.Profile;BindSimulations();
-            world.ConfigureLocation(profile.activeLocation);RefreshAudioPreferences();
+            world.ConfigureLocation(profile.activeLocation);world.ResetActorPlacement();RefreshAudioPreferences();
             skipNextDelta=true;
             if(report.applied && report.tillEarned>0)Notify("While away: "+Money(report.tillEarned)+" ready to collect",7);
             if(!string.IsNullOrEmpty(saves.Error))Notify(saves.Error,10);

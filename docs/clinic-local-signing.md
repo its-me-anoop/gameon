@@ -59,6 +59,17 @@ The default is preflight: verification uses temporary extraction directories, pr
 python3 Tools/clinic_archive.py "${CLINIC_SIGN_ARGS[@]}" --write
 ```
 
+On a Mac with APFS, `--clone-copies` optionally shares the unsigned extraction's file blocks with the signing copy. Use it for both preflight and the eventual signing command:
+
+```sh
+python3 Tools/clinic_archive.py "${CLINIC_SIGN_ARGS[@]}" --clone-copies
+python3 Tools/clinic_archive.py "${CLINIC_SIGN_ARGS[@]}" --clone-copies --write
+```
+
+This flag belongs only to `sign`; ordinary copies remain the default. The temporary extraction and output must be on the same volume. If needed, point `TMPDIR` at an existing writable directory on the output volume before running either command. Preflight checks a tiny native `clonefile` copy and confirms that changing it leaves the source unchanged. Unsupported filesystems, different volumes and clone failures stop the command without a data-copy fallback or signing. Files retain their modes, timestamps and extended attributes; directory modes and timestamps follow the ordinary archive copy. The unsigned snapshot's byte/mode inventory is checked again after signing, and all signature, binary identity and receipt checks remain in place.
+
+Plan space for one full extraction, both ZIP outputs, blocks changed during signing and the existing extraction reserve. Cloning saves the second copy of unchanged resources and dSYMs; it does not eliminate ZIP storage or guarantee that signing fits in the remaining space. A failure during copying may leave an incomplete output directory, as with ordinary copies.
+
 Signing preserves app/framework resource plists and their hosted `DTXcodeBuild`, SDK and `BuildMachineOSBuild` stamps. The helper signs nested code first, adds the existing profile, then signs the app with explicit development/Game Center entitlements. It sets only the outer archive's truthful signing identity/team fields. It never runs a local build or export.
 
 Outputs are a locally signed `.xcarchive`, `OrbitOrchard.xcarchive.zip`, `signing-receipt.json` and the two-file `clinic-signed-transfer.zip`. Existing output directories/files are never overwritten. A failed attempt can leave an incomplete directory; choose a new output path after resolving the failure. An incomplete attempt has no valid adoption contract.

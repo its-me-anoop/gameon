@@ -6,6 +6,39 @@ namespace IdleClinic.Core
     public sealed partial class ClinicSimulation
     {
         private bool TaxiRoadBusy => State.TaxiRides.Any(r => r.Phase == ClinicTaxiPhase.Approaching || r.Phase == ClinicTaxiPhase.Departing);
+        private int OldestDoctorRoadRequestPatientId()
+        {
+            long oldestTick = long.MaxValue;
+            int oldestId = int.MaxValue;
+            bool parkingEntrySafe = State.Patients.Any(p => p.Phase == ClinicPatientPhase.WaitingToPark) && ParkingMovementHasSafeWindow(true);
+            bool parkingExitSafe = State.Patients.Any(p => p.Phase == ClinicPatientPhase.WaitingToExit) && ParkingMovementHasSafeWindow(false);
+            void Consider(int patientId, long requestedTick)
+            {
+                if (requestedTick < oldestTick || requestedTick == oldestTick && patientId < oldestId)
+                { oldestTick = requestedTick; oldestId = patientId; }
+            }
+            foreach (var patient in State.Patients)
+            {
+                if (patient.Phase == ClinicPatientPhase.WaitingToPark || patient.Phase == ClinicPatientPhase.WaitingToExit)
+                {
+                    if (patient.Phase == ClinicPatientPhase.WaitingToPark ? parkingEntrySafe : parkingExitSafe) Consider(patient.Id, patient.PhaseStartedTick);
+                }
+                else if ((patient.Phase == ClinicPatientPhase.TaxiArriving || patient.Phase == ClinicPatientPhase.WaitingForTaxi)
+                    && RoadWindowAvailable(ClinicRules.TaxiTravelTicks(State))
+                    && !State.TaxiRides.Any(r => r.PatientId == patient.Id || r.DockId == patient.TaxiDockId))
+                    Consider(patient.Id, patient.PhaseStartedTick);
+            }
+            foreach (var ride in State.TaxiRides)
+                if (ride.Phase == ClinicTaxiPhase.WaitingToDepart && RoadWindowAvailable(ClinicRules.TaxiDepartureTicks)
+                    && (ride.Pickup || State.Tick - ride.PhaseStartedTick >= 20
+                        || !State.Patients.Any(p => p.Id == ride.PatientId && p.Phase == ClinicPatientPhase.Arriving)))
+                    Consider(ride.PatientId, ride.PhaseStartedTick);
+            // Age wins when a full crossing-free window opens, including over taxis
+            // already waiting at the curb. A shorter taxi leg may use the tail of the
+            // current window, but must finish before the crossing and cannot consume
+            // the next complete window ahead of an older 208-tick car departure.
+            return oldestId == int.MaxValue ? -1 : oldestId;
+        }
         private static void HoldTaxiPassenger(ClinicPatientState patient, ClinicPatientPhase phase, long tick)
         { patient.Phase = phase; patient.PhaseStartedTick = tick; patient.PhaseEndsTick = 0; }
         private bool RoadWindowAvailable(int duration)
@@ -59,8 +92,9 @@ namespace IdleClinic.Core
         private void DispatchTaxis()
         {
             if (!ClinicRules.IsDoctors(State) || TaxiRoadBusy || State.Patients.Any(p => IsMovingVehicle(p.Phase))) return;
-            var departure = State.TaxiRides.Where(r => r.Phase == ClinicTaxiPhase.WaitingToDepart).OrderBy(r => r.PhaseStartedTick).ThenBy(r => r.Id).FirstOrDefault();
-            if (departure != null && RoadWindowAvailable(ClinicRules.TaxiDepartureTicks))
+            int roadOwner = OldestDoctorRoadRequestPatientId();
+            var departure = State.TaxiRides.FirstOrDefault(r => r.Phase == ClinicTaxiPhase.WaitingToDepart && r.PatientId == roadOwner);
+            if (departure != null && departure.PatientId == roadOwner && RoadWindowAvailable(ClinicRules.TaxiDepartureTicks))
             {
                 // A drop-off passenger first leaves the curb, before its vehicle pulls away.
                 if (!departure.Pickup && State.Patients.Any(p => p.Id == departure.PatientId && p.Phase == ClinicPatientPhase.Arriving && State.Tick - departure.PhaseStartedTick < 20)) return;
@@ -72,6 +106,7 @@ namespace IdleClinic.Core
             if (!RoadWindowAvailable(ClinicRules.TaxiTravelTicks(State))) return;
             foreach (var patient in State.Patients.Where(p => p.Phase == ClinicPatientPhase.TaxiArriving || p.Phase == ClinicPatientPhase.WaitingForTaxi).OrderBy(p => p.PhaseStartedTick).ThenBy(p => p.Id))
             {
+                if (patient.Id != roadOwner) continue;
                 if (State.TaxiRides.Any(r => r.PatientId == patient.Id || r.DockId == patient.TaxiDockId)) continue;
                 bool pickup = patient.Phase == ClinicPatientPhase.WaitingForTaxi;
                 State.TaxiRides.Add(new ClinicTaxiState { Id = patient.Id * 2L + (pickup ? 1 : 0), PatientId = patient.Id,

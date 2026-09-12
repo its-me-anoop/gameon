@@ -250,6 +250,107 @@ namespace IdleClinic.Tests
             Assert.That(game.State.Patients.Any(p => paid.Contains(p.Id)), Is.False);
             Assert.That(game.State.Construction, Is.Empty); Valid(game);
         }
+        [Test] public void FullyUpgradedParkingAndContinuousTaxisShareTheRoadWithoutStarvingPaidDrivers()
+        {
+            var game = DoctorsProgressionFixture.MaxDoctors();
+            var coarse = new ClinicSimulation(Clone(game.State));
+            var offline = new ClinicSimulation(Clone(game.State));
+            const long maximumExitWait = 6000; // Ten minutes, including twelve occupied bays and the crossing cycles.
+            var cohort = new HashSet<int>();
+            var completedCars = new HashSet<int>();
+            var completedTaxis = new HashSet<int>();
+            int maximumOccupiedBays = 0;
+            long longestExitWait = 0;
+            var roadReservations = new Dictionary<string, (long Start, long End)>();
+            for (int second = 0; second < 3600; second++)
+            {
+                maximumOccupiedBays = Math.Max(maximumOccupiedBays, game.State.Patients.Count(p => p.ParkingBayId >= 0));
+                var exiting = game.State.Patients.Where(p => p.Phase == ClinicPatientPhase.WaitingToExit).ToArray();
+                if (second < 1800) foreach (var patient in exiting) cohort.Add(patient.Id);
+                foreach (var patient in exiting)
+                {
+                    var wait = game.State.Tick - patient.PhaseStartedTick;
+                    longestExitWait = Math.Max(longestExitWait, wait);
+                    Assert.That(wait, Is.LessThanOrEqualTo(maximumExitWait), "Paid driver " + patient.Id + " never received a road window while taxis continued.");
+                }
+                var carsLeaving = game.State.Patients.Where(p => p.Phase == ClinicPatientPhase.DrivingFromParking).Select(p => p.Id).ToArray();
+                var report = game.Advance(1);
+                foreach (var id in carsLeaving) if (!game.State.Patients.Any(p => p.Id == id)) completedCars.Add(id);
+                foreach (var e in report.Events) if (e.Kind == ClinicEventKind.TaxiDeparted) completedTaxis.Add(e.PatientId);
+                int vehicles = game.State.Patients.Count(p => p.Phase == ClinicPatientPhase.DrivingToParking || p.Phase == ClinicPatientPhase.DrivingFromParking)
+                    + game.State.TaxiRides.Count(r => r.Phase == ClinicTaxiPhase.Approaching || r.Phase == ClinicTaxiPhase.Departing);
+                Assert.That(vehicles, Is.LessThanOrEqualTo(1), "A fair handoff must retain the shared road reservation.");
+                foreach (var vehicle in game.State.Patients.Where(p => p.Phase == ClinicPatientPhase.DrivingToParking || p.Phase == ClinicPatientPhase.DrivingFromParking))
+                    roadReservations["car:" + vehicle.Id + ":" + vehicle.PhaseStartedTick] = (vehicle.PhaseStartedTick, vehicle.PhaseEndsTick);
+                foreach (var taxi in game.State.TaxiRides.Where(r => r.Phase == ClinicTaxiPhase.Approaching || r.Phase == ClinicTaxiPhase.Departing))
+                    roadReservations["taxi:" + taxi.Id + ":" + taxi.PhaseStartedTick] = (taxi.PhaseStartedTick, taxi.PhaseEndsTick);
+                if (second % 60 == 0) Valid(game);
+            }
+            Assert.That(maximumOccupiedBays, Is.EqualTo(12), "The regression must exercise the full car park.");
+            Assert.That(cohort.Count, Is.GreaterThan(12));
+            Assert.That(cohort.All(id => !game.State.Patients.Any(p => p.Id == id)), Is.True, "Every observed paid driver must actually leave, not only start an exit animation.");
+            Assert.That(completedCars.Count, Is.GreaterThan(12));
+            Assert.That(completedTaxis.Count, Is.GreaterThan(12), "Parking must not solve its starvation by starving taxis.");
+            var reservations = roadReservations.Values.OrderBy(r => r.Start).ToArray();
+            for (int i = 1; i < reservations.Length; i++) Assert.That(reservations[i].Start, Is.GreaterThanOrEqualTo(reservations[i - 1].End));
+            coarse.Advance(3600, false); offline.AdvanceOffline(3600);
+            Assert.That(Fingerprint(coarse.State), Is.EqualTo(Fingerprint(game.State)));
+            Assert.That(Fingerprint(offline.State), Is.EqualTo(Fingerprint(game.State)));
+            TestContext.WriteLine("Full parking traffic: " + completedCars.Count + " cars, " + completedTaxis.Count + " taxi passengers, longest exit wait " + longestExitWait / 10d + "s.");
+            Valid(game);
+        }
+        [Test] public void DoctorsCarsMayMoveBesidePavementWalkersButNeverDuringTheirBayCrossing()
+        {
+            var game = DoctorsProgressionFixture.MaxDoctors();
+            bool entered = false, exited = false, sharedPavement = false;
+            for (int tick = 0; tick < 18000; tick++)
+            {
+                game.Advance(.1, false);
+                var moving = game.State.Patients.FirstOrDefault(p => p.Phase == ClinicPatientPhase.DrivingToParking || p.Phase == ClinicPatientPhase.DrivingFromParking);
+                if (moving == null) continue;
+                entered |= moving.Phase == ClinicPatientPhase.DrivingToParking;
+                exited |= moving.Phase == ClinicPatientPhase.DrivingFromParking;
+                foreach (var pedestrian in game.State.Patients.Where(p => p.ParkingBayId >= 0 && (p.Phase == ClinicPatientPhase.Arriving || p.Phase == ClinicPatientPhase.Leaving)))
+                {
+                    var path = pedestrian.Phase == ClinicPatientPhase.Arriving ? pedestrian.ArrivalPath
+                        : ClinicDoctorsNavigation.ArrivalPath(pedestrian.FromAnchor, pedestrian.ToAnchor);
+                    foreach (double fraction in new[] { 0, .25, .5, .75 })
+                    {
+                        var position = ClinicDoctorsNavigation.SampleArrivalPath(path,
+                            (game.State.Tick + fraction - pedestrian.PhaseStartedTick) / (pedestrian.PhaseEndsTick - pedestrian.PhaseStartedTick));
+                        Assert.That(position.X, Is.GreaterThanOrEqualTo(-14.652f),
+                            "A car must reserve the complete bay/vehicle area while any pedestrian crosses it: car " + moving.Id + ", pedestrian " + pedestrian.Id);
+                    }
+                    sharedPavement = true;
+                }
+                if (moving.Phase == ClinicPatientPhase.DrivingFromParking)
+                {
+                    long cycle = ClinicRules.TrafficTick(game.State) % ClinicRules.StreetCrossingCycleTicks;
+                    Assert.That(cycle < ClinicRules.StreetCrossingStartsTick || cycle >= ClinicRules.StreetCrossingEndsTick, Is.True);
+                }
+            }
+            Assert.That(entered && exited && sharedPavement, Is.True, "Observe actual entrances, exits and safe simultaneous walking.");
+            Valid(game);
+        }
+        [Test] public void RetargetingAnArrivalAfterItClearsParkingDropsTheOldCrossingReservation()
+        {
+            var path = ClinicDoctorsNavigation.ArrivalPath("parking.bay.11.patient", "reception.queue.22");
+            var patient = new ClinicPatientState { ParkingBayId = 11, Phase = ClinicPatientPhase.Arriving, FromAnchor = "parking.bay.11.patient",
+                ToAnchor = "reception.queue.22", ArrivalPath = path, PhaseStartedTick = 1000, PhaseEndsTick = 1000 + ClinicDoctorsNavigation.WalkTicks(path) };
+            var crossing = typeof(ClinicSimulation).GetMethod("TryDoctorsParkingCrossing", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(crossing, Is.Not.Null);
+            var original = new object[] { patient, 0L, 0L };
+            Assert.That(crossing.Invoke(null, original), Is.EqualTo(true));
+            Assert.That((long)original[2], Is.LessThan(patient.PhaseEndsTick), "The initial bay crossing ends before the walk through the clinic.");
+            double progress = .01;
+            while (ClinicDoctorsNavigation.SampleArrivalPath(path, progress).X < -.1f && progress < 1) progress += .01;
+            patient.ArrivalPath = ClinicDoctorsNavigation.RetargetArrivalPath(path, progress, "reception.queue.21");
+            patient.ToAnchor = "reception.queue.21";
+            patient.PhaseStartedTick = 2000;
+            patient.PhaseEndsTick = 2000 + ClinicDoctorsNavigation.WalkTicks(patient.ArrivalPath);
+            Assert.That(crossing.Invoke(null, new object[] { patient, 0L, 0L }), Is.EqualTo(false),
+                "The original FromAnchor must not reserve a crossing that the saved remaining path has already passed.");
+        }
         [Test] public void SelectedWorkstationHireAndTrainingOnlyChangeTheChosenDoctorOrNurse()
         {
             var game = ClinicSimulation.CreateForLocation(ClinicLocation.DoctorsClinic);
