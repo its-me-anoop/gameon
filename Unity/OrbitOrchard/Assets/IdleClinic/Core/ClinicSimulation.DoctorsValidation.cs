@@ -129,7 +129,7 @@ namespace IdleClinic.Core
                 if ((patient.Phase == ClinicPatientPhase.WalkingToWaiting || patient.Phase == ClinicPatientPhase.Seated) && patient.SeatId < 0) return false;
                 if (patient.Phase == ClinicPatientPhase.Seated && (patient.FromAnchor != ClinicRules.WaitingAnchor(true, patient.SeatId) || patient.ToAnchor != patient.FromAnchor)) return false;
                 if (IsMovingVehicle(patient.Phase) && ++movingCars > 1) return false;
-                if (!ValidateDoctorsCar(patient) || !ValidateDoctorsTaxiPassenger(patient) || !ValidateArrivalPath(patient)) return false;
+                if (!ValidateDoctorsCar(patient) || !ValidateDoctorsTaxiPassenger(patient) || !ValidateArrivalPath(patient) || !ValidateQueueMove(state, patient)) return false;
                 if (IsVisitingAmenity(patient))
                 {
                     if (!patient.Paid || !patient.HasAdmissionReservation || patient.SeatId < 0 || role.HasValue
@@ -204,6 +204,20 @@ namespace IdleClinic.Core
             var last = patient.ArrivalPath[patient.ArrivalPath.Count - 1];
             return Math.Abs(last.X - end.x) < .002 && Math.Abs(last.Z - end.z) < .002
                 && patient.PhaseEndsTick - patient.PhaseStartedTick == ClinicDoctorsNavigation.WalkTicks(patient.ArrivalPath);
+        }
+        private static bool ValidateQueueMove(ClinicState state, ClinicPatientState patient)
+        {
+            if (patient.QueueMovePath == null || patient.QueueMovePath.Count == 0)
+                return patient.QueueMoveStartedTick == 0 && patient.QueueMoveEndsTick == 0;
+            if (patient.Phase != ClinicPatientPhase.ReceptionQueue || patient.QueueMovePath.Count < 2 || patient.QueueMovePath.Count > 32
+                || patient.QueueMoveStartedTick < 0 || patient.QueueMoveStartedTick > state.Tick || patient.QueueMoveEndsTick <= state.Tick) return false;
+            foreach (var point in patient.QueueMovePath)
+                if (point == null || float.IsNaN(point.X) || float.IsNaN(point.Z) || float.IsInfinity(point.X) || float.IsInfinity(point.Z)
+                    || point.X < -11.802f || point.X > -2.698f || point.Z < -9.652f || point.Z > -8.248f) return false;
+            var end = ClinicDoctorsNavigation.Anchor(patient.ToAnchor);
+            var last = patient.QueueMovePath[patient.QueueMovePath.Count - 1];
+            return Math.Abs(last.X - end.x) < .002 && Math.Abs(last.Z - end.z) < .002
+                && patient.QueueMoveEndsTick - patient.QueueMoveStartedTick == ClinicDoctorsNavigation.QueueMoveTicks(patient.QueueMovePath);
         }
         private static bool ValidateDoctorsCar(ClinicPatientState patient)
         {

@@ -130,6 +130,9 @@ namespace IdleClinic.Core
     {
         public int Id;
         public List<ClinicMovementPoint> ArrivalPath = new List<ClinicMovementPoint>();
+        public List<ClinicMovementPoint> QueueMovePath = new List<ClinicMovementPoint>();
+        public long QueueMoveStartedTick;
+        public long QueueMoveEndsTick;
         public ClinicPatientPhase Phase;
         public int AppearanceId;
         public int ParkingBayId = -1;

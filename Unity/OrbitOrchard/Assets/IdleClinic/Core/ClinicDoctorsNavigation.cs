@@ -13,6 +13,13 @@ namespace IdleClinic.Core
             public Point(float x, float z) { this.x = x; this.z = z; }
         }
         public const double MetresPerSecond = 1.7;
+        public const double QueueMetresPerSecond = 1.35;
+        private const float QueueLeftX = -11.10f;
+        private const float QueueRightX = -3.40f;
+        private const float QueueFirstZ = -8.25f;
+        private const float QueueRowSpacing = .70f;
+        private const float QueueTurnOffset = .70f;
+        private const float QueueFrontAisleZ = -7.50f;
         public static Point Anchor(string anchor)
         {
             if (anchor == "entrance") return new Point(.38f, -10.90f);
@@ -29,7 +36,7 @@ namespace IdleClinic.Core
             if (anchor.StartsWith("pharmacy.station.", StringComparison.Ordinal) && id >= 0 && id < 2 && (staff || patient))
                 return new Point(4.05f + id * 3.50f, 1.20f + (staff ? .70f : -.89f));
             if (anchor.StartsWith("reception.queue.", StringComparison.Ordinal) && id >= 0 && id < 23)
-                return new Point(-11.25f + (id % 8) * 1.10f, -8.25f - (id / 8) * .70f);
+                return new Point(QueueLeftX + (id / 8 % 2 == 0 ? id % 8 : 7 - id % 8) * 1.10f, QueueRowZ(id / 8));
             if (anchor.StartsWith("waiting.seat.", StringComparison.Ordinal) && id >= 0 && id < 30)
                 return new Point(2.2f + (id % 6 / 2) * 2.8f + (id % 2) * 1.8f, -6f + id / 6);
             if (anchor.StartsWith("firstaid.standing.", StringComparison.Ordinal) && id >= 0 && id < 4)
@@ -70,6 +77,14 @@ namespace IdleClinic.Core
         }
         public static int WalkTicks(IList<ClinicMovementPoint> path)
             => Math.Max(1, (int)Math.Ceiling(PathLength(path) * ClinicRules.TicksPerSecond / MetresPerSecond));
+        public static int QueueMoveTicks(IList<ClinicMovementPoint> path)
+            => Math.Max(1, (int)Math.Ceiling(PathLength(path) * ClinicRules.TicksPerSecond / QueueMetresPerSecond));
+        public static List<ClinicMovementPoint> QueueMovePath(string from, string to, ClinicMovementPoint start)
+        {
+            var path = new List<ClinicMovementPoint> { new ClinicMovementPoint(start.X, start.Z) };
+            Build(from, to, false, new Point(start.X, start.Z), p => path.Add(new ClinicMovementPoint(p.x, p.z)));
+            return path;
+        }
         public static ClinicMovementPoint SampleArrivalPath(IList<ClinicMovementPoint> path, double progress)
         {
             int segment;
@@ -97,13 +112,34 @@ namespace IdleClinic.Core
         {
             var position = SampleArrivalPath(path, progress, out var segment);
             var result = new List<ClinicMovementPoint> { position };
-            // Keep only untravelled corridor waypoints. The final point is the old queue slot;
-            // replacing it never sends a patient back to the original bay or taxi stand.
-            for (int i = segment + 1; i < path.Count - 1; i++)
-                result.Add(new ClinicMovementPoint(path[i].X, path[i].Z));
-            var destination = Anchor(target);
-            result.Add(new ClinicMovementPoint(destination.x, destination.z));
+            // Retain any untravelled transport/pavement leg only as far as the indoor
+            // gateway. Once inside, recompute the approach from the free tail of the
+            // newly reserved row; replacing the endpoint alone crosses standing people.
+            int gateway = -1;
+            for (int i = segment + 1; i < path.Count; i++)
+                if (Math.Abs(path[i].X - .38f) < .002f && Math.Abs(path[i].Z + 9.65f) < .002f) { gateway = i; break; }
+            if (gateway >= 0)
+                for (int i = segment + 1; i <= gateway; i++) result.Add(new ClinicMovementPoint(path[i].X, path[i].Z));
+            var start = result[result.Count - 1];
+            BuildQueueApproach(new Point(start.X, start.Z), target, p => result.Add(new ClinicMovementPoint(p.x, p.z)));
             return result;
+        }
+        public static long ReceptionDepartureClearTick(ClinicPatientState patient)
+        {
+            if (!patient.Paid || patient.PhaseEndsTick <= patient.PhaseStartedTick
+                || !patient.FromAnchor.StartsWith("reception.desk.", StringComparison.Ordinal)
+                || patient.ToAnchor == patient.FromAnchor) return 0;
+            var path = ArrivalPath(patient.FromAnchor, patient.ToAnchor);
+            double clearedDistance = 0;
+            for (int i = 1; i < path.Count; i++)
+            {
+                clearedDistance += Distance(path[i - 1], path[i]);
+                if (path[i].X >= -.40f) break;
+            }
+            // Include body clearance after entering the central aisle. Phase duration
+            // already includes calling time, exactly as the visible walking projection.
+            double fraction = Math.Min(1, (clearedDistance + .7) / PathLength(path));
+            return patient.PhaseStartedTick + (long)Math.Ceiling((patient.PhaseEndsTick - patient.PhaseStartedTick) * fraction);
         }
         private static double Distance(ClinicMovementPoint a, ClinicMovementPoint b)
         { double x = b.X - a.X, z = b.Z - a.Z; return Math.Sqrt(x * x + z * z); }
@@ -112,6 +148,24 @@ namespace IdleClinic.Core
             Point end=Anchor(to);
             bool F(string prefix)=>from!=null&&from.StartsWith(prefix,StringComparison.Ordinal);
             bool T(string prefix)=>to!=null&&to.StartsWith(prefix,StringComparison.Ordinal);
+            // Queue advancement is a local shuffle along the snake, not a new trip
+            // through the clinic entrance. Use the displayed position when a second
+            // admission retargets someone who is still rounding the previous corner.
+            if (F("reception.queue.") && T("reception.queue."))
+            { BuildQueueShuffle(start, end, Index(to) / 8, add); return; }
+            if (!staff && F("reception.queue.") && T("reception.desk."))
+            {
+                var aisleStart = start;
+                if (start.z < QueueFirstZ - .02f)
+                {
+                    aisleStart = new Point(QueueRightX, QueueFirstZ);
+                    BuildQueueShuffle(start, aisleStart, 0, add);
+                }
+                add(new Point(aisleStart.x, QueueFrontAisleZ));
+                add(new Point(end.x, QueueFrontAisleZ));
+                add(end);
+                return;
+            }
             bool withinWaiting=F("waiting.")&&T("waiting.");
             float fz=Junction(from,staff),tz=Junction(to,staff);float lane=tz>=fz?.38f:-.38f;
             void P(float x,float z)=>add(new Point(x,z));
@@ -146,7 +200,58 @@ namespace IdleClinic.Core
             else if(T("waiting.seat.")){float aisle=SeatAisle(Index(to))+.31f;if(!withinWaiting)P(lane,-7.38f);P(aisle,-7.38f);P(aisle,end.z);}
             else if(T("waiting.toilet.")){if(!withinWaiting)P(lane,-7.38f);P(10.9f,-7.38f);P(10.9f,-6.20f);P(end.x,-6.20f);}
             else if(T("waiting.vending.")){if(!withinWaiting)P(lane,-7.38f);P(8.7f,-7.38f);P(8.7f,-1.95f);P(9.05f,-1.95f);}
+            else if (T("reception.queue."))
+            {
+                P(.38f, -9.65f);
+                BuildQueueApproach(new Point(.38f, -9.65f), to, add);
+                return;
+            }
             else P(lane,end.z);
+            add(end);
+        }
+        private static void BuildQueueApproach(Point start, string target, Action<Point> add)
+        {
+            var end = Anchor(target);
+            int row = Index(target) / 8;
+            bool west = row % 2 == 1;
+            float edge = west ? QueueLeftX - QueueTurnOffset : QueueRightX + QueueTurnOffset;
+            if (Math.Abs(start.z - end.z) < .002f)
+            { add(end); return; }
+            // All slots below the newly reserved tail are free. The odd row uses the
+            // next (empty) row to reach the west aisle; no passage is squeezed between
+            // occupied rows or between the last row and the front wall.
+            float approachZ = west && start.x > edge + .002f ? Math.Min(start.z, QueueRowZ(row + 1)) : start.z;
+            add(new Point(start.x, approachZ));
+            add(new Point(edge, approachZ));
+            add(new Point(edge, end.z));
+            add(end);
+        }
+        private static float QueueRowZ(int row) => QueueFirstZ - row * QueueRowSpacing;
+        private static void BuildQueueShuffle(Point start, Point end, int targetRow, Action<Point> add)
+        {
+            if (Math.Abs(start.z - end.z) < .02f)
+            { add(end); return; }
+            // While on an outside turn, ceiling identifies the row being left rather
+            // than sending a half-finished turn back to its old logical queue anchor.
+            int row = Math.Max(0, Math.Min(2, (int)Math.Ceiling((QueueFirstZ - start.z) / QueueRowSpacing - .002f)));
+            var cursor = start;
+            while (row > targetRow)
+            {
+                bool east = row % 2 == 1;
+                float edge = east ? QueueRightX : QueueLeftX;
+                float outside = edge + (east ? QueueTurnOffset : -QueueTurnOffset);
+                bool alreadyTurning = east ? cursor.x > QueueRightX + .002f : cursor.x < QueueLeftX - .002f;
+                if (!alreadyTurning)
+                {
+                    add(new Point(edge, QueueRowZ(row)));
+                    add(new Point(outside, QueueRowZ(row)));
+                }
+                else add(new Point(outside, cursor.z));
+                add(new Point(outside, QueueRowZ(row - 1)));
+                cursor = new Point(edge, QueueRowZ(row - 1));
+                add(cursor);
+                row--;
+            }
             add(end);
         }
         private static float Junction(string anchor,bool staff)

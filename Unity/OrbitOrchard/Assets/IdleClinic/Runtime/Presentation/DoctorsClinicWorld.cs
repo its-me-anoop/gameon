@@ -163,7 +163,8 @@ namespace IdleClinic.Presentation
         private void Anchors()
         {
             anchor("entrance",new Vector3(.38f,.14f,-10.90f),Vector3.forward);anchor("exit",new Vector3(-.38f,.14f,-10.90f),Vector3.back);
-            for(int i=0;i<23;i++)anchor("reception.queue."+i,new Vector3(-11.25f+(i%8)*1.10f,.14f,-8.25f-(i/8)*.70f),Vector3.forward);
+            for(int i=0;i<23;i++)
+            {string name="reception.queue."+i;var point=ClinicDoctorsNavigation.Anchor(name);anchor(name,new Vector3(point.x,.14f,point.z),Vector3.forward);}
             for(int i=0;i<4;i++)anchor("firstaid.standing."+i,new Vector3(-2.20f,.14f,-1.05f+i*.72f),Vector3.left);
             for(int i=0;i<12;i++)anchor("parking.bay."+i+".patient",DoctorsParkingLayout.BayDoor(i),Vector3.right);
             for(int i=0;i<2;i++){anchor("waiting.toilet."+i+".patient",new Vector3(11.35f+i*1.75f,.14f,-3.70f),Vector3.back);anchor("taxi.dock."+i+".patient",DoctorsParkingLayout.TaxiDoor(i),Vector3.forward);}

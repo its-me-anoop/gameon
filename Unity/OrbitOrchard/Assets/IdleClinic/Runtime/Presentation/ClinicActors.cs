@@ -47,9 +47,16 @@ namespace IdleClinic.Presentation
                     person.Phase==ClinicPatientPhase.WalkingToAmenity||person.Phase==ClinicPatientPhase.ReturningFromAmenity||person.Phase==ClinicPatientPhase.WalkingToConsultation||person.Phase==ClinicPatientPhase.WalkingToPharmacy||person.Phase==ClinicPatientPhase.WalkingToTaxi;
                 bool seated=((person.Phase==ClinicPatientPhase.Seated||person.Phase==ClinicPatientPhase.Treating||person.Phase==ClinicPatientPhase.Consulting)&&world.HasSeatAt(person.ToAnchor))||
                     (person.Phase==ClinicPatientPhase.UsingAmenity&&person.VisitingAmenity==ClinicAmenity.Toilet);
-                Place(actor,person.FromAnchor,person.ToAnchor,Progress(tick,person.PhaseStartedTick,person.PhaseEndsTick),walking,false,tick,
-                    person.Phase==ClinicPatientPhase.ReceptionQueue,
-                    state.Location==ClinicLocation.DoctorsClinic&&person.Phase==ClinicPatientPhase.Arriving?person.ArrivalPath:null,person.PhaseStartedTick);
+                bool doctors=state.Location==ClinicLocation.DoctorsClinic;
+                bool queueMovement=doctors&&person.Phase==ClinicPatientPhase.ReceptionQueue&&person.QueueMovePath!=null&&person.QueueMovePath.Count>=2;
+                var savedPath=queueMovement?person.QueueMovePath:doctors&&person.Phase==ClinicPatientPhase.Arriving?person.ArrivalPath:null;
+                long moveStarted=queueMovement?person.QueueMoveStartedTick:person.PhaseStartedTick;
+                long moveEnds=queueMovement?person.QueueMoveEndsTick:person.PhaseEndsTick;
+                // The expanded clinic admits only settled queue patients. Render the
+                // same saved path and clock so reindexing, saves and fast desks cannot
+                // give a rig a shorter visual journey than the simulation reserved.
+                Place(actor,person.FromAnchor,person.ToAnchor,Progress(tick,moveStarted,moveEnds),walking||queueMovement,false,tick,
+                    !doctors&&person.Phase==ClinicPatientPhase.ReceptionQueue,savedPath,moveStarted);
                 int pose=actor.Moving?1:person.Phase==ClinicPatientPhase.CheckingIn||person.Phase==ClinicPatientPhase.Dispensing||person.Phase==ClinicPatientPhase.UsingAmenity&&!seated?2:seated?4:0;
                 actor.Sample(pose,tick*.1+person.Id*.17,reducedMotion,person.Phase==ClinicPatientPhase.Leaving||person.Phase==ClinicPatientPhase.WalkingToTaxi,person.FirstAidComplete);actor.Appearance.AfterPose(seated);
             }

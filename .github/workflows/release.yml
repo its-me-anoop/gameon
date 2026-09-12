@@ -32,6 +32,31 @@ on:
         description: Promote the signed archive from this successful run instead of rebuilding
         required: false
         type: string
+      local_signing:
+        description: Compile an unsigned device archive for signing with an existing local keychain identity
+        required: true
+        default: false
+        type: boolean
+      unsigned_run_id:
+        description: Adopt a locally signed archive against this successful unsigned source run
+        required: false
+        type: string
+      signed_release_tag:
+        description: Private draft tag containing clinic-signed-transfer.zip (adoption only)
+        required: false
+        type: string
+      signed_sha256:
+        description: Pinned clinic-signed-transfer.zip SHA256 (adoption only)
+        required: false
+        type: string
+      signer_sha256:
+        description: Pinned public signing certificate DER SHA256 (adoption only)
+        required: false
+        type: string
+      device_sha256:
+        description: SHA256 of the registered physical device UDID (adoption only)
+        required: false
+        type: string
       upload_to_testflight:
         description: Upload the signed archive; false keeps a reviewable archive only
         required: true
@@ -56,6 +81,43 @@ env:
   EXPORT_SHA256: ${{ inputs.export_sha256 }}
 
 jobs:
+  validate-mode:
+    if: ${{ !inputs.simulator_qa }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate mutually exclusive release modes
+        env:
+          LOCAL_SIGNING: ${{ inputs.local_signing }}
+          ARCHIVE_RUN_ID: ${{ inputs.archive_run_id }}
+          UNSIGNED_RUN_ID: ${{ inputs.unsigned_run_id }}
+          SIGNED_TAG: ${{ inputs.signed_release_tag }}
+          SIGNED_SHA256: ${{ inputs.signed_sha256 }}
+          SIGNER_SHA256: ${{ inputs.signer_sha256 }}
+          DEVICE_SHA256: ${{ inputs.device_sha256 }}
+          UPLOAD: ${{ inputs.upload_to_testflight }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          e = os.environ
+          assert re.fullmatch('[0-9a-f]{40}', e['SOURCE_SHA']), 'Full source SHA required.'
+          local, promote, adopt = e['LOCAL_SIGNING'] == 'true', bool(e['ARCHIVE_RUN_ID']), bool(e['UNSIGNED_RUN_ID'])
+          assert sum((local, promote, adopt)) <= 1, 'Choose one release mode.'
+          if local or adopt:
+              assert e['UPLOAD'] == 'false', 'Complete the physical check before a separate signed-archive promotion.'
+          if promote:
+              assert re.fullmatch('[0-9]+', e['ARCHIVE_RUN_ID'])
+          else:
+              assert re.fullmatch('[0-9a-f]{64}', e['EXPORT_SHA256'])
+          if adopt:
+              assert re.fullmatch('[0-9]+', e['UNSIGNED_RUN_ID'])
+              assert re.fullmatch('clinic-signed-[A-Za-z0-9._-]+', e['SIGNED_TAG'])
+              for key in ('SIGNED_SHA256', 'SIGNER_SHA256', 'DEVICE_SHA256'):
+                  assert re.fullmatch('[0-9a-f]{64}', e[key]), key + ' must be pinned.'
+          else:
+              assert not any(e[key] for key in ('SIGNED_TAG', 'SIGNED_SHA256', 'SIGNER_SHA256', 'DEVICE_SHA256')), 'Adoption inputs require unsigned_run_id.'
+          PY
+
   simulator-qa:
     if: inputs.simulator_qa
     permissions:
@@ -69,7 +131,8 @@ jobs:
       build_number: ${{ inputs.simulator_build }}
 
   fetch-export:
-    if: ${{ !inputs.simulator_qa && inputs.archive_run_id == '' }}
+    if: ${{ !inputs.simulator_qa && inputs.archive_run_id == '' && inputs.unsigned_run_id == '' }}
+    needs: validate-mode
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -134,6 +197,7 @@ jobs:
           xcodebuild -list -project unity-export/Unity-iPhone.xcodeproj
 
       - name: Install signing credential
+        if: ${{ !inputs.local_signing }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
@@ -145,6 +209,7 @@ jobs:
           printf '%s' "$ASC_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
 
       - name: Archive the Unity player once
+        if: ${{ !inputs.local_signing }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -161,7 +226,42 @@ jobs:
             DEVELOPMENT_TEAM=K6623R3GP5 CODE_SIGN_STYLE=Automatic \
             | tee build/archive.log
 
+      - name: Compile the device archive for local signing
+        if: inputs.local_signing
+        run: |
+          mkdir -p build
+          xcodebuild archive \
+            -project unity-export/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/OrbitOrchard.xcarchive \
+            DEVELOPMENT_TEAM=K6623R3GP5 CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            | tee build/archive.log
+
+      - name: Verify and seal the unsigned compiled archive
+        if: inputs.local_signing
+        run: |
+          python3 -m unittest discover -s Tools/tests -p 'test_clinic_*.py'
+          python3 Tools/clinic_archive.py seal-unsigned \
+            --archive build/OrbitOrchard.xcarchive \
+            --export-manifest unity-export/orbit-orchard-export.json \
+            --source "$SOURCE_SHA" --export-sha256 "$EXPORT_SHA256" \
+            --workflow-run "$GITHUB_RUN_ID" --output build/unsigned --write
+
+      - name: Preserve the unsigned archive separately
+        if: inputs.local_signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-ios-unsigned-archive-${{ inputs.source_sha }}
+          path: |
+            build/unsigned/OrbitOrchard.unsigned.xcarchive.zip
+            build/unsigned/unsigned-archive-manifest.json
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Verify Unity binary and seal the archive
+        if: ${{ !inputs.local_signing }}
         run: |
           python3 - <<'PY'
           import hashlib, json, os, plistlib, re, subprocess
@@ -201,6 +301,7 @@ jobs:
           PY
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.local_signing }}
         with:
           name: unity-ios-archive-${{ inputs.source_sha }}
           path: |
@@ -228,18 +329,147 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  fetch-signed:
+    if: ${{ !inputs.simulator_qa && inputs.unsigned_run_id != '' }}
+    needs: validate-mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Verify source run and download the private signed transfer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UNSIGNED_RUN_ID: ${{ inputs.unsigned_run_id }}
+          SIGNED_TAG: ${{ inputs.signed_release_tag }}
+          SIGNED_SHA256: ${{ inputs.signed_sha256 }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$UNSIGNED_RUN_ID" > source-run.json
+          gh release view "$SIGNED_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,targetCommitish > signed-release.json
+          python3 - <<'PY'
+          import json, os
+          run = json.load(open('source-run.json'))
+          assert str(run['id']) == os.environ['UNSIGNED_RUN_ID']
+          assert run['head_sha'] == os.environ['SOURCE_SHA'], 'Unsigned run must use the exact reviewed commit.'
+          assert run['path'] == '.github/workflows/release.yml' and run['event'] == 'workflow_dispatch'
+          assert run['conclusion'] == 'success', 'Unsigned run must have completed successfully.'
+          release = json.load(open('signed-release.json'))
+          assert release['isDraft'], 'Signed transfer must remain private and unpublished.'
+          assert release['targetCommitish'] == os.environ['SOURCE_SHA'], 'Signed transfer target must be exact source.'
+          PY
+          gh release download "$SIGNED_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern clinic-signed-transfer.zip --dir transfer
+          printf '%s  %s\n' "$SIGNED_SHA256" transfer/clinic-signed-transfer.zip | sha256sum --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinic-signed-transfer-${{ inputs.source_sha }}
+          path: transfer/clinic-signed-transfer.zip
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  adopt-signed:
+    needs: fetch-signed
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: unity-ios-unsigned-archive-${{ inputs.source_sha }}
+          path: unsigned
+          run-id: ${{ inputs.unsigned_run_id }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: clinic-signed-transfer-${{ inputs.source_sha }}
+          path: transfer
+
+      - name: Select released arm64 Xcode
+        run: Tools/select_released_xcode.sh
+
+      - name: Install credential for read-only profile verification
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_KEY_P8"
+          umask 077
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: Independently verify and adopt the locally signed archive
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          UNSIGNED_RUN_ID: ${{ inputs.unsigned_run_id }}
+          SIGNED_SHA256: ${{ inputs.signed_sha256 }}
+          SIGNER_SHA256: ${{ inputs.signer_sha256 }}
+          DEVICE_SHA256: ${{ inputs.device_sha256 }}
+        run: |
+          python3 -m unittest discover -s Tools/tests -p 'test_clinic_*.py'
+          python3 Tools/clinic_archive.py adopt \
+            --unsigned unsigned/OrbitOrchard.unsigned.xcarchive.zip \
+            --manifest unsigned/unsigned-archive-manifest.json \
+            --unsigned-run-id "$UNSIGNED_RUN_ID" \
+            --transfer transfer/clinic-signed-transfer.zip --transfer-sha256 "$SIGNED_SHA256" \
+            --signer-sha256 "$SIGNER_SHA256" --device-sha256 "$DEVICE_SHA256" \
+            --source "$SOURCE_SHA" --export-sha256 "$EXPORT_SHA256" \
+            --workflow-run "$GITHUB_RUN_ID" --output build/adopted --write
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-ios-archive-${{ inputs.source_sha }}
+          path: |
+            build/adopted/OrbitOrchard.xcarchive.zip
+            build/adopted/archive-manifest.json
+            build/adopted/signing-receipt.json
+            build/adopted/adoption-receipt.json
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Remove profile verification credential
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          if [[ -n "$ASC_KEY_ID" ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          fi
+
   upload:
-    needs: archive
-    if: always() && !inputs.simulator_qa && inputs.upload_to_testflight && (needs.archive.result == 'success' || inputs.archive_run_id != '')
+    needs: [validate-mode, archive]
+    if: always() && needs.validate-mode.result == 'success' && !inputs.simulator_qa && !inputs.local_signing && inputs.unsigned_run_id == '' && inputs.upload_to_testflight && (needs.archive.result == 'success' || inputs.archive_run_id != '')
     runs-on: macos-26
     timeout-minutes: 30
     steps:
       - name: Validate promotion input
         env:
           ARCHIVE_RUN_ID: ${{ inputs.archive_run_id || github.run_id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$ARCHIVE_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ARCHIVE_RUN_ID" > promotion-run.json
+          python3 - <<'PY'
+          import json, os
+          run = json.load(open('promotion-run.json'))
+          assert str(run['id']) == os.environ['ARCHIVE_RUN_ID']
+          assert run['head_sha'] == os.environ['SOURCE_SHA'], 'Promotion run must use the exact reviewed source.'
+          assert run['path'] == '.github/workflows/release.yml' and run['event'] == 'workflow_dispatch'
+          if os.environ['ARCHIVE_RUN_ID'] != os.environ['GITHUB_RUN_ID']:
+              assert run['conclusion'] == 'success', 'Only a successful source run can be promoted.'
+          PY
 
       - uses: actions/checkout@v4
         with:
@@ -257,21 +487,12 @@ jobs:
         run: Tools/select_released_xcode.sh
 
       - name: Verify and restore the signed archive
+        env:
+          ARCHIVE_RUN_ID: ${{ inputs.archive_run_id || github.run_id }}
         run: |
-          python3 - <<'PY'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          metadata = json.loads(Path('transfer/archive-manifest.json').read_text())
-          assert metadata['sourceCommit'] == os.environ['SOURCE_SHA'], 'Wrong source archive.'
-          assert metadata.get('product') == 'idle-clinic', 'Wrong game archive.'
-          assert metadata.get('developmentBuild') is False, 'Development archive cannot ship.'
-          assert metadata.get('iosSdk') == 'device', 'Wrong archived SDK.'
-          assert metadata.get('scenePath') == 'Assets/IdleClinic/Scenes/Clinic.unity', 'Wrong archived Unity scene.'
-          digest = hashlib.file_digest(open('transfer/OrbitOrchard.xcarchive.zip', 'rb'), 'sha256').hexdigest()
-          assert digest == metadata['archiveSha256'], 'Signed archive checksum mismatch.'
-          subprocess.run(['ditto', '-x', '-k', 'transfer/OrbitOrchard.xcarchive.zip', 'build'], check=True)
-          print('Promoting Unity version ' + metadata['marketingVersion'] + ' build ' + metadata['buildNumber'])
-          PY
+          python3 Tools/clinic_archive.py restore-signed \
+            --transfer-directory transfer --source "$SOURCE_SHA" \
+            --archive-run-id "$ARCHIVE_RUN_ID" --output build --write
 
       - name: Install signing credential
         env:

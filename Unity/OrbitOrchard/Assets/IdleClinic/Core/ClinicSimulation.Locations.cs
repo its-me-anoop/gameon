@@ -163,6 +163,40 @@ namespace IdleClinic.Core
             patient.PhaseEndsTick = State.Tick + ClinicDoctorsNavigation.WalkTicks(patient.ArrivalPath);
         }
 
+        private void RetargetQueueMove(ClinicPatientState patient, string target)
+        {
+            ClinicMovementPoint start;
+            if (patient.QueueMovePath.Count >= 2 && patient.QueueMoveEndsTick > State.Tick)
+                start = ClinicDoctorsNavigation.SampleArrivalPath(patient.QueueMovePath,
+                    (State.Tick - patient.QueueMoveStartedTick) / (double)(patient.QueueMoveEndsTick - patient.QueueMoveStartedTick));
+            else
+            {
+                var anchor = ClinicDoctorsNavigation.Anchor(patient.ToAnchor);
+                start = new ClinicMovementPoint(anchor.x, anchor.z);
+            }
+            patient.QueueMovePath = ClinicDoctorsNavigation.QueueMovePath(patient.ToAnchor, target, start);
+            patient.QueueMoveStartedTick = State.Tick;
+            patient.QueueMoveEndsTick = State.Tick + ClinicDoctorsNavigation.QueueMoveTicks(patient.QueueMovePath);
+        }
+        private static void ClearQueueMove(ClinicPatientState patient)
+        {
+            patient.QueueMovePath.Clear();
+            patient.QueueMoveStartedTick = patient.QueueMoveEndsTick = 0;
+        }
+        private bool CanApproachDoctorsDesk(ClinicPatientState patient, int deskId)
+        {
+            // Preserve FIFO through vehicle arrivals and physical queue movement. A
+            // later visitor cannot start care from an earlier visitor's reserved slot.
+            if (patient.Phase != ClinicPatientPhase.ReceptionQueue || patient.QueueIndex != 0 || patient.QueueMoveEndsTick > State.Tick)
+                return false;
+            if (State.Patients.Any(p => p.Phase == ClinicPatientPhase.WalkingToReception
+                || ClinicDoctorsNavigation.ReceptionDepartureClearTick(p) > State.Tick)) return false;
+            long arrives = State.Tick + ClinicDoctorsNavigation.WalkTicks(patient.ToAnchor, ClinicRules.DeskPatientAnchor(deskId));
+            // Pay-and-leave has priority. An approaching visitor must finish crossing
+            // the reception aisle before an already-running check-in can finish.
+            return !State.Patients.Any(p => p.Phase == ClinicPatientPhase.CheckingIn && p.PhaseEndsTick <= arrives + 1);
+        }
+
         private static bool IsWalkingPhase(ClinicPatientPhase phase) => phase == ClinicPatientPhase.Arriving || phase == ClinicPatientPhase.WalkingToReception
             || phase == ClinicPatientPhase.WalkingToWaiting || phase == ClinicPatientPhase.WalkingToTreatment || phase == ClinicPatientPhase.Leaving
             || phase == ClinicPatientPhase.WalkingToAmenity || phase == ClinicPatientPhase.ReturningFromAmenity

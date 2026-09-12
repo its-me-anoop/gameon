@@ -70,6 +70,9 @@ namespace IdleClinic.Tests
         [TestCase("entrance","pharmacy.station.1.staff",true)]
         [TestCase("waiting.seat.29","waiting.toilet.1.patient",false)]
         [TestCase("parking.bay.11.patient","reception.queue.0",false)]
+        [TestCase("reception.queue.0","reception.desk.0.patient",false)]
+        [TestCase("reception.queue.8","reception.desk.3.patient",false)]
+        [TestCase("reception.queue.16","reception.desk.1.patient",false)]
         public void ServiceRoutesUseRealDoorwaysAndKeepTheirEndpoints(string from,string to,bool staff)
         {
             var route=new Route(world,from,to,staff);Assert.That(route.Length,Is.EqualTo(ClinicDoctorsNavigation.PathLength(from,to,staff)).Within(.002f));Assert.That(Vector3.Distance(route.Point(0),world.GetAnchorPoint(from)),Is.LessThan(.001f));Assert.That(Vector3.Distance(route.Point(1),world.GetAnchorPoint(to)),Is.LessThan(.001f));
@@ -117,6 +120,92 @@ namespace IdleClinic.Tests
         {
             var walls=host.GetComponentsInChildren<Renderer>(true).Where(r=>r.name.EndsWith(" wall")).ToArray();
             for(int i=0;i<23;i++){var p=world.GetAnchorPoint("reception.queue."+i);foreach(var wall in walls){var b=wall.bounds;b.Expand(new Vector3(.60f,0,.60f));Assert.That(b.Contains(p+Vector3.up*.4f),Is.False,"queue "+i+" clips "+wall.name);}Assert.That(Mathf.Abs(p.z+10.90f),Is.GreaterThan(.65f));}
+        }
+        [Test] public void FullQueueAdvancesLocallyWithoutCrowdingTheEntrance()
+        {
+            state.Staff.Clear();state.Patients.Clear();
+            for(int i=0;i<23;i++)state.Patients.Add(new ClinicPatientState{Id=930+i,Phase=ClinicPatientPhase.ReceptionQueue,FromAnchor="reception.queue."+i,ToAnchor="reception.queue."+i});
+            world.Render(state,0);var previous=state.Patients.Select(p=>Find("Patient "+p.Id).position).ToArray();
+            state.Patients.RemoveAt(0);
+            for(int i=0;i<state.Patients.Count;i++)
+            {
+                var person=state.Patients[i];person.ToAnchor="reception.queue."+i;
+                person.QueueMovePath=ClinicDoctorsNavigation.ArrivalPath(person.FromAnchor,person.ToAnchor);
+                person.QueueMoveStartedTick=0;
+                person.QueueMoveEndsTick=ClinicDoctorsNavigation.QueueMoveTicks(person.QueueMovePath);
+            }
+            var actors=state.Patients.Select(p=>Find("Patient "+p.Id)).ToArray();
+            var destinations=state.Patients.Select(p=>world.GetAnchorPoint(p.ToAnchor)).ToArray();
+            for(int tick=1;tick<=25;tick++)
+            {
+                state.Tick=tick;world.Render(state,.1f);
+                for(int i=0;i<actors.Length;i++)
+                {
+                    var p=actors[i].position;var before=previous[i+1];var after=destinations[i];
+                    Assert.That(p.x,Is.InRange(Mathf.Min(before.x,after.x)-.701f,Mathf.Max(before.x,after.x)+.701f),"Queue movement must stay by its old and new slots, not visit the entrance.");
+                    Assert.That(p.z,Is.InRange(Mathf.Min(before.z,after.z)-.001f,Mathf.Max(before.z,after.z)+.001f));
+                    for(int j=0;j<i;j++)Assert.That(Vector3.Distance(p,actors[j].position),Is.GreaterThan(.54f),"Queue patients overlap during advancement: "+i+" and "+j);
+                }
+            }
+            for(int i=0;i<actors.Length;i++)Assert.That(Vector3.Distance(actors[i].position,destinations[i]),Is.LessThan(.002f));
+        }
+        [TestCase(false)][TestCase(true)]
+        public void SavedQueueTravelRestoresAtTheSamePositionAcrossFrameCadences(bool reduced)
+        {
+            state.Staff.Clear();state.Patients.Clear();
+            var person=new ClinicPatientState{Id=975,Phase=ClinicPatientPhase.ReceptionQueue,FromAnchor="reception.queue.8",ToAnchor="reception.queue.7",QueueMoveStartedTick=10,QueueMoveEndsTick=26};
+            person.QueueMovePath=ClinicDoctorsNavigation.ArrivalPath(person.FromAnchor,person.ToAnchor);state.Patients.Add(person);
+            state.Tick=10;world.Render(state,0,reduced);
+            for(int tick=11;tick<=17;tick++){state.Tick=tick;world.Render(state,.1f,reduced);}
+            state.SubTick=.5;world.Render(state,.05f,reduced);var before=Find("Patient 975").position;
+            world.ConfigureLocation(ClinicLocation.StarterClinic);world.ConfigureLocation(ClinicLocation.DoctorsClinic);
+            world.Render(state,0,reduced);
+            Assert.That(Vector3.Distance(Find("Patient 975").position,before),Is.LessThan(.001f),"Restored queue movement must sample the saved clock, not restart at a logical slot.");
+            Assert.That(world.MovingActorCount,Is.EqualTo(1));
+            state.Tick=26;state.SubTick=0;world.Render(state,.85f,reduced);
+            Assert.That(Vector3.Distance(Find("Patient 975").position,world.GetAnchorPoint(person.ToAnchor)),Is.LessThan(.001f));
+            Assert.That(world.MovingActorCount,Is.Zero);
+        }
+        [TestCase(8)][TestCase(16)]
+        public void QueueRowTurnsClearActualVestibuleWalls(int index)
+        {
+            var route=new Route(world,"reception.queue."+index,"reception.queue."+(index-1),false);
+            var walls=host.GetComponentsInChildren<Renderer>(true).Where(r=>r.name.EndsWith(" wall")||r.name.Contains("jamb")).ToArray();
+            Assert.That(route.Length,Is.LessThanOrEqualTo(2.11f),"A row turn must remain local to the queue.");
+            for(int step=0;step<=100;step++)
+            {
+                var p=route.Point(step/100f)+Vector3.up*.4f;
+                foreach(var wall in walls){var b=wall.bounds;b.Expand(new Vector3(.70f,0,.70f));Assert.That(b.Contains(p),Is.False,"Queue turn intersects "+wall.name+" with .35m body clearance at "+p);}
+            }
+        }
+        [TestCase(9)][TestCase(15)][TestCase(22)]
+        public void ArrivalsReachTheQueueTailWithoutCrossingEarlierPatientsOrWalls(int index)
+        {
+            var path=ClinicDoctorsNavigation.ArrivalPath("entrance","reception.queue."+index);
+            AssertQueueArrivalClear(path,index);
+        }
+        [TestCase(15,7)][TestCase(22,15)]
+        public void ReindexedArrivalKeepsItsPositionAndAQueueApproachClearOfWalls(int fromIndex,int toIndex)
+        {
+            var original=ClinicDoctorsNavigation.ArrivalPath("entrance","reception.queue."+fromIndex);
+            foreach(double progress in new[]{.35,.70,.90})
+            {
+                var before=ClinicDoctorsNavigation.SampleArrivalPath(original,progress);
+                var remaining=ClinicDoctorsNavigation.RetargetArrivalPath(original,progress,"reception.queue."+toIndex);
+                Assert.That(remaining[0].X,Is.EqualTo(before.X).Within(.0001));Assert.That(remaining[0].Z,Is.EqualTo(before.Z).Within(.0001));
+                AssertQueueArrivalClear(remaining,toIndex);
+            }
+        }
+        private void AssertQueueArrivalClear(System.Collections.Generic.IList<ClinicMovementPoint> path,int index)
+        {
+            var walls=host.GetComponentsInChildren<Renderer>(true).Where(r=>r.name.EndsWith(" wall")||r.name.Contains("jamb")).ToArray();
+            var queued=Enumerable.Range(0,index).Select(i=>world.GetAnchorPoint("reception.queue."+i)).ToArray();
+            for(int step=0;step<=500;step++)
+            {
+                var sample=ClinicDoctorsNavigation.SampleArrivalPath(path,step/500d);var p=new Vector3(sample.X,.14f,sample.Z);
+                for(int i=0;i<queued.Length;i++)Assert.That(Vector3.Distance(p,queued[i]),Is.GreaterThan(.54f),"Arrival to slot "+index+" crosses waiting patient "+i+" at "+p);
+                foreach(var wall in walls){var b=wall.bounds;b.Expand(new Vector3(.60f,0,.60f));Assert.That(b.Contains(p+Vector3.up*.4f),Is.False,"Arrival to slot "+index+" intersects "+wall.name+" at "+p);}
+            }
         }
         [Test] public void AmbientPavementLaneSeparatesPatientWalkersAndRoadCars()
         {
