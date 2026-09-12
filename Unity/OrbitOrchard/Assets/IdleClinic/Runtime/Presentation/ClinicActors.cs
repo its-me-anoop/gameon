@@ -205,6 +205,10 @@ namespace IdleClinic.Presentation
     /// <summary>Routes use the open front aisle and central corridor, never a straight line through furniture.</summary>
     internal sealed class ClinicRoute
     {
+        // Two 0.30m visitor bodies fit inside the existing door jambs. Keep the
+        // direction choice tied to graph junctions, not a retargeted visible pose.
+        private const float NorthLane=1.02f,SouthLane=.30f;
+        private const float WaitingEastLane=.24f,WaitingWestLane=.91f;
         private readonly Vector3[] points=new Vector3[24];
         private int count;
         private float length;
@@ -213,13 +217,16 @@ namespace IdleClinic.Presentation
         {
             count=0;length=0;var start=visibleStart??world.GetAnchorPoint(from);var end=world.GetAnchorPoint(to);Add(start);
             if(from==to&&(end-start).sqrMagnitude<.000001f){Add(end);return;}
-            float lane=staff?.95f:.40f;
             bool fromDesk=Starts(from,"reception.desk."),toDesk=Starts(to,"reception.desk.");
             bool fromQueue=Starts(from,"reception.queue."),toQueue=Starts(to,"reception.queue.");
             bool fromSeat=Starts(from,"waiting.seat."),toSeat=Starts(to,"waiting.seat.");
             bool fromCare=Starts(from,"firstaid.station."),toCare=Starts(to,"firstaid.station.");
             bool fromParking=Starts(from,"parking.bay."),toParking=Starts(to,"parking.bay.");
             bool fromAmenity=Starts(from,"waiting.toilet.")||Starts(from,"waiting.vending."),toAmenity=Starts(to,"waiting.toilet.")||Starts(to,"waiting.vending.");
+            float deskAisle=staff?-1.15f:-4.05f;
+            float fromJunction=fromCare?1.03f:fromSeat||fromAmenity?WaitingWestLane:fromDesk?deskAisle:fromParking?-6.90f:world.GetAnchorPoint(from).z;
+            float toJunction=toCare?1.03f:toSeat||toAmenity?WaitingEastLane:toDesk?deskAisle:toParking?-6.90f:end.z;
+            float lane=toJunction>=fromJunction?NorthLane:SouthLane;
             if(fromQueue&&toQueue)
             {
                 if((start.z<-5.13f)!=(end.z<-5.13f))
@@ -243,10 +250,10 @@ namespace IdleClinic.Presentation
             {
                 if(Starts(from,"waiting.toilet.")){Add(new Vector3(start.x,start.y,5.65f));Add(new Vector3(3.40f,start.y,5.65f));}
                 else {Add(new Vector3(start.x,start.y,-3.42f));Add(new Vector3(3.40f,start.y,-3.42f));}
-                if(!toSeat){Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f));}
+                if(!toSeat){Add(new Vector3(3.40f,start.y,WaitingWestLane));Add(new Vector3(lane,start.y,WaitingWestLane));}
             }
             else if(fromDesk) { float z=staff?-1.15f:-4.05f;Add(new Vector3(start.x,start.y,z));Add(new Vector3(lane,start.y,z)); }
-            else if(fromSeat) { Add(new Vector3(3.40f,start.y,start.z));if(!toAmenity){Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f));} }
+            else if(fromSeat) { Add(new Vector3(3.40f,start.y,start.z));if(!toAmenity){Add(new Vector3(3.40f,start.y,WaitingWestLane));Add(new Vector3(lane,start.y,WaitingWestLane));} }
             else if(fromCare) { Add(new Vector3(start.x,start.y,1.03f));Add(new Vector3(lane,start.y,1.03f)); }
             else if(fromQueue && !toDesk)
             { Add(new Vector3(lane,start.y,start.z));Add(new Vector3(lane,start.y,-4.05f)); }
@@ -255,7 +262,7 @@ namespace IdleClinic.Presentation
             { Add(new Vector3(lane,end.y,-6.90f));Add(new Vector3(-6.65f,end.y,-6.90f));Add(new Vector3(-6.65f,end.y,end.z-.58f));Add(new Vector3(end.x,end.y,end.z-.58f)); }
             else if(toAmenity)
             {
-                if(!fromSeat){Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));}
+                if(!fromSeat){Add(new Vector3(lane,end.y,WaitingEastLane));Add(new Vector3(3.40f,end.y,WaitingEastLane));}
                 if(Starts(to,"waiting.toilet.")){Add(new Vector3(3.40f,end.y,5.65f));Add(new Vector3(end.x,end.y,5.65f));}
                 else {Add(new Vector3(3.40f,end.y,-3.42f));Add(new Vector3(end.x,end.y,-3.42f));}
             }
@@ -268,7 +275,7 @@ namespace IdleClinic.Presentation
                 else Add(new Vector3(start.x,end.y,z));
                 Add(new Vector3(end.x,end.y,z));
             }
-            else if(toSeat) { if(!fromAmenity){Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));}Add(new Vector3(3.40f,end.y,end.z)); }
+            else if(toSeat) { if(!fromAmenity){Add(new Vector3(lane,end.y,WaitingEastLane));Add(new Vector3(3.40f,end.y,WaitingEastLane));}Add(new Vector3(3.40f,end.y,end.z)); }
             else if(toCare) { Add(new Vector3(lane,end.y,1.03f));Add(new Vector3(end.x,end.y,1.03f)); }
             else if(toQueue) { Add(new Vector3(lane,end.y,end.z)); }
             else Add(new Vector3(lane,end.y,end.z));

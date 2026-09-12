@@ -28,7 +28,7 @@ class ExportValidationTests(unittest.TestCase):
         self.source = 'a' * 40
         self.tree = 'b' * 40
         self.report = self.root / 'tests.xml'
-        self.report.write_text('<test-run result="Passed" total="11" passed="11" failed="0" skipped="0">'
+        self.report.write_text('<test-run result="Passed" total="12" passed="12" failed="0" skipped="0">'
             '<test-case fullname="IdleClinic.Tests.ClinicSimulationTests.Example" result="Passed"/>'
             '<test-case fullname="IdleClinic.Tests.ClinicProfileTests.Example" result="Passed"/>'
             '<test-case fullname="IdleClinic.Tests.ClinicWorldTests.Example" result="Passed"/>'
@@ -40,6 +40,7 @@ class ExportValidationTests(unittest.TestCase):
             '<test-case fullname="IdleClinic.Tests.ClinicWalkingTests.Example" result="Passed"/>'
             '<test-case fullname="IdleClinic.Tests.ClinicArchitectureTests.Example" result="Passed"/>'
             '<test-case fullname="IdleClinic.Tests.ClinicParkingWorldTests.Example" result="Passed"/>'
+            '<test-case fullname="IdleClinic.Tests.ClinicPassingTests.Example" result="Passed"/>'
             '</test-run>')
 
     def archive(self, *, extra=None, change=None):
@@ -207,17 +208,17 @@ class ExportValidationTests(unittest.TestCase):
         self.require_fixtures(('ClinicHUDTests', 'ClinicPerformanceTests', 'ClinicExpansionTests', 'ClinicMigrationTests'))
 
     def test_parking_walking_and_architecture_fixtures_are_required(self):
-        self.require_fixtures(('ClinicParkingFlowTests', 'ClinicWalkingTests', 'ClinicArchitectureTests', 'ClinicParkingWorldTests'))
+        self.require_fixtures(('ClinicParkingFlowTests', 'ClinicWalkingTests', 'ClinicArchitectureTests', 'ClinicParkingWorldTests', 'ClinicPassingTests'))
 
     def test_skipped_case_outside_required_fixtures_rejected(self):
-        self.report.write_text(self.report.read_text().replace('total="11"', 'total="12"')
+        self.report.write_text(self.report.read_text().replace('total="12"', 'total="13"')
             .replace('skipped="0"', 'skipped="1"').replace('</test-run>',
             '<test-case fullname="Other.Tests.Example" result="Skipped"/></test-run>'))
         with self.assertRaisesRegex(ValueError, 'zero skipped'):
             PACKAGE.read_tests(self.report)
 
     def test_falsely_passed_summary_does_not_hide_skipped_case(self):
-        self.report.write_text(self.report.read_text().replace('total="11"', 'total="12"').replace('passed="11"', 'passed="12"')
+        self.report.write_text(self.report.read_text().replace('total="12"', 'total="13"').replace('passed="12"', 'passed="13"')
             .replace('</test-run>', '<test-case fullname="Other.Tests.Example" result="Skipped"/></test-run>'))
         with self.assertRaisesRegex(ValueError, 'Every reported Unity case'):
             PACKAGE.read_tests(self.report)

@@ -58,7 +58,7 @@ namespace IdleClinic.Presentation
             BuildArchitecture();BuildFurniture();BuildAnchors();BuildLighting();BuildPrivacy();ClinicSurroundings.Build(art,scene);ClinicFurnishings.Build(art,scene);
             actors=new ClinicActors(art,scene,this);upgrades=new ClinicUpgrades(art,scene);
             amenities=new ClinicAmenities(art,scene);streetLife=new ClinicStreetLife(art,scene);construction=new ClinicConstruction(art,scene);careDoor=new ClinicDoor(art,scene);entranceDoor=new ClinicDoor(art,scene,true);
-            waitingDoor=new ClinicDoor(art,scene,position:new Vector3(1.67f,Floor,.50f),yaw:90,openingWidth:1.30f,name:"Waiting corridor doorway");
+            waitingDoor=new ClinicDoor(art,scene,position:new Vector3(1.67f,Floor,.50f),yaw:90,openingWidth:1.40f,name:"Waiting corridor doorway");
             refreshmentDoor=new ClinicDoor(art,scene,position:new Vector3(3.40f,Floor,-1.66f),openingWidth:1.30f,name:"Waiting refreshment doorway");
             SetRenderSize(393,852);Home(true);
         }
