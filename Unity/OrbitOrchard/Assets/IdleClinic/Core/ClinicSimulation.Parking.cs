@@ -31,7 +31,7 @@ namespace IdleClinic.Core
             {
                 // This eligibility boundary must be an event: a coarse/offline step
                 // must resume departing cars at the same tick as a rendered frame.
-                long delay=ClinicRules.StreetCrossingEndsTick-State.Tick%ClinicRules.StreetCrossingCycleTicks;
+                long delay=ClinicRules.StreetCrossingEndsTick-ClinicRules.TrafficTick(State)%ClinicRules.StreetCrossingCycleTicks;
                 if(delay<=0)delay+=ClinicRules.StreetCrossingCycleTicks;
                 next=System.Math.Min(next,State.Tick+delay);
             }
@@ -49,7 +49,7 @@ namespace IdleClinic.Core
                 {
                     // Reserve the near road lane for the whole departure. Street pedestrians
                     // cross on the same simulation clock, including after background/resume.
-                    long cycle=State.Tick%ClinicRules.StreetCrossingCycleTicks;
+                    long cycle=ClinicRules.TrafficTick(State)%ClinicRules.StreetCrossingCycleTicks;
                     long nextCrossing=cycle<ClinicRules.StreetCrossingStartsTick?ClinicRules.StreetCrossingStartsTick-cycle:
                         ClinicRules.StreetCrossingCycleTicks+ClinicRules.StreetCrossingStartsTick-cycle;
                     if(cycle>=ClinicRules.StreetCrossingStartsTick&&cycle<ClinicRules.StreetCrossingEndsTick||duration>=nextCrossing)continue;

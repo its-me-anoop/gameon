@@ -110,6 +110,7 @@ namespace IdleClinic.Core
                     if (desk.LastStartedTick >= 0) desk.LastStartedTick += skippedTicks;
                 if (State.NextArrivalTick >= 0) State.NextArrivalTick += skippedTicks;
                 State.Tick += skippedTicks;
+                State.PausedTrafficTicks += skippedTicks;
                 var previousCapture = captureEvents;
                 captureEvents = false;
                 FinishConstruction();
@@ -546,6 +547,7 @@ namespace IdleClinic.Core
         private static bool IsValidState(ClinicState state, bool legacy)
         {
             if (state == null || state.SchemaVersion != (legacy ? 1 : 2) || state.RulesVersion != (legacy ? 1 : 2) || !Defined(state.Tutorial)
+                || state.PausedTrafficTicks < 0 || state.PausedTrafficTicks > state.Tick
                 || state.Tick < 0 || state.Tick >= MaximumTick || double.IsNaN(state.SubTick) || state.SubTick < 0 || state.SubTick >= 1
                 || state.Wallet < 0 || state.Wallet > MaximumMoney || state.NextEventId < 1 || state.NextEventId > MaximumMoney
                 || state.NextPatientId < 1 || state.NextConstructionId < 0 || state.TotalEarned < 0 || state.TotalEarned > MaximumMoney

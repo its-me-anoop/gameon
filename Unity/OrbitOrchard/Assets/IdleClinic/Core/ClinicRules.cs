@@ -28,6 +28,7 @@ namespace IdleClinic.Core
         public const int FastestTreatmentTicks = 64;
         public const int EarliestCalledPatientCompletionTicks = 106;
 
+        public static long TrafficTick(ClinicState state) => state.Tick - state.PausedTrafficTicks;
         public static int TrackCap(int tier) => tier == 1 ? 2 : tier == 2 ? 4 : 6;
         public static int ComponentCap(int tier) => TrackCap(tier);
         public static long HireNurseCost(int nurses) => nurses == 0 ? 50 : nurses == 1 ? 450 : 0;

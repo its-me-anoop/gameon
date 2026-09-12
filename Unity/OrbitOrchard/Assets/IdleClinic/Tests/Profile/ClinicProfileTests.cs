@@ -122,6 +122,34 @@ namespace IdleClinic.Tests
             Assert.That(store.Profile.lastAccountedUtcTicks, Is.EqualTo(now.AddDays(3).UtcDateTime.Ticks));
         }
 
+        [Test] public void ExistingSaveWithoutTrafficPauseFieldDefaultsToTheOriginalClock()
+        {
+            var store=OpenClinic(out var now);var expected=JsonUtility.ToJson(store.Profile.state);
+            var payload=JsonUtility.ToJson(store.Profile);
+            Assert.That(payload,Does.Contain("\"PausedTrafficTicks\":0,"));
+            payload=payload.Replace("\"PausedTrafficTicks\":0,","");
+            WriteEnvelope(SavePath,payload);
+            var reopened=new ClinicProfileStore(directory);var loaded=reopened.LoadClinic(now);
+            Assert.That(reopened.Error,Is.Null.Or.Empty);
+            Assert.That(loaded.state.PausedTrafficTicks,Is.Zero);
+            Assert.That(JsonUtility.ToJson(loaded.state),Is.EqualTo(expected));
+            Assert.That(ClinicRules.TrafficTick(loaded.state),Is.EqualTo(loaded.state.Tick));
+        }
+
+        [Test] public void CappedTrafficPausePersistsAndRepeatedLoadCannotApplyItTwice()
+        {
+            var store=OpenClinic(out var now);var elapsed=ClinicRules.MaximumOfflineSeconds+24;
+            var report=store.ApplyOffline(now.AddSeconds(elapsed));
+            Assert.That(report.applied,Is.True);Assert.That(report.wasCapped,Is.True);
+            Assert.That(store.Profile.state.PausedTrafficTicks,Is.EqualTo(240));
+            var expected=JsonUtility.ToJson(store.Profile.state);
+            var reopened=new ClinicProfileStore(directory);var loaded=reopened.LoadClinic(now.AddSeconds(elapsed));
+            Assert.That(JsonUtility.ToJson(loaded.state),Is.EqualTo(expected));
+            Assert.That(reopened.ApplyOffline(now.AddSeconds(elapsed)).applied,Is.False);
+            Assert.That(loaded.state.PausedTrafficTicks,Is.EqualTo(240));
+            Assert.That(ClinicSimulation.IsValidState(loaded.state),Is.True);
+        }
+
         [Test] public void PartialConstructionSurvivesProcessRestartAndChargesOnce()
         {
             var store = OpenClinic(out var now);

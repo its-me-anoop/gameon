@@ -31,6 +31,7 @@ namespace IdleClinic.Core
         public int RulesVersion = 2;
         public ulong Seed = 42;
         public long Tick;
+        public long PausedTrafficTicks;
         public double SubTick;
         public long Wallet;
         public long NextArrivalTick = -1;

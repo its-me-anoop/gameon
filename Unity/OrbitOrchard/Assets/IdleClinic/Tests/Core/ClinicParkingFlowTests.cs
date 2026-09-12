@@ -47,7 +47,7 @@ namespace IdleClinic.Tests
                 {
                     entering|=moving[0].Phase==ClinicPatientPhase.DrivingToParking;exiting|=moving[0].Phase==ClinicPatientPhase.DrivingFromParking;
                     if(moving[0].Phase==ClinicPatientPhase.DrivingFromParking)
-                    {long cycle=game.State.Tick%ClinicRules.StreetCrossingCycleTicks;Assert.That(cycle<ClinicRules.StreetCrossingStartsTick||cycle>=ClinicRules.StreetCrossingEndsTick,Is.True,"Departure must yield to the street zebra crossing");}
+                    {long cycle=ClinicRules.TrafficTick(game.State)%ClinicRules.StreetCrossingCycleTicks;Assert.That(cycle<ClinicRules.StreetCrossingStartsTick||cycle>=ClinicRules.StreetCrossingEndsTick,Is.True,"Departure must yield to the street zebra crossing");}
                     Assert.That(game.State.Patients.Any(p=>p.ParkingBayId>=0&&(p.Phase==ClinicPatientPhase.Arriving||p.Phase==ClinicPatientPhase.Leaving)),Is.False);
                 }
                 var bays=game.State.Patients.Where(p=>p.ParkingBayId>=0).Select(p=>p.ParkingBayId).ToArray();Assert.That(bays.Distinct().Count(),Is.EqualTo(bays.Length));
@@ -84,6 +84,58 @@ namespace IdleClinic.Tests
             AssertSavedValue(once.State,frames.State,"frame-stepped save");
             AssertSavedValue(once.State,offline.State,"offline save");
             AssertSavedValue(events,frameEvents,"simulation event sequence including tick and amount");
+        }
+
+        [Test] public void CappedOfflineDepartureKeepsItsTrafficReservationAndResumesAfterReload()
+        {
+            var initial=ParkingClinic();MaximizeClinic(initial);ClinicSimulation capped=null;
+            // Choose a real operating boundary where the eight-hour allowance ends
+            // while a car is departing, rather than injecting an impossible phase.
+            for(int offset=0;offset<40;offset++)
+            {
+                capped=new ClinicSimulation(Clone(initial.State));capped.Advance(ClinicRules.MaximumOfflineSeconds,false);
+                if(capped.State.Patients.Any(p=>p.Phase==ClinicPatientPhase.DrivingFromParking))break;
+                initial.Advance(1,false);
+            }
+            var driver=capped.State.Patients.FirstOrDefault(p=>p.Phase==ClinicPatientPhase.DrivingFromParking);
+            Assert.That(driver,Is.Not.Null,"Arrange an active departure at the earnings cap.");
+            long skippedTicks=(130-capped.State.Tick%ClinicRules.StreetCrossingCycleTicks+ClinicRules.StreetCrossingCycleTicks)%ClinicRules.StreetCrossingCycleTicks;
+            Assert.That(skippedTicks,Is.GreaterThan(0));
+            var resumed=new ClinicSimulation(Clone(initial.State));
+            var report=resumed.AdvanceOffline(ClinicRules.MaximumOfflineSeconds+skippedTicks/10d);
+            Assert.That(report.WasCapped,Is.True);Assert.That(report.ConstructionSeconds,Is.EqualTo(report.EarningsSeconds+skippedTicks/10d));
+            Assert.That(resumed.State.Tick-capped.State.Tick,Is.EqualTo(skippedTicks));
+            Assert.That(resumed.State.PausedTrafficTicks,Is.EqualTo(initial.State.PausedTrafficTicks+skippedTicks));
+            Assert.That(ClinicRules.TrafficTick(resumed.State),Is.EqualTo(ClinicRules.TrafficTick(capped.State)));
+            Assert.That(resumed.State.TotalEarned,Is.EqualTo(capped.State.TotalEarned));
+            Assert.That(resumed.State.TotalCollected,Is.EqualTo(capped.State.TotalCollected));
+            Assert.That(resumed.State.Wallet,Is.EqualTo(capped.State.Wallet));
+            var after=resumed.State.Patients.Single(p=>p.Id==driver.Id);
+            Assert.That(after.Phase,Is.EqualTo(ClinicPatientPhase.DrivingFromParking));
+            Assert.That(after.ParkingBayId,Is.EqualTo(driver.ParkingBayId));
+            Assert.That(after.PhaseEndsTick-resumed.State.Tick,Is.EqualTo(driver.PhaseEndsTick-capped.State.Tick));
+            var restored=new ClinicSimulation(Clone(resumed.State));
+            for(int tick=0;tick<600;tick++)
+            {
+                capped.Advance(.1,false);resumed.Advance(.1,false);restored.Advance(.1,false);
+                long cycle=ClinicRules.TrafficTick(restored.State)%ClinicRules.StreetCrossingCycleTicks;
+                if(restored.State.Patients.Any(p=>p.Phase==ClinicPatientPhase.DrivingFromParking))
+                    Assert.That(cycle<ClinicRules.StreetCrossingStartsTick||cycle>=ClinicRules.StreetCrossingEndsTick,Is.True);
+            }
+            Assert.That(restored.State.TotalEarned,Is.EqualTo(capped.State.TotalEarned));
+            Assert.That(restored.State.TotalTreatments,Is.EqualTo(capped.State.TotalTreatments));
+            Assert.That(ClinicRules.TrafficTick(restored.State),Is.EqualTo(ClinicRules.TrafficTick(capped.State)));
+            AssertSavedValue(resumed.State,restored.State,"capped-offline reloaded save");
+            Valid(capped);Valid(resumed);Valid(restored);
+        }
+
+        [Test] public void TrafficPauseOffsetDefaultsToZeroAndRejectsInvalidSavedRanges()
+        {
+            var state=ClinicSimulation.CreateNew().State;
+            Assert.That(state.PausedTrafficTicks,Is.Zero);Assert.That(ClinicRules.TrafficTick(state),Is.Zero);
+            state.PausedTrafficTicks=-1;Assert.That(ClinicSimulation.IsValidState(state),Is.False);
+            state.PausedTrafficTicks=state.Tick+1;Assert.That(ClinicSimulation.IsValidState(state),Is.False);
+            state.PausedTrafficTicks=0;Assert.That(ClinicSimulation.IsValidState(state),Is.True);
         }
 
         [Test] public void SaveValidationRejectsUnreservedDrivingAndConcurrentAisleUse()

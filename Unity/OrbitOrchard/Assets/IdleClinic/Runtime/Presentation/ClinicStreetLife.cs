@@ -41,7 +41,7 @@ namespace IdleClinic.Presentation
         }
         internal void Render(ClinicState state,bool reducedMotion)
         {
-            double seconds=reducedMotion?0:(state.Tick+state.SubTick)*.1;
+            double seconds=reducedMotion?0:(ClinicRules.TrafficTick(state)+state.SubTick)*.1;
             float cycle=(float)(seconds%40);
             // Ambient cars use the far lane; the near lane belongs to patient vehicles.
             // Far-lane traffic yields throughout the zebra crossing interval.
