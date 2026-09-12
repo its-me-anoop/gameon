@@ -1,0 +1,267 @@
+name: Idle Clinic Simulator QA Build
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Full reviewed source commit used by the Unity simulator export
+        required: true
+        type: string
+      export_release_tag:
+        description: Private draft release containing orbit-orchard-ios-simulator.zip
+        required: true
+        type: string
+      export_sha256:
+        description: Exact SHA256 of the simulator export ZIP
+        required: true
+        type: string
+      marketing_version:
+        description: Expected app version
+        required: true
+        type: string
+      build_number:
+        description: Expected app build number
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full reviewed source commit used by the Unity simulator export
+        required: true
+        type: string
+      export_release_tag:
+        description: Private draft release containing orbit-orchard-ios-simulator.zip
+        required: true
+        type: string
+      export_sha256:
+        description: Exact SHA256 of the simulator export ZIP
+        required: true
+        type: string
+      marketing_version:
+        description: Expected app version, for example 3.2
+        required: true
+        type: string
+      build_number:
+        description: Expected app build number, for example 16
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clinic-simulator-qa-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  SOURCE_SHA: ${{ inputs.source_sha }}
+  EXPORT_TAG: ${{ inputs.export_release_tag }}
+  EXPORT_SHA256: ${{ inputs.export_sha256 }}
+  EXPECTED_VERSION: ${{ inputs.marketing_version }}
+  EXPECTED_BUILD: ${{ inputs.build_number }}
+
+jobs:
+  fetch-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Draft releases require push access. This job never checks out or executes source.
+      contents: write
+    steps:
+      - name: Validate pinned inputs
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPORT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$EXPORT_TAG" =~ ^unity-export-[A-Za-z0-9._-]+$ ]]
+          [[ "$EXPECTED_VERSION" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]
+          [[ "$EXPECTED_BUILD" =~ ^[0-9]+$ ]]
+
+      - name: Download the unpublished simulator export
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$EXPORT_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,targetCommitish > release.json
+          python3 - <<'PY'
+          import json, os
+          release = json.load(open('release.json'))
+          assert release['isDraft'] is True, 'Transfer release must remain a draft.'
+          assert release['targetCommitish'] == os.environ['SOURCE_SHA'], 'Draft must target the exact source commit.'
+          PY
+          gh release download "$EXPORT_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern orbit-orchard-ios-simulator.zip --dir transfer
+          printf '%s  %s\n' "$EXPORT_SHA256" transfer/orbit-orchard-ios-simulator.zip | sha256sum --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinic-simulator-export-${{ inputs.source_sha }}
+          path: transfer/orbit-orchard-ios-simulator.zip
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  build-simulator:
+    needs: fetch-export
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: clinic-simulator-export-${{ inputs.source_sha }}
+          path: transfer
+
+      - name: Select released arm64 Xcode
+        run: Tools/select_released_xcode.sh
+
+      - name: Verify provenance and safely unpack the simulator export
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, plistlib, re, shutil, stat, subprocess, zipfile
+          from pathlib import Path, PurePosixPath
+          archive = Path('transfer/orbit-orchard-ios-simulator.zip')
+          destination = Path('unity-simulator-export')
+          assert hashlib.file_digest(archive.open('rb'), 'sha256').hexdigest() == os.environ['EXPORT_SHA256'], 'Export checksum mismatch.'
+          assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == os.environ['SOURCE_SHA']
+          assert not destination.exists(), 'Extraction requires a fresh directory.'
+          with zipfile.ZipFile(archive) as package:
+              entries = package.infolist()
+              normalized = set()
+              for entry in entries:
+                  name = entry.filename
+                  path = PurePosixPath(name)
+                  assert name and not path.is_absolute() and '..' not in path.parts and '\\' not in name, 'Unsafe ZIP path: ' + name
+                  assert path.parts and path.as_posix() not in normalized, 'Duplicate or empty ZIP path: ' + name
+                  normalized.add(path.as_posix())
+                  mode = entry.external_attr >> 16
+                  assert stat.S_IFMT(mode) in (0, stat.S_IFREG, stat.S_IFDIR), 'Symlink or special ZIP entry: ' + name
+                  assert path.suffix.lower() not in ('.p8', '.p12', '.mobileprovision') and path.name != '.env', 'Signing material is not allowed.'
+              assert 'Unity-iPhone.xcodeproj/project.pbxproj' in normalized, 'Missing root Xcode project.'
+              provenance = json.loads(package.read('orbit-orchard-unity-build.json'))
+              assert provenance.get('product') == 'idle-clinic'
+              assert provenance.get('scenePath') == 'Assets/IdleClinic/Scenes/Clinic.unity'
+              assert provenance.get('sourceCommit') == os.environ['SOURCE_SHA']
+              assert provenance.get('sourceDirty') is False
+              assert provenance.get('buildSucceeded') is True
+              assert provenance.get('developmentBuild') is True, 'Simulator QA requires development diagnostics.'
+              assert provenance.get('iosSdk') == 'simulator'
+              version_file = Path('Unity/OrbitOrchard/ProjectSettings/ProjectVersion.txt')
+              unity_version = next(line.split(':', 1)[1].strip() for line in version_file.read_text().splitlines() if line.startswith('m_EditorVersion:'))
+              assert provenance.get('unityVersion') == unity_version, 'Unity editor version drift.'
+              info = plistlib.loads(package.read('Info.plist'))
+              assert info.get('CFBundleIdentifier') in ('com.flutterly.gravitile', '$(PRODUCT_BUNDLE_IDENTIFIER)')
+              assert info.get('CFBundleDisplayName') == 'Little Lifeline'
+              assert info.get('CFBundleShortVersionString') == os.environ['EXPECTED_VERSION']
+              assert str(info.get('CFBundleVersion')) == os.environ['EXPECTED_BUILD']
+              project = package.read('Unity-iPhone.xcodeproj/project.pbxproj').decode()
+              assert set(re.findall(r'\bSDKROOT\s*=\s*"?([A-Za-z0-9.]+)"?\s*;', project)) == {'iphonesimulator'}, 'Wrong exported Xcode SDK.'
+              unpacked = sum(entry.file_size for entry in entries)
+              assert shutil.disk_usage('.').free > unpacked + 8 * 1024 ** 3, 'Insufficient build disk space.'
+              destination.mkdir()
+              for entry in entries:
+                  package.extract(entry, destination)
+                  if not entry.is_dir():
+                      mode = stat.S_IMODE(entry.external_attr >> 16)
+                      if mode:
+                          os.chmod(destination / entry.filename, mode)
+          print(json.dumps({'sourceCommit': provenance['sourceCommit'], 'unityVersion': unity_version,
+                            'marketingVersion': info['CFBundleShortVersionString'], 'buildNumber': str(info['CFBundleVersion']),
+                            'unpackedBytes': unpacked, 'developmentBuild': True, 'iosSdk': 'simulator'}, indent=2))
+          PY
+
+      - name: Build unsigned arm64 simulator player
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild build \
+            -project unity-simulator-export/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
+            -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES IPHONEOS_DEPLOYMENT_TARGET=18.0 \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO INDEX_ENABLE_DATA_STORE=NO \
+            -jobs 4 | tee build/simulator-build.log
+
+      - name: Verify app identity and seal the simulator artifact
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, platform, plistlib, re, subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          def digest(path):
+              with Path(path).open('rb') as handle:
+                  return hashlib.file_digest(handle, 'sha256').hexdigest()
+          def output(*args):
+              return subprocess.check_output(args, text=True).strip()
+          provenance_path = Path('unity-simulator-export/orbit-orchard-unity-build.json')
+          provenance = json.loads(provenance_path.read_text())
+          apps = list(Path('build/DerivedData/Build/Products/Release-iphonesimulator').glob('*.app'))
+          assert len(apps) == 1, 'Expected exactly one simulator app.'
+          app = apps[0]
+          info = plistlib.loads((app / 'Info.plist').read_bytes())
+          assert info.get('CFBundleIdentifier') == 'com.flutterly.gravitile'
+          assert info.get('CFBundleDisplayName') == 'Little Lifeline'
+          assert info.get('CFBundleShortVersionString') == os.environ['EXPECTED_VERSION']
+          assert str(info.get('CFBundleVersion')) == os.environ['EXPECTED_BUILD']
+          assert info.get('DTPlatformName') == 'iphonesimulator'
+          assert info.get('MinimumOSVersion') == '18.0'
+          assert not re.search(r'[a-z]$', info['BuildMachineOSBuild']), 'Prerelease build stamp.'
+          executable = app / info['CFBundleExecutable']
+          framework = app / 'Frameworks/UnityFramework.framework/UnityFramework'
+          assert executable.is_file() and framework.is_file(), 'Missing Unity player binaries.'
+          assert output('xcrun', 'lipo', '-archs', str(executable)).split() == ['arm64']
+          assert output('xcrun', 'lipo', '-archs', str(framework)).split() == ['arm64']
+          assert platform.machine() == 'arm64', 'Runner must match the Unity IL2CPP host tools.'
+          artifact = Path('build/LittleLifeline-simulator.app.zip')
+          subprocess.run(['ditto', '-c', '-k', '--keepParent', str(app), str(artifact)], check=True)
+          receipt = {
+              'format': 1, 'checkedUtc': datetime.now(timezone.utc).isoformat(),
+              'sourceCommit': os.environ['SOURCE_SHA'],
+              'unitySourceTree': output('git', 'rev-parse', 'HEAD:Unity/OrbitOrchard'),
+              'exportReleaseTag': os.environ['EXPORT_TAG'], 'exportSha256': os.environ['EXPORT_SHA256'],
+              'workflowRun': os.environ['GITHUB_RUN_ID'], 'workflowReference': os.environ['GITHUB_WORKFLOW_REF'],
+              'bundleIdentifier': info['CFBundleIdentifier'], 'marketingVersion': info['CFBundleShortVersionString'],
+              'buildNumber': str(info['CFBundleVersion']), 'minimumOSVersion': info['MinimumOSVersion'],
+              'iosSdk': 'simulator', 'architecture': 'arm64', 'configuration': 'Release',
+              'developmentBuild': True, 'codeSigningAllowed': False, 'buildSucceeded': True,
+              'appDirectory': app.name, 'appZipSha256': digest(artifact), 'appZipBytes': artifact.stat().st_size,
+              'appExecutableSha256': digest(executable), 'frameworkSha256': digest(framework),
+              'unityProvenance': provenance, 'unityProvenanceSha256': digest(provenance_path),
+              'toolchain': {'xcode': output('xcodebuild', '-version'),
+                            'simulatorSdk': output('xcrun', '--sdk', 'iphonesimulator', '--show-sdk-version'),
+                            'macOSVersion': output('sw_vers', '-productVersion'),
+                            'macOSBuild': output('sw_vers', '-buildVersion')},
+              'validationScope': 'Unsigned simulator build only; gameplay and device QA run separately.'
+          }
+          Path('build/simulator-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinic-simulator-app-${{ inputs.source_sha }}
+          path: |
+            build/LittleLifeline-simulator.app.zip
+            build/simulator-build-receipt.json
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Preserve simulator build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinic-simulator-log-${{ github.run_id }}
+          path: build/simulator-build.log
+          retention-days: 7
+          if-no-files-found: ignore

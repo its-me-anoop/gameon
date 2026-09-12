@@ -107,13 +107,14 @@ namespace OrbitOrchard.Editor
         public static void BuildIOSSimulator()
         {
             Prepare();
+            var sourceCommit = Git("rev-parse HEAD");
+            var output = Environment.GetEnvironmentVariable("ORCHARD_IOS_EXPORT");
+            if (string.IsNullOrEmpty(output)) output = "Builds/iOSSimulator";
             var previousArchitecture = PlayerSettings.iOS.simulatorSdkArchitecture;
             try
             {
                 PlayerSettings.iOS.sdkVersion = iOSSdkVersion.SimulatorSDK;
                 PlayerSettings.iOS.simulatorSdkArchitecture = AppleMobileArchitectureSimulator.ARM64;
-                var output = Environment.GetEnvironmentVariable("ORCHARD_IOS_EXPORT");
-                if (string.IsNullOrEmpty(output)) output = "Builds/iOSSimulator";
                 WriteExportProvenance(output, true, "simulator", false);
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
@@ -122,8 +123,6 @@ namespace OrbitOrchard.Editor
                 });
                 if (report.summary.result != BuildResult.Succeeded)
                     throw new BuildFailedException("Idle Clinic iOS simulator export failed: " + report.summary.result);
-                WriteExportProvenance(output, true, "simulator", true);
-                Debug.Log("Idle Clinic ARM64 iOS simulator export succeeded: " + output);
             }
             finally
             {
@@ -131,6 +130,11 @@ namespace OrbitOrchard.Editor
                 PlayerSettings.iOS.simulatorSdkArchitecture = previousArchitecture;
                 AssetDatabase.SaveAssets();
             }
+            // Record the restored source tree, not the temporary SimulatorSDK setting.
+            if (Git("rev-parse HEAD") != sourceCommit)
+                throw new BuildFailedException("Source commit changed during simulator export.");
+            WriteExportProvenance(output, true, "simulator", true);
+            Debug.Log("Idle Clinic ARM64 iOS simulator export succeeded: " + output);
         }
         [Serializable] private sealed class ExportProvenance
         {

@@ -3,6 +3,19 @@ name: Little Lifeline iOS TestFlight
 on:
   workflow_dispatch:
     inputs:
+      simulator_qa:
+        description: Build an unsigned simulator app instead of archiving or uploading to TestFlight
+        required: true
+        default: false
+        type: boolean
+      simulator_version:
+        description: Expected marketing version when simulator_qa is true
+        required: false
+        type: string
+      simulator_build:
+        description: Expected build number when simulator_qa is true
+        required: false
+        type: string
       source_sha:
         description: Full reviewed source commit used by the Unity export
         required: true
@@ -30,7 +43,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: unity-testflight-${{ github.repository }}
+  group: ${{ inputs.simulator_qa && 'unity-simulator-qa-dispatch' || 'unity-testflight' }}-${{ github.repository }}
   cancel-in-progress: false
 
 defaults:
@@ -43,8 +56,20 @@ env:
   EXPORT_SHA256: ${{ inputs.export_sha256 }}
 
 jobs:
+  simulator-qa:
+    if: inputs.simulator_qa
+    permissions:
+      contents: write
+    uses: ./.github/workflows/clinic-simulator-qa.yml
+    with:
+      source_sha: ${{ inputs.source_sha }}
+      export_release_tag: ${{ inputs.export_release_tag }}
+      export_sha256: ${{ inputs.export_sha256 }}
+      marketing_version: ${{ inputs.simulator_version }}
+      build_number: ${{ inputs.simulator_build }}
+
   fetch-export:
-    if: inputs.archive_run_id == ''
+    if: ${{ !inputs.simulator_qa && inputs.archive_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -82,6 +107,7 @@ jobs:
           if-no-files-found: error
 
   archive:
+    if: ${{ !inputs.simulator_qa }}
     needs: fetch-export
     runs-on: macos-26
     timeout-minutes: 90
@@ -204,7 +230,7 @@ jobs:
 
   upload:
     needs: archive
-    if: always() && inputs.upload_to_testflight && (needs.archive.result == 'success' || inputs.archive_run_id != '')
+    if: always() && !inputs.simulator_qa && inputs.upload_to_testflight && (needs.archive.result == 'success' || inputs.archive_run_id != '')
     runs-on: macos-26
     timeout-minutes: 30
     steps:
