@@ -163,19 +163,31 @@ namespace IdleClinic.App
         private void ToggleSettings(){locationsOpen=false;settingsOpen=!settingsOpen;selectedRoom=null;selectedObject=null;dockKey="";UpdateReadouts();}
         private void BuildSettings()
         {
-            var row=Box(dock,"settings-row");
+            var content=new ScrollView(ScrollViewMode.Vertical){name="clinic-settings-content",horizontalScrollerVisibility=ScrollerVisibility.Hidden};
+            content.AddToClassList("settings-content");dock.Add(content);
+            BindTouchCaptureLifecycle(content.contentContainer);BindTouchCaptureLifecycle(content.contentViewport);
+            var row=Box(content,"settings-row");
             Preference(row,ClinicGlyph.Music,"Music",()=>profile.preferences.music,v=>{profile.preferences.music=v;RefreshAudioPreferences();});
             Preference(row,ClinicGlyph.Sound,"Effects",()=>profile.preferences.sound,v=>{profile.preferences.sound=v;RefreshAudioPreferences();});
             Preference(row,ClinicGlyph.Haptic,"Haptics",()=>profile.preferences.haptics,v=>profile.preferences.haptics=v);
             Preference(row,ClinicGlyph.Motion,"Less motion",()=>profile.preferences.reducedMotion,v=>profile.preferences.reducedMotion=v);
-            var help=Box(dock,"help-row");
+            var help=Box(content,"help-row");
             Text(help,"Drag to explore · Pinch to zoom\nTap a room to improve it. Tap cash to collect.","help-text");
+            var links=Box(content,"settings-links");
+            SettingsLink(links,ClinicGlyph.Help,"Privacy policy","https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md");
+            SettingsLink(links,ClinicGlyph.Help,"Contact support","https://github.com/its-me-anoop/gravitile-support");
             if(apple!=null)
             {
-                var restore=IconButton(dock,ClinicGlyph.Restore,"Restore existing purchases",RequestRestore,"restore-button");
+                var restore=IconButton(content,ClinicGlyph.Restore,"Restore existing purchases",RequestRestore,"restore-button");
                 Text(restore,"Restore purchases","restore-label");
                 readouts.Add(()=>restore.SetEnabled(!restoreRequested&&!apple.IsRestoring));
             }
+        }
+        private void SettingsLink(VisualElement parent,ClinicGlyph glyph,string label,string destination)
+        {
+            var button=IconButton(parent,glyph,label+", opens in browser",()=>{SaveNow();Application.OpenURL(destination);},"settings-link");
+            button.name=label.ToLowerInvariant().Replace(' ','-');
+            Text(button,label,"settings-link-label");
         }
         private void Preference(VisualElement row,ClinicGlyph glyph,string label,Func<bool> get,Action<bool> set)
         {

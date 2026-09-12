@@ -61,7 +61,7 @@ final class OrchardStoreService {
                 .sorted { $0.price < $1.price }
             productState = plusProduct == nil ? .unavailable : .available
             if plusProduct == nil {
-                statusMessage = "The carriage collection is unavailable in the App Store right now. Try again later."
+                statusMessage = "Existing purchases are unavailable in the App Store right now. Try again later."
             } else if purchaseState == .idle {
                 statusMessage = nil
             }
@@ -88,14 +88,14 @@ final class OrchardStoreService {
             case let .success(verification):
                 guard case let .verified(transaction) = verification else {
                     purchaseState = .failed
-                    statusMessage = "Apple couldn't verify this purchase. Your orchard is unchanged. Try Restore Purchases."
+                    statusMessage = "Apple couldn't verify this purchase. Your progress is unchanged. Try Restore Purchases."
                     return false
                 }
                 await grantAndFinish(transaction)
                 return true
             case .pending:
                 purchaseState = .pending
-                statusMessage = "Purchase awaiting approval. Your themes will unlock when Apple confirms it."
+                statusMessage = "Purchase awaiting approval. Apple will confirm when it is ready."
                 return false
             case .userCancelled:
                 purchaseState = .cancelled
@@ -123,8 +123,8 @@ final class OrchardStoreService {
             try await AppStore.sync()
             await refreshEntitlements()
             statusMessage = isPlus
-                ? "Your carriage collection is restored. All premium finishes are ready."
-                : "No carriage collection or previous Plus purchase was found for this Apple Account."
+                ? "Your existing purchase ownership is restored."
+                : "No existing purchase was found for this Apple Account."
         } catch {
             statusMessage = "Purchases couldn't be restored. Check your connection and try again."
         }

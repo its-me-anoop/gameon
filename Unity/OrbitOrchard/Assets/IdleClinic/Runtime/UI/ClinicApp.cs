@@ -125,7 +125,7 @@ namespace IdleClinic.App
             dock=Box(root,"context-dock");dock.style.display=DisplayStyle.None;
             dock.RegisterCallback<GeometryChangedEvent>(_=>ApplySafeArea());
             toast=Text(root,"","toast");toast.style.display=DisplayStyle.None;toast.pickingMode=PickingMode.Ignore;
-            root.RegisterCallback<GeometryChangedEvent>(_=>ApplySafeArea());
+            root.RegisterCallback<GeometryChangedEvent>(OnViewportGeometryChanged);
             ApplySafeArea();RebuildDock();UpdateReadouts();
             InitializeAccessibility();
         }
@@ -239,17 +239,30 @@ namespace IdleClinic.App
             if(haptic>=0 && profile.preferences.haptics && apple!=null)apple.PlayHaptic(haptic);
         }
 
+        private void OnViewportGeometryChanged(GeometryChangedEvent change)
+        {
+            if(change.oldRect.size!=change.newRect.size)CancelWorldGesture();
+            ApplySafeArea();
+        }
+
         private void ApplySafeArea()
         {
             if(root==null || header==null || Screen.width<1)return;
             var w=root.resolvedStyle.width;var h=root.resolvedStyle.height;
             if(float.IsNaN(w)||float.IsNaN(h))return;
             if(runtimePanel!=null)runtimePanel.scale=Screen.width/Math.Max(1,apple.ScreenWidthPoints);
-            var safe=Screen.safeArea;
-            var top=(Screen.height-safe.yMax)/Screen.height*h;
-            var bottom=safe.yMin/Screen.height*h;
+            var safe=ClinicViewportLayout.SafePanelArea(new Vector2(w,h),new Vector2(Screen.width,Screen.height),Screen.safeArea);
+            var top=safe.yMin;
+            var bottom=h-safe.yMax;
+            var dockArea=ClinicViewportLayout.DockArea(safe);
+            header.style.left=safe.xMin+16;header.style.right=w-safe.xMax+16;
             header.style.top=top+12;hint.style.top=top+72;
+            hint.style.left=safe.xMin+20;hint.style.right=w-safe.xMax+20;
+            cameraTools.style.left=safe.xMin+16;
+            dock.style.left=dockArea.xMin;dock.style.right=StyleKeyword.Auto;dock.style.width=dockArea.width;
             dock.style.bottom=bottom+12;
+            var settingsContent=dock.Q<ScrollView>("clinic-settings-content");
+            if(settingsContent!=null)settingsContent.style.maxHeight=Mathf.Max(44,dockArea.height-70);
             var dockHeight=dock.resolvedStyle.height;
             if(simulation!=null&&State.Tutorial==ClinicTutorialStep.Complete)
             {

@@ -1,184 +1,85 @@
-# App Store Listing — Gravitile 2.0
+# Little Lifeline — App Store submission copy
+
+Use the matching plain-text fields in [listing.json](listing.json) for App Store Connect. This copy describes the Unity clinic game in version 3.3. The selected build must contain the current clinic, privacy/support links and the screenshots submitted with it.
 
 ## Identity
 
-- **Name (30 chars max):** `Gravitile — Tilt a World` (24)
-- **Subtitle (30 chars max):** `Build a world. Steer its spin.` (30)
-- **Bundle ID:** `com.flutterly.gravitile`
-- **SKU:** `gravitile-ios-001`
-- **Primary category:** Games › Simulation
-- **Secondary category:** Games › Strategy
-- **Price:** Free, with in-app purchases
+| Field | Value |
+| --- | --- |
+| Name | Little Lifeline |
+| Subtitle | Build your little clinic |
+| Bundle ID | `com.flutterly.gravitile` |
+| App Store app ID | `6786840477` |
+| Locale | en-US |
+| Primary category | Games |
+| Game subcategories | Simulation, Strategy |
+| Price | Free |
 
-Category note: 1.x shipped in Games › Puzzle and was rejected under 4.3(a) for
-resembling other apps in that category. 2.0 is a different genre and belongs in
-a different aisle. The name deliberately avoids "Idle Planet …", which would
-collide with an existing popular title — metadata similarity is part of what
-4.3(a) tests.
+The bundle ID is retained for the existing app record. It does not describe the current game. This release has no purchasable gameplay, advertisements, subscriptions or active leaderboard feature. Do not attach the legacy Plus or tip products to this submission or advertise their old benefits.
 
-## Promotional text (170 chars max)
+## Promotional text
 
-Everything you build has weight, and weight pulls itself toward the equator.
-Build heavy on one side and your whole world turns. No ads. No tracking. (149)
+Start with one desk and a first-aid room. Follow every patient, improve the places they use and grow into a larger doctors clinic.
 
-## Description (4000 chars max)
+## Description
 
-Gravitile is a world you build one hexagon at a time — and a world that answers
-back.
+Your first patient is at reception. Collect their payment, hire a nurse and give your little clinic its first success.
 
-Every machine you set down has mass. Mass wants to sit on the equator. So the
-moment you build heavily on one side, your planet begins to turn: the pole
-drifts, the frost line crawls across your ground, and machines that were basking
-in sunlight find themselves in the dark.
+Little Lifeline is a miniature 3D clinic management game. Watch people check in, wait, receive care and find their way home. Use the money they leave at reception to improve the next visit.
 
-That is not a scripted event. It is what actually happens to a spinning body
-when you load it unevenly, worked out properly and put at the center of a game.
+START SMALL
+Begin with one reception desk and one first-aid room. Your first payment hires the first nurse. As more patients arrive, choose when to add staff, another treatment station and a comfortable waiting room.
 
-**HOW IT PLAYS**
-• Tap a machine, tap the ground, and it is built
-• Every machine has a temperature it likes — and the temperature of a tile
-  depends on where your axis is pointing
-• Mass drifts to the equator; emptiness drifts to the poles. That one sentence
-  is the whole strategy
-• Production keeps running while the app is closed
+FOLLOW THE WHOLE VISIT
+Queues, seats and moving patients show where your clinic needs help. Tap the cash at each counter and watch coins fly to your wallet. Build parking with separate entrances and exits, add toilets and vending, and watch cars arrive, park and leave.
 
-**SEVEN MACHINES**
-• Solar Array — charge, and it wants all the light it can get
-• Ore Mine — works anywhere, loves rich crust
-• Ice Condenser — water, and it peaks exactly on the frost line
-• Smelter — alloy from ore and charge, but only where it is hot
-• Greenhouse — biomass, and only on mild ground
-• Beacon — lifts every neighbor, and weighs almost nothing
-• Ballast — produces nothing at all. It is pure weight. It is how you steer.
+IMPROVE WHAT MATTERS
+Train individual staff members and upgrade each desk and treatment station. Improve equipment, facilities and decorations, then renovate rooms to raise their upgrade limits. Construction takes time while existing services keep working.
 
-**THE WOBBLE**
-The gauge in the corner is the angle between where your world spins and where
-its mass wants it to spin. Low is calm. High means you are steering — and past
-25 degrees, the ground starts to crack.
+OPEN A SECOND CLINIC
+Fully upgrade the starter clinic and spend 100,000 earned coins to open the larger doctors clinic. Add private consultations, pharmacy dispensing and a taxi stand. Grow to four receptionists, four doctors, four nurses and two pharmacists. Travel between your clinics with a shared wallet and separate patients, facilities and counter cash.
 
-**AIM AT THE STAR**
-Tilt far enough and one pole falls into permanent daylight — three times the
-solar yield of any equator — while the other half of the world freezes solid.
-Whether that is brilliant or ruinous depends on what you built there.
+MAKE YOURSELF AT HOME
+Pan and pinch to explore the clinic and its neighbourhood. Hear an original score and little sounds of daily activity, with separate Music and Effects controls. Adjust haptics and Less motion in Settings.
 
-**COLLAPSE**
-When your world is heavy enough, crush it into its own core. The surface is
-lost; the Gravity you earn is permanent, and the next world is bigger: 162
-tiles, then 252, then 362, then 492.
+Your staff can earn for up to eight hours while you are away. Return to collect their earnings from reception and decide what to improve next.
 
-**MADE WITH CARE**
-• Meteors to catch, quakes to repair, and a calm ambient bed under all of it
-• Game Center leaderboards and achievements
-• Five color worlds — and a theme repaints the planet, not just the menus
-• Works fully offline. No account. No ads. No tracking. Ever.
+Play without an account, advertisements or in-app purchases. The clinic simulation works offline. Little Lifeline is a fictional management game and does not provide medical advice.
 
-The rules take a minute. Aiming a planet takes longer.
+## Keywords
 
-## Keywords (100 chars max)
+hospital,idle,tycoon,management,nurse,doctor,simulation,build,3d,offline,care,pharmacy
 
-idle,planet,build,space,sim,tycoon,incremental,gravity,orbit,3d,relax,offline,colony,strategy
+## What's New — 3.3
 
-(93 chars — no "merge", "puzzle" or "2048": the 1.x keyword set actively placed
-us next to the apps we were compared against.)
+Welcome to Little Lifeline, a miniature 3D clinic management game.
 
-## What's New — v2.0
+Start with reception and first aid, train your staff and improve individual workstations. Add a waiting room, parking, toilets and vending, then grow into a larger doctors clinic with consultations, a pharmacy and taxi journeys.
 
-Gravitile is a different game.
+This release includes original background music and action sounds, separate audio controls, visible room renovations, patient queues and saved progress across both locations.
 
-The merge board is gone. In its place is a world you build on — a small,
-spinning planet where everything you construct has weight, and weight steers
-where the axis points. Build heavy on one side and the pole drifts, the frost
-line moves across your ground, and every machine's yield changes with it.
+## Support and privacy
 
-• Seven machines, each wanting a different climate — including Ballast, which
-  produces nothing and exists only to turn your world
-• The Wobble gauge: how far your world is from where its mass wants it to spin
-• Meteors to catch, quakes to repair, offline production while you are away
-• Collapse your world into its core for permanent Gravity and a bigger planet
-• Rendered in 3D, with a sky and a sound set generated in-app
-• Five color worlds that repaint the planet itself
+- Support: https://github.com/its-me-anoop/gravitile-support
+- Privacy policy: https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md
+- Support email: anoopjose.flutterly@gmail.com
+- Marketing URL: leave empty; the support page is sufficient for this submission.
 
-## Support & marketing URLs
+Publish [support-readme.md](support-readme.md) and [privacy-policy.md](privacy-policy.md) to those existing destinations before submission. The repository URL remains unchanged so existing links continue to work.
 
-- Support URL: https://github.com/its-me-anoop/gravitile-support
-- Marketing URL (optional): repository page until a site exists
-- Privacy Policy URL: https://github.com/its-me-anoop/gravitile-support/blob/main/privacy.md
+## Submission materials
 
-## Age rating questionnaire answers
+- [Reviewer instructions](review-notes.txt): opening route, progression gate, optional Apple services and legacy ownership.
+- [Guideline 4.3(a) reply](review-reply-4.3a.md): factual explanation of the new game and its visible mechanics.
+- [Privacy policy](privacy-policy.md): local saves, Apple services and voluntary support contact.
+- [Support page](support-readme.md): current controls, progression, audio and troubleshooting.
 
-All content descriptors: **None** (no violence, no fear themes, no gambling, no
-unrestricted web, no user-generated content, no messaging). Expected rating: **4+**.
+Replace every old store screenshot with captures from the submitted clinic build. Do not reuse the screenshots retained in this directory from earlier games. Screenshots of the doctors clinic must make its progression unlock clear; screenshots must not imply that it is the starting location.
 
-## App Privacy (nutrition labels)
+## Factual questionnaire inputs
 
-- **Data collected by the developer: none.**
-- All game data is stored on-device. No analytics, no ads, no third-party SDKs,
-  no network calls made by app code.
-- Game Center and In-App Purchase are Apple services; answer "Do you or your
-  third-party partners collect data from this app?" → **No**.
+The game shows stylised clinic visits, first aid, bandages and pharmacy handoffs. It does not show blood or graphic injury, teach procedures, provide medical treatment information, or process real patient information. There is no gambling, simulated gambling, paid random reward, chat, user-generated content, advertising or unrestricted in-app browser. Privacy and support links open externally.
 
-## Export compliance
+Use the current App Store Connect questionnaire and let Apple calculate the age rating. Do not reuse the previous app's blanket answers or publish an assumed rating.
 
-Uses only Apple OS encryption; qualifies for the exemption.
-`ITSAppUsesNonExemptEncryption` is already `false` in the Info.plist.
-
-## In-App Purchases
-
-| Reference name | Product ID | Type | Price |
-|---|---|---|---|
-| Nice Tip | com.flutterly.gravitile.tip.small | Consumable | $0.99 |
-| Generous Tip | com.flutterly.gravitile.tip.medium | Consumable | $2.99 |
-| Heroic Tip | com.flutterly.gravitile.tip.large | Consumable | $9.99 |
-
-**`com.flutterly.gravitile.plus` is removed from sale in 2.0.** It gated the
-daily archive and unlimited undo in a game that no longer exists, and gating an
-idle game's offline cap behind a purchase is exactly the kind of thing that
-invites review scrutiny. 2.0 ships with no gated content; tips remain tips.
-
-## Game Center configuration
-
-The `grv.*` boards describe a game that no longer exists. They are retired, not
-reused — reusing them would mix merge scores with world masses.
-
-| ID | Name | Sort | Type |
-|---|---|---|---|
-| grv2.mass.best | Heaviest World | High to low | classic |
-| grv2.gravity | Total Gravity | High to low | classic |
-| grv2.collapse.tier | Deepest Collapse | High to low | classic |
-| grv2.speedrun.first | First Collapse | **Low to high** | classic |
-
-Achievements: `grv2.first.machine`, `grv2.first.meteor`, `grv2.steered`,
-`grv2.first.collapse`, `grv2.tier.three`, `grv2.mass.2000`, `grv2.gravity.100`
-(points 10–100 to taste; all visible).
-
-## Review notes (for App Review)
-
-Gravitile 2.0 is fully offline and needs no account.
-
-**This is a complete replacement, not an update.** Version 1.x was a merge
-puzzle and was rejected under 4.3(a) as resembling other apps. Rather than
-argue, we rebuilt the app as a different game in a different genre. The merge
-board, its modes and its engine have been deleted from the project; the app now
-contains a 3D idle world-builder.
-
-**To see what is original here in about twenty seconds:**
-1. Launch and skip the four intro cards.
-2. Tap **Ballast** in the tray at the bottom, then tap any tile near the top of
-   the planet (near the bright axis shaft).
-3. Watch the **Wobble** gauge climb, and watch the pale shaft separate from the
-   bright one — that pale shaft is where the world's mass wants it to spin.
-4. Over the next minute the planet visibly turns, and the pale frost ring
-   crawls across the surface. Tiles change color as their climate changes.
-
-That behaviour is a real rigid-body result — a body that dissipates energy ends
-up spinning about its maximum-inertia axis, which is why concentrated mass
-migrates to the equator. The eigen-decomposition that computes it is in
-`OrbitKit/AxisDynamics.swift`, and the insolation model is the standard
-rotation-averaged formula in `OrbitKit/Climate.swift`.
-
-Every asset is generated by tools in this repository, not licensed or bought:
-the tiling and all meshes are computed at runtime (`PlanetMesh.swift`), the
-sound set is synthesized (`Tools/gensounds.swift`), the app icon is drawn by
-`Tools/genicon.py`, and the color palettes are hand-derived in OKLCH. We are
-happy to provide the full git history, the balance-simulation reports and our
-design documents as evidence of original authorship.
+The developer does not operate game accounts, a gameplay server, advertising, tracking or analytics. Apple may process App Store and optional purchase-restoration requests. Unity is the game engine; the app is not free of third-party software. Confirm the release's SDK configuration and privacy declarations before publishing the App Privacy answers. Support correspondence sent outside the app is described in the privacy policy.

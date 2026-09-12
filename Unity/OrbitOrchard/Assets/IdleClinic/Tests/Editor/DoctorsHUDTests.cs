@@ -177,6 +177,52 @@ namespace IdleClinic.Tests
                 Assert.That(dock.Q<Button>("less-motion"),Is.Not.Null);
             }
         }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SettingsAlwaysExposePrivacyAndSupportBeforeAnyPurchase(bool doctorsClinic)
+        {
+            using(var ui=new DockFixture())
+            {
+                if(!doctorsClinic)ui.ReplaceSimulation(ClinicSimulation.CreateNew());
+                var dock=ui.SettingsDock();
+                var privacy=dock.Q<Button>("privacy-policy");
+                var support=dock.Q<Button>("contact-support");
+                Assert.That(privacy,Is.Not.Null);
+                Assert.That(support,Is.Not.Null);
+                Assert.That(privacy.enabledSelf&&support.enabledSelf,Is.True);
+                Assert.That(ui.AccessibleLabel(privacy),Is.EqualTo("Privacy policy, opens in browser"));
+                Assert.That(ui.AccessibleLabel(support),Is.EqualTo("Contact support, opens in browser"));
+                Assert.That(privacy.Q<Label>().text,Is.EqualTo("Privacy policy"));
+                Assert.That(support.Q<Label>().text,Is.EqualTo("Contact support"));
+            }
+        }
+        [TestCase(375,667,0,0,0,20)]
+        [TestCase(1024,1366,0,20,0,24)]
+        [TestCase(1194,834,0,20,0,24)]
+        [TestCase(667,375,44,21,44,0)]
+        [TestCase(393,852,0,34,0,59)]
+        public void WindowLayoutKeepsControlsInsideSafeInsetsAndTheDockCompact(int width,int height,int left,int bottom,int right,int top)
+        {
+            var safe=ClinicViewportLayout.SafePanelArea(new Vector2(width,height),new Vector2(width*2,height*2),
+                new Rect(left*2,bottom*2,(width-left-right)*2,(height-top-bottom)*2));
+            Assert.That(safe.xMin,Is.EqualTo(left));Assert.That(safe.yMin,Is.EqualTo(top));
+            Assert.That(safe.xMax,Is.EqualTo(width-right));Assert.That(safe.yMax,Is.EqualTo(height-bottom));
+            var dock=ClinicViewportLayout.DockArea(safe);
+            Assert.That(dock.width,Is.InRange(44,520));
+            Assert.That(dock.center.x,Is.EqualTo(safe.center.x).Within(.001));
+            Assert.That(dock.xMin,Is.GreaterThan(safe.xMin));Assert.That(dock.xMax,Is.LessThan(safe.xMax));
+            Assert.That(dock.yMin,Is.GreaterThanOrEqualTo(safe.yMin+124),"Keep the wallet and camera toolbar clear.");
+            Assert.That(dock.yMax,Is.LessThan(safe.yMax));
+        }
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ResizingTheWindowCancelsOldCoordinateGesturesButRelayoutDoesNot(bool resized)
+        {
+            using(var ui=new DockFixture())
+            {
+                ui.VerifyViewportGestureLifecycle(resized);
+            }
+        }
         [TestCase(375,667,180,310)] [TestCase(320,568,10,10)] [TestCase(375,667,370,660)]
         public void FourOverlappingCashTargetsStaySeparateBoundedAndDeterministic(int width,int height,int x,int y)
         {
@@ -248,6 +294,26 @@ namespace IdleClinic.Tests
             public VisualElement RoomDock(ClinicRoom room)=>Build(room:room);
             public VisualElement LocationsDock()=>Build(locations:true);
             public VisualElement SettingsDock()=>Build(settings:true);
+            private object AccessibleBinding(Button button)=>((System.Collections.IList)typeof(ClinicApp).GetField("accessible",Private).GetValue(app))
+                .Cast<object>().Single(binding=>(VisualElement)binding.GetType().GetField("Element").GetValue(binding)==button);
+            public string AccessibleLabel(Button button)
+            {
+                var binding=AccessibleBinding(button);return (string)binding.GetType().GetField("Label").GetValue(binding);
+            }
+            public void VerifyViewportGestureLifecycle(bool resized)
+            {
+                var gesture=(ClinicGesture)typeof(ClinicApp).GetField("gesture",Private).GetValue(app);
+                var arbiter=(ClinicTouchArbiter)typeof(ClinicApp).GetField("touchArbiter",Private).GetValue(app);
+                var captured=(HashSet<int>)typeof(ClinicApp).GetField("capturedPointers",Private).GetValue(app);
+                gesture.Begin(7,Vector2.one);arbiter.Begin(7,Vector2.one,true);captured.Add(7);
+                var oldBounds=new Rect(0,0,375,667);var newBounds=resized?new Rect(0,0,667,375):oldBounds;
+                using(var change=GeometryChangedEvent.GetPooled(oldBounds,newBounds))
+                    typeof(ClinicApp).GetMethod("OnViewportGeometryChanged",Private).Invoke(app,new object[]{change});
+                Assert.That(gesture.PointerCount,Is.EqualTo(resized?0:1));
+                Assert.That(arbiter.ActivePointers.Count(),Is.EqualTo(resized?0:1));
+                Assert.That(captured.Count,Is.EqualTo(resized?0:1));
+                if(resized)Assert.That(gesture.End(7,Vector2.one),Is.False,"An old-coordinate release cannot become a collection tap.");
+            }
             public void VerifyTravelCleanup()
             {
                 var cash=(Dictionary<int,VisualElement>)typeof(ClinicApp).GetField("cashMarkers",Private).GetValue(app);
