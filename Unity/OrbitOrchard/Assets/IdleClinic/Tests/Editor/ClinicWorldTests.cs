@@ -1,4 +1,5 @@
 using IdleClinic.Core;
+using IdleClinic.App;
 using IdleClinic.Presentation;
 using NUnit.Framework;
 using UnityEngine;
@@ -62,6 +63,29 @@ namespace IdleClinic.Tests
             Assert.That(Vector3.Distance(world.GetCashPoint(0),world.GetCashPoint(1)),Is.GreaterThan(1));
             for(int i=0;i<2;i++)
                 Assert.That(Vector3.Distance(world.GetAnchorPoint("reception.desk."+i+".patient"),world.GetAnchorPoint("reception.desk."+i+".staff")),Is.GreaterThan(1));
+        }
+
+        [TestCase(375,667,.2f)][TestCase(375,667,1f)][TestCase(375,667,5f)]
+        [TestCase(320,568,.2f)][TestCase(320,568,1f)][TestCase(320,568,5f)]
+        public void ReceptionSelectionStaysOnClearFloorWithBothPaidDesksAcrossZoomLimits(int width,int height,float zoom)
+        {
+            world.SetRenderSize(width,height);
+            var state=ClinicSimulation.CreateNew().State;state.ReceptionDesks[0].Till=50;
+            state.ReceptionDesks.Add(new ReceptionDeskState{Id=1,Till=60});state.Room(ClinicRoom.Reception).StationCount=2;
+            world.Render(state,0,true);
+            var target=world.WorldToViewport(ClinicSelectionPolicy.ReceptionFloorPoint);
+            world.Zoom(zoom,target);target=world.WorldToViewport(ClinicSelectionPolicy.ReceptionFloorPoint);
+            Assert.That(world.Pick(target).Kind,Is.EqualTo(ClinicHitKind.Reception),"The floor target must not intersect either 3D cash hit box.");
+            var tap=new Vector2(target.x*width,(1-target.y)*height);
+            for(var desk=0;desk<2;desk++)
+            {
+                var cash=world.WorldToViewport(world.GetCashPoint(desk));
+                // Deliberately wider than the measured 60–67pt cash labels, preserving
+                // their actual 44pt height and 30pt upward offset from the counter.
+                var marker=new Rect(cash.x*width-44,(1-cash.y)*height-52,88,44);
+                Assert.That(marker.Contains(tap),Is.False,"Room selection cannot hit cash marker "+desk);
+            }
+            Assert.That(state.ReceptionDesks[0].Till,Is.EqualTo(50));Assert.That(state.ReceptionDesks[1].Till,Is.EqualTo(60));
         }
 
         [Test]

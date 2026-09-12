@@ -98,7 +98,15 @@ namespace IdleClinic.App
             // These nodes represent world points, not floating UI controls. They
             // cannot be hit when an opaque control covers their actual tap center.
             if(overlay!=null&&overlay.Contains(element)&&WorldPointIsCovered(bounds.center))return false;
+            // Mobile accessibility activates by tapping the node center. Match the
+            // cash/plot priority in WorldTap so a room label cannot invoke another action.
+            if(roomTargets.ContainsValue(element)&&RoomPointHasHigherPriorityAction(bounds.center))return false;
             return true;
+        }
+        private bool RoomPointHasHigherPriorityAction(Vector2 point)
+        {
+            foreach(var marker in cashMarkers.Values)if(CoversWorldPoint(marker,point))return true;
+            return CoversWorldPoint(waitingMarker,point);
         }
         private bool WorldPointIsCovered(Vector2 point)
         {

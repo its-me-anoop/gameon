@@ -12,6 +12,8 @@ namespace IdleClinic.App
 {
     public static class ClinicSelectionPolicy
     {
+        // Clear floor between the desks and queue, away from both payment targets.
+        public static Vector3 ReceptionFloorPoint=>new Vector3(-2.8f,.14f,-3.8f);
         public static bool CanSelectRoom(ClinicTutorialStep tutorial,ClinicRoom room)
         {
             if(room!=ClinicRoom.Reception&&room!=ClinicRoom.FirstAid&&room!=ClinicRoom.Waiting)return false;
@@ -247,7 +249,8 @@ namespace IdleClinic.App
                     var kind=room.Kind;RegisterAccessibleButton(target,"Select "+RoomName(kind),()=>Select(kind));
                 }
                 var anchor=room.Kind==ClinicRoom.Reception?"reception.progress":room.Kind==ClinicRoom.FirstAid?"firstaid.progress":"waiting.progress";
-                PositionMarker(target,world.WorldToViewport(world.GetAnchorPoint(anchor)),room.Built||State.WaitingRoomUnlocked);
+                var point=room.Kind==ClinicRoom.Reception?ClinicSelectionPolicy.ReceptionFloorPoint:world.GetAnchorPoint(anchor);
+                PositionMarker(target,world.WorldToViewport(point),room.Built||State.WaitingRoomUnlocked);
             }
             foreach(var desk in State.ReceptionDesks)
             {

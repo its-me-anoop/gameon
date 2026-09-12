@@ -51,17 +51,53 @@ namespace IdleClinic.Tests
                 Assert.That(ax.Node.value,Is.EqualTo("20,000 coins"),"Read the current simulation, without the visible label's K/M abbreviation.");
             }
         }
+        [TestCase(0)][TestCase(1)][TestCase(2)]
+        public void RoomAccessibilityYieldsToEitherCashDeskOrExpansionWhenProjectedMarkersOverlap(int priorityMarker)
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.Simulation.State.ReceptionDesks[0].Till=120;
+                ax.Simulation.State.ReceptionDesks.Add(new ReceptionDeskState{Id=1,Till=60});
+                ax.ConfigureRoom(new Rect(128.4f,447.4f,44,44));
+                ax.PlacePriorityMarker(0,new Rect(100.5f,354,67,44));
+                ax.PlacePriorityMarker(1,new Rect(184.5f,360,61,44));
+                ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.True,"The new Home floor point is clear while both counters hold cash.");
+
+                // At extreme zoom, fixed-size overlay controls can cover a projected
+                // room center. Exercise the actual UI binding, not only Rect.Contains.
+                ax.PlacePriorityMarker(priorityMarker,new Rect(128,447,88,44));ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.False);
+                Assert.That(ax.RoomNode.state,Is.EqualTo(AccessibilityState.Disabled));
+                Assert.That(ax.RoomNode.frame,Is.EqualTo(Rect.zero));
+                Assert.That(ax.RoomNode.frameGetter(),Is.EqualTo(Rect.zero));
+                ax.UpdateValues();
+                Assert.That(ax.RoomNode.state,Is.EqualTo(AccessibilityState.Disabled));
+
+                ax.PlacePriorityMarker(priorityMarker,new Rect(10,250,88,44));ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.True,"The same room node becomes usable again once its center is clear.");
+                Assert.That(ax.RoomNode.frame,Is.Not.EqualTo(Rect.zero));
+                Assert.That(ax.Simulation.State.Wallet,Is.Zero);
+                Assert.That(ax.Simulation.State.ReceptionDesks[0].Till,Is.EqualTo(120));
+                Assert.That(ax.Simulation.State.ReceptionDesks[1].Till,Is.EqualTo(60));
+            }
+        }
         private sealed class CashAccessibilityFixture:System.IDisposable
         {
             public readonly VisualElement Marker=new VisualElement();
             public readonly AccessibilityHierarchy Hierarchy=new AccessibilityHierarchy();
             public readonly AccessibilityNode Node;
+            public AccessibilityNode RoomNode;
             public ClinicSimulation Simulation=ClinicSimulation.CreateNew();
+            private readonly VisualElement root;
+            private VisualElement roomTarget;
             private readonly GameObject owner;
             private readonly ClinicApp app;
             private const System.Reflection.BindingFlags Private=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
             public CashAccessibilityFixture(VisualElement root)
             {
+                this.root=root;
                 // Keep the component inactive so this narrow binding test does not
                 // start the game, open saves, or initialize Apple services.
                 owner=new GameObject("Clinic accessibility binding test");owner.SetActive(false);
@@ -78,7 +114,37 @@ namespace IdleClinic.Tests
             public void UpdateValues()=>Invoke("UpdateAccessibilityValues");
             public void UpdateNode()=>Invoke("UpdateAccessibilityNode",Node,Marker);
             public void ReplaceSimulation(ClinicSimulation simulation){Simulation=simulation;Set("simulation",simulation);}
-            public void Dispose(){Invoke("DisposeAccessibility");Marker.RemoveFromHierarchy();Object.DestroyImmediate(owner);}
+            public void ConfigureRoom(Rect bounds)
+            {
+                Layout(root.panel.visualTree,new Rect(0,0,375,667));Layout(root,new Rect(0,0,375,667));
+                roomTarget=new VisualElement();root.Add(roomTarget);Layout(roomTarget,bounds);
+                var targets=(Dictionary<ClinicRoom,VisualElement>)typeof(ClinicApp).GetField("roomTargets",Private).GetValue(app);
+                targets.Add(ClinicRoom.Reception,roomTarget);
+                Invoke("RegisterAccessibleButton",roomTarget,"Select Reception",(System.Action)(()=>{}),null);
+                var bindings=(System.Collections.IList)typeof(ClinicApp).GetField("accessible",Private).GetValue(app);
+                RoomNode=(AccessibilityNode)bindings[bindings.Count-1].GetType().GetField("Node").GetValue(bindings[bindings.Count-1]);
+            }
+            public void PlacePriorityMarker(int index,Rect bounds)
+            {
+                VisualElement marker;
+                if(index==2)
+                {
+                    marker=(VisualElement)typeof(ClinicApp).GetField("waitingMarker",Private).GetValue(app);
+                    if(marker==null){marker=new VisualElement();root.Add(marker);Set("waitingMarker",marker);}
+                }
+                else
+                {
+                    var markers=(Dictionary<int,VisualElement>)typeof(ClinicApp).GetField("cashMarkers",Private).GetValue(app);
+                    if(!markers.TryGetValue(index,out marker)){marker=index==0?Marker:new VisualElement();root.Add(marker);markers.Add(index,marker);}
+                }
+                Layout(marker,bounds);
+            }
+            // Unity's internal manual-layout setter makes the real worldBound data
+            // deterministic in an EditMode binding test without opening an Editor window.
+            private static void Layout(VisualElement element,Rect bounds)
+                =>typeof(VisualElement).GetProperty("layout").SetValue(element,bounds);
+            public void UpdateRoom()=>Invoke("UpdateAccessibilityNode",RoomNode,roomTarget);
+            public void Dispose(){Invoke("DisposeAccessibility");Marker.RemoveFromHierarchy();roomTarget?.RemoveFromHierarchy();Object.DestroyImmediate(owner);}
         }
 
         [TestCase(true)]
