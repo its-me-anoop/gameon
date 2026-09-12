@@ -27,6 +27,7 @@ namespace IdleClinic.Core
                     || station.EquipmentLevel < 1 || station.EquipmentLevel > ClinicRules.TrackCap(state.Room(ClinicRoom.FirstAid).Tier)) return false;
             var bays = new HashSet<int>();
             var visitors = new HashSet<ClinicAmenity>();
+            int movingVehicles=0;
             long currentTips = 0;
             foreach (var patient in state.Patients)
             {
@@ -38,6 +39,16 @@ namespace IdleClinic.Core
                     || patient.UsedVending && (!patient.Paid || state.Amenity(ClinicAmenity.Vending).Level == 0)
                     || patient.UsedToilet && (!patient.Paid || patient.Id % 3 != 1 || state.Amenity(ClinicAmenity.Toilet).Level == 0)) return false;
                 currentTips += patient.TipPaid;
+                if(IsVehiclePhase(patient.Phase))
+                {
+                    if(patient.ParkingBayId<0)return false;
+                    if(IsMovingVehicle(patient.Phase)&&++movingVehicles>1)return false;
+                    bool entry=patient.Phase==ClinicPatientPhase.WaitingToPark||patient.Phase==ClinicPatientPhase.DrivingToParking;
+                    if(entry&&(patient.Paid||patient.FromAnchor!=ClinicRules.ParkingPatientAnchor(patient.ParkingBayId)||patient.ToAnchor!=ClinicRules.QueueAnchor(patient.QueueIndex)))return false;
+                    if(!entry&&(!patient.Paid||patient.FromAnchor!=ClinicRules.ParkingPatientAnchor(patient.ParkingBayId)||patient.ToAnchor!=patient.FromAnchor))return false;
+                    if(patient.Phase==ClinicPatientPhase.DrivingToParking&&patient.PhaseEndsTick-patient.PhaseStartedTick!=ClinicRules.ParkingEntryTicks)return false;
+                    if(patient.Phase==ClinicPatientPhase.DrivingFromParking&&patient.PhaseEndsTick-patient.PhaseStartedTick!=ClinicRules.ParkingExitTicks)return false;
+                }
                 var bayAnchor = patient.ParkingBayId >= 0 ? ClinicRules.ParkingPatientAnchor(patient.ParkingBayId) : null;
                 if (patient.FromAnchor != null && patient.FromAnchor.StartsWith("parking.", StringComparison.Ordinal) && patient.FromAnchor != bayAnchor
                     || patient.ToAnchor != null && patient.ToAnchor.StartsWith("parking.", StringComparison.Ordinal) && patient.ToAnchor != bayAnchor) return false;

@@ -261,7 +261,7 @@ namespace IdleClinic.Core
             foreach (var staff in State.Staff)
                 if (staff.MoveEndsTick > State.Tick) next = Math.Min(next, staff.MoveEndsTick);
             foreach (var job in State.Construction) next = Math.Min(next, job.EndsTick);
-            return next;
+            return Math.Min(next, NextParkingEligibilityTick());
         }
 
         private void ProcessCurrentTick()
@@ -272,6 +272,12 @@ namespace IdleClinic.Core
                 if (!IsTimed(patient.Phase) || patient.PhaseEndsTick > State.Tick) continue;
                 switch (patient.Phase)
                 {
+                    case ClinicPatientPhase.DrivingToParking:
+                        Phase(patient, ClinicPatientPhase.Arriving, ClinicRules.ParkingPatientAnchor(patient.ParkingBayId), ClinicRules.QueueAnchor(patient.QueueIndex), 100);
+                        break;
+                    case ClinicPatientPhase.DrivingFromParking:
+                        State.Patients.Remove(patient);
+                        break;
                     case ClinicPatientPhase.Arriving:
                         Rest(patient, ClinicPatientPhase.ReceptionQueue);
                         break;
@@ -304,7 +310,8 @@ namespace IdleClinic.Core
                         Rest(patient, ClinicPatientPhase.Seated);
                         break;
                     case ClinicPatientPhase.Leaving:
-                        State.Patients.Remove(patient);
+                        if(patient.ParkingBayId>=0)Rest(patient, ClinicPatientPhase.WaitingToExit);
+                        else State.Patients.Remove(patient);
                         break;
                 }
             }
@@ -316,6 +323,7 @@ namespace IdleClinic.Core
             DispatchAmenities();
             DispatchReception();
             ReindexQueue();
+            DispatchParkingVehicles();
         }
 
         private void AdmitPatient()
@@ -336,7 +344,9 @@ namespace IdleClinic.Core
                 }
             }
             var origin = patient.ParkingBayId >= 0 ? ClinicRules.ParkingPatientAnchor(patient.ParkingBayId) : "entrance";
-            Phase(patient, ClinicPatientPhase.Arriving, origin, ClinicRules.QueueAnchor(index), patient.ParkingBayId >= 0 ? 100 : 30);
+            Phase(patient, patient.ParkingBayId >= 0 ? ClinicPatientPhase.WaitingToPark : ClinicPatientPhase.Arriving,
+                origin, ClinicRules.QueueAnchor(index), patient.ParkingBayId >= 0 ? 0 : 30);
+            if(patient.ParkingBayId>=0)patient.PhaseEndsTick=0;
             State.Patients.Add(patient);
             Emit(ClinicEventKind.PatientArrived, ClinicRoom.Reception, patient.Id, source: origin);
         }
@@ -384,8 +394,8 @@ namespace IdleClinic.Core
             {
                 if (staff.PatientId >= 0 || staff.MoveEndsTick > State.Tick) continue;
                 // A seated patient finishes walking to their seat before being called elsewhere.
-                var patient = State.Patients.Where(p => p.Phase == ClinicPatientPhase.WaitingForTreatment || p.Phase == ClinicPatientPhase.Seated)
-                    .OrderBy(p => p.Id).FirstOrDefault();
+                var patient = State.Patients.Where(p => (p.Phase == ClinicPatientPhase.WaitingForTreatment || p.Phase == ClinicPatientPhase.Seated)
+                    && CanCallPatientDuringVehicleMovement(p)).OrderBy(p => p.Id).FirstOrDefault();
                 if (patient == null) break;
                 staff.PatientId = patient.Id;
                 patient.TreatmentStationId = staff.StationId;
@@ -490,13 +500,15 @@ namespace IdleClinic.Core
         private bool CanSpend(long amount) => amount > 0 && State.Wallet >= amount;
         private void Spend(long amount) { State.Wallet -= amount; State.TotalSpent += amount; }
         private bool TutorialComplete() => State.Tutorial == ClinicTutorialStep.Complete;
-        private static bool IsUnpaidQueue(ClinicPatientState patient) => patient.Phase == ClinicPatientPhase.Arriving || patient.Phase == ClinicPatientPhase.ReceptionQueue;
+        private static bool IsUnpaidQueue(ClinicPatientState patient) => patient.Phase == ClinicPatientPhase.Arriving || patient.Phase == ClinicPatientPhase.ReceptionQueue
+            || patient.Phase == ClinicPatientPhase.WaitingToPark || patient.Phase == ClinicPatientPhase.DrivingToParking;
         private static bool IsPaidWaiting(ClinicPatientState patient) => patient.Paid && (patient.Phase == ClinicPatientPhase.WaitingForTreatment
             || patient.Phase == ClinicPatientPhase.WalkingToWaiting || patient.Phase == ClinicPatientPhase.Seated || IsVisitingAmenity(patient));
         private static bool IsVisitingAmenity(ClinicPatientState patient) => patient.Phase == ClinicPatientPhase.WalkingToAmenity
             || patient.Phase == ClinicPatientPhase.UsingAmenity || patient.Phase == ClinicPatientPhase.ReturningFromAmenity;
         private static bool IsTimed(ClinicPatientPhase phase) => phase != ClinicPatientPhase.ReceptionQueue
-            && phase != ClinicPatientPhase.WaitingForTreatment && phase != ClinicPatientPhase.Seated;
+            && phase != ClinicPatientPhase.WaitingForTreatment && phase != ClinicPatientPhase.Seated
+            && phase != ClinicPatientPhase.WaitingToPark && phase != ClinicPatientPhase.WaitingToExit;
         private static bool FinitePositive(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
         private static HashSet<string> KnownPatientAnchors()
         {
@@ -520,6 +532,8 @@ namespace IdleClinic.Core
             => phase == ClinicPatientPhase.Treating ? 180 : phase == ClinicPatientPhase.CheckingIn ? 140
                 : phase == ClinicPatientPhase.WalkingToTreatment ? 50 : phase == ClinicPatientPhase.WalkingToWaiting ? 20
                 : phase == ClinicPatientPhase.Arriving || phase == ClinicPatientPhase.Leaving ? 100
+                : phase == ClinicPatientPhase.DrivingToParking ? ClinicRules.ParkingEntryTicks
+                : phase == ClinicPatientPhase.DrivingFromParking ? ClinicRules.ParkingExitTicks
                 : phase == ClinicPatientPhase.UsingAmenity ? 60 : 30;
         private static bool Defined<T>(T value) where T : struct => Enum.IsDefined(typeof(T), value);
         private static string RoomAnchor(ClinicRoom room) => room == ClinicRoom.Reception ? "reception.plot" : room == ClinicRoom.FirstAid ? "firstaid.plot" : "waiting.plot";
@@ -613,7 +627,7 @@ namespace IdleClinic.Core
                 if (patient.HasAdmissionReservation) reserved++;
                 if (patient.Paid) currentPaid++;
                 if (patient.Paid != (!IsUnpaidQueue(patient) && !atReception)) return false;
-                if (patient.HasAdmissionReservation != (atReception || patient.Paid && patient.Phase != ClinicPatientPhase.Leaving)) return false;
+                if (patient.HasAdmissionReservation != (atReception || patient.Paid && !HasCompletedCare(patient.Phase))) return false;
                 if (patient.Paid && (patient.Payment < 50 || patient.DeskId < 0)) return false;
                 if (IsUnpaidQueue(patient))
                 {

@@ -308,30 +308,28 @@ namespace IdleClinic.Tests
             Assert.That(reception.gameObject.activeInHierarchy,Is.True);Assert.That(treatment.gameObject.activeInHierarchy,Is.True);
         }
 
-        [TestCase(false)][TestCase(true)]
-        public void PrivacyPartitionsLeaveOccupiedSocketsAndApproachRoutesClear(bool treatment)
+        [TestCase(false,0)][TestCase(false,1)][TestCase(true,0)][TestCase(true,1)]
+        public void PrivacyPartitionsLeaveOccupiedSocketsAndApproachRoutesClear(bool treatment,int station)
         {
             var state=new ClinicState();state.Rooms.Add(new ClinicRoomState{Kind=ClinicRoom.FirstAid,StationCount=2});
             state.ReceptionDesks.Add(new ReceptionDeskState{Id=0});state.ReceptionDesks.Add(new ReceptionDeskState{Id=1});world.Render(state,.1f);
             var divider=Find(treatment?"Treatment privacy partition":"Reception privacy divider");Assert.That(divider,Is.Not.Null);
             string prefix=treatment?"firstaid.station.":"reception.desk.";
-            for(int station=0;station<2;station++)
+            // Each hire starts from the entrance in a fresh scene. Reusing the same
+            // actor after finishing another station would test a different journey.
+            var patient=new ClinicPatientState{Id=90,Phase=ClinicPatientPhase.WalkingToTreatment,
+                FromAnchor="entrance",ToAnchor=prefix+station+".patient",PhaseStartedTick=0,PhaseEndsTick=100};state.Patients.Add(patient);
+            var staff=new ClinicStaffState{Id=100,Role=treatment?ClinicStaffRole.Nurse:ClinicStaffRole.Receptionist,
+                FromAnchor="entrance",ToAnchor=prefix+station+".staff",MoveStartedTick=0,MoveEndsTick=100};state.Staff.Add(staff);
+            for(int tick=0;tick<=100;tick++)
             {
-                var patient=new ClinicPatientState{Id=90,Phase=ClinicPatientPhase.WalkingToTreatment,
-                    FromAnchor="entrance",ToAnchor=prefix+station+".patient",PhaseStartedTick=0,PhaseEndsTick=100};state.Patients.Add(patient);
-                var staff=new ClinicStaffState{Id=100,Role=treatment?ClinicStaffRole.Nurse:ClinicStaffRole.Receptionist,
-                    FromAnchor="entrance",ToAnchor=prefix+station+".staff",MoveStartedTick=0,MoveEndsTick=100};state.Staff.Add(staff);
-                for(int tick=0;tick<=100;tick++)
+                state.Tick=tick;world.Render(state,.1f,true);
+                foreach(var renderer in divider.GetComponentsInChildren<Renderer>())
                 {
-                    state.Tick=tick;world.Render(state,.1f,true);
-                    foreach(var renderer in divider.GetComponentsInChildren<Renderer>())
-                    {
-                        var bounds=renderer.bounds;bounds.Expand(new Vector3(.60f,0,.60f));
-                        foreach(string actor in new[]{"Patient 90","Staff 100"})
-                            Assert.That(bounds.Contains(Find(actor).position+Vector3.up*.80f),Is.False,renderer.name+" blocks "+actor+" at tick "+tick);
-                    }
+                    var bounds=renderer.bounds;bounds.Expand(new Vector3(.60f,0,.60f));
+                    foreach(string actor in new[]{"Patient 90","Staff 100"})
+                        Assert.That(bounds.Contains(Find(actor).position+Vector3.up*.80f),Is.False,renderer.name+" blocks "+actor+" at tick "+tick);
                 }
-                state.Patients.Clear();state.Staff.Clear();
             }
         }
 
@@ -675,7 +673,7 @@ namespace IdleClinic.Tests
                 Assert.That(staging.gameObject.activeInHierarchy,Is.EqualTo(bay>=level*2));
                 Assert.That(Find("Parking bay "+bay).gameObject.activeInHierarchy,Is.EqualTo(bay<level*2));
                 Assert.That(staging.GetComponentsInChildren<Renderer>(true).Length,Is.GreaterThanOrEqualTo(8));
-                float x=bay%2==0?-11.3f:-8.6f,z=-3f+(bay/2)*2.9f;
+                float x=bay%2==0?-13f:-8.2f,z=-3f+(bay/2)*2.9f;
                 foreach(var renderer in staging.GetComponentsInChildren<Renderer>(true))
                 {
                     Assert.That(renderer.bounds.min.x,Is.GreaterThanOrEqualTo(x-1.0f));Assert.That(renderer.bounds.max.x,Is.LessThanOrEqualTo(x+1.0f));

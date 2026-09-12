@@ -107,6 +107,9 @@ namespace IdleClinic.Tests
             Assert.That(leaving.ToAnchor, Is.EqualTo(ClinicRules.ParkingPatientAnchor(bay)));
             Assert.That(leaving.Payment, Is.EqualTo(55));
             game.Advance(10);
+            Assert.That(game.State.Patients.Any(p => p.Id == id && p.ParkingBayId == bay), Is.True);
+            var driving = WaitFor(game, p => p.Id == id && p.Phase == ClinicPatientPhase.DrivingFromParking);
+            game.Advance((driving.PhaseEndsTick-game.State.Tick)/10d);
             Assert.That(game.State.Patients.Any(p => p.Id == id), Is.False);
             for (var i = 0; i < 600; i++)
             {

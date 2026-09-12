@@ -60,7 +60,9 @@ def read_tests(path):
     fixtures = ('IdleClinic.Tests.ClinicSimulationTests.',
                 'IdleClinic.Tests.ClinicProfileTests.', 'IdleClinic.Tests.ClinicWorldTests.',
                 'IdleClinic.Tests.ClinicHUDTests.', 'IdleClinic.Tests.ClinicPerformanceTests.',
-                'IdleClinic.Tests.ClinicExpansionTests.', 'IdleClinic.Tests.ClinicMigrationTests.')
+                'IdleClinic.Tests.ClinicExpansionTests.', 'IdleClinic.Tests.ClinicMigrationTests.',
+                'IdleClinic.Tests.ClinicParkingFlowTests.', 'IdleClinic.Tests.ClinicWalkingTests.',
+                'IdleClinic.Tests.ClinicArchitectureTests.', 'IdleClinic.Tests.ClinicParkingWorldTests.')
     cases = list(result.iter('test-case'))
     if len(cases) != total or any(case.get('result', '').lower() != 'passed' for case in cases):
         raise ValueError('Every reported Unity case must be present and passed.')

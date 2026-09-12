@@ -30,13 +30,13 @@ namespace IdleClinic.Presentation
             House(art,town,8,new Vector3(10.8f,.05f,-13.8f),new Vector3(3.2f,2.6f,3.4f),"Blue");
             House(art,town,9,new Vector3(12.2f,.05f,8.0f),new Vector3(3.0f,3.3f,3.4f),"Sage");
             StreetFurniture(art,town);
-            Tree(art,town,0,new Vector3(-14.55f,.05f,-4.2f),1.0f);
+            Tree(art,town,0,new Vector3(-16.4f,.05f,-4.2f),1.0f);
             Tree(art,town,1,new Vector3(-6.90f,.05f,5.9f),.95f);
             Tree(art,town,2,new Vector3(-6.95f,.05f,12.8f),.86f);
             Tree(art,town,3,new Vector3(6.8f,.05f,-3.8f),.82f);
             Tree(art,town,4,new Vector3(-2.9f,.05f,-11.45f),.90f);
             Tree(art,town,5,new Vector3(3.9f,.05f,-11.5f),.92f);
-            var bench=art.Group("Street bench",town,new Vector3(-14.5f,.05f,3.6f));
+            var bench=art.Group("Street bench",town,new Vector3(-16.5f,.05f,3.6f));
             for(int side=-1;side<=1;side+=2)art.Box("Bench leg",bench,new Vector3(side*.50f,.22f,0),new Vector3(.08f,.44f,.48f),"SageDark");
             for(int slat=0;slat<3;slat++)art.Box("Bench oak slat",bench,new Vector3(0,.46f,-.18f+slat*.18f),new Vector3(1.35f,.055f,.13f),"Wood");
         }
@@ -108,7 +108,7 @@ namespace IdleClinic.Presentation
             ClinicFurnishings.NoticeBoard(art,board,"Community notice board",new Vector3(0,1.38f,0),0,1.16f);
             for(int bed=0;bed<6;bed++)
             {
-                var flower=art.Group("Flower border",town,new Vector3(bed<3?-13.9f:11.25f,.05f,-5.6f+(bed%3)*4.0f));
+                var flower=art.Group("Flower border",town,new Vector3(bed<3?-16.0f:11.25f,.05f,-5.6f+(bed%3)*4.0f));
                 art.Box("Flower bed edging",flower,new Vector3(0,.15f,0),new Vector3(.68f,.25f,2.5f),"Clay");
                 art.Box("Flower bed soil",flower,new Vector3(0,.29f,0),new Vector3(.55f,.03f,2.32f),"Wood");
                 for(int bloom=0;bloom<4;bloom++)

@@ -7,11 +7,18 @@ namespace IdleClinic.Presentation
     internal sealed class ClinicStreetLife
     {
         private readonly Transform[] cars=new Transform[4],pedestrians=new Transform[6],leftLegs=new Transform[6],rightLegs=new Transform[6];
+        private readonly Transform[][] trafficWheels=new Transform[4][];
         private static readonly string[] CarColors={"Apricot","Sage","Blue","Mustard","Rose","Denim"};
         internal ClinicStreetLife(ClinicArt art,Transform parent)
         {
             var root=art.Group("Neighbourhood street life",parent);
-            for(int i=0;i<4;i++)cars[i]=Car(art,root,"Traffic car "+i,Vector3.zero,i).transform;
+            for(int i=0;i<4;i++)
+            {
+                cars[i]=Car(art,root,"Traffic car "+i,Vector3.zero,i).transform;
+                var wheelParts=new System.Collections.Generic.List<Transform>();
+                foreach(var part in cars[i].GetComponentsInChildren<Transform>())if(part.name=="Car tyre"||part.name=="Car hubcap")wheelParts.Add(part);
+                trafficWheels[i]=wheelParts.ToArray();
+            }
             for(int i=0;i<6;i++)
             {
                 var person=art.Group("Street pedestrian "+i,root);pedestrians[i]=person;
@@ -36,14 +43,15 @@ namespace IdleClinic.Presentation
         {
             double seconds=reducedMotion?0:(state.Tick+state.SubTick)*.1;
             float cycle=(float)(seconds%40);
-            // At t=10 both traffic lanes stop clear of the zebra crossing. A pedestrian
-            // crosses during t=11..18; cars remain stationary until t=20.
-            float east=cycle<10?Mathf.Lerp(-55,-1.15f,cycle/10):cycle<20?-1.15f:Mathf.Lerp(-1.15f,55,(cycle-20)/20);
-            float west=cycle<10?Mathf.Lerp(55,2.60f,cycle/10):cycle<20?2.60f:Mathf.Lerp(2.60f,-55,(cycle-20)/20);
+            // Ambient cars use the far lane; the near lane belongs to patient vehicles.
+            // Far-lane traffic yields throughout the zebra crossing interval.
+            float west=cycle<10?Mathf.Lerp(55,2.90f,cycle/10):cycle<20?2.90f:Mathf.Lerp(2.90f,-55,(cycle-20)/20);
             for(int i=0;i<4;i++)
             {
-                bool right=i%2==0;float x=(right?east:west)+(i/2)*(right?-4.5f:4.5f);
-                cars[i].position=new Vector3(x,.13f,right?-8.2f:-9.75f);cars[i].rotation=Quaternion.Euler(0,right?90:-90,0);
+                float x=west+i*4.5f;
+                cars[i].position=new Vector3(x,-.11f,-9.75f);cars[i].rotation=Quaternion.Euler(0,-90,0);
+                var roll=Quaternion.Euler((55-x)/.175f*Mathf.Rad2Deg,0,0)*Quaternion.Euler(0,0,90);
+                for(int wheel=0;wheel<trafficWheels[i].Length;wheel++)trafficWheels[i][wheel].localRotation=roll;
             }
             for(int i=0;i<6;i++)
             {
@@ -52,7 +60,7 @@ namespace IdleClinic.Presentation
                 {
                     float journey=(float)(seconds%80);float half=journey%40;bool returning=journey>=40;
                     float t=Mathf.Clamp01((half-11)/7);
-                    point=new Vector3(.72f,.14f,Mathf.Lerp(returning?-6.97f:-11.08f,returning?-11.08f:-6.97f,t));
+                    point=new Vector3(1.38f,.14f,Mathf.Lerp(returning?-6.97f:-11.08f,returning?-11.08f:-6.97f,t));
                     direction=returning?Vector3.back:Vector3.forward;
                     if(half>=18&&half<32)
                     {
@@ -63,8 +71,10 @@ namespace IdleClinic.Presentation
                 }
                 else
                 {
-                    float distance=(float)((seconds*.47+i*4.1)%46);bool forward=distance<23;
-                    float x=forward?-12+distance:34-distance;
+                    // The reception-side pavement stays available for arriving parking passengers.
+                    float lower=i%2==0?-12f:2.6f,span=11-lower;
+                    float distance=(float)((seconds*.47+i*4.1)%(span*2));bool forward=distance<span;
+                    float x=lower+(forward?distance:span*2-distance);
                     point=new Vector3(x,.14f,i%2==0?-11.06f:-6.95f);direction=forward?Vector3.right:Vector3.left;
                 }
                 pedestrians[i].position=point;pedestrians[i].rotation=Quaternion.LookRotation(direction);
@@ -87,6 +97,8 @@ namespace IdleClinic.Presentation
                 {
                     var tire=art.Cylinder("Car tyre",root,new Vector3(side*.48f,.25f,wheel*.58f),new Vector3(.35f,.12f,.35f),"Ink");tire.transform.localRotation=Quaternion.Euler(0,0,90);
                     var hub=art.Cylinder("Car hubcap",root,new Vector3(side*.55f,.25f,wheel*.58f),new Vector3(.17f,.014f,.17f),"Gold");hub.transform.localRotation=Quaternion.Euler(0,0,90);
+                    art.Box("Car wheel spoke",hub.transform,new Vector3(0,-side*1.06f,0),new Vector3(.78f,.12f,.11f),"SageDark");
+                    art.Box("Car wheel spoke",hub.transform,new Vector3(0,-side*1.06f,0),new Vector3(.11f,.12f,.78f),"SageDark");
                 }
                 art.Box("Car headlamp",root,new Vector3(side*.30f,.42f,.94f),new Vector3(.20f,.13f,.025f),"Linen");
                 art.Box("Car tail lamp",root,new Vector3(side*.32f,.44f,-.94f),new Vector3(.16f,.10f,.025f),"Rose");

@@ -13,7 +13,7 @@ Build a little clinic with a lot of life.
 
 Welcome patients at reception, collect their payments and hire nurses to provide first aid. Add a waiting room, improve each desk and nursing station, and train individual staff members to work faster. Expand rooms to unlock better equipment, facilities and decorations while care continues.
 
-Grow beyond the clinic with an upgradable car park. Give waiting patients a toilet and vending machine, then collect the tips they leave. Watch a varied cast of visitors, passing cars and pedestrians bring the neighbourhood to life.
+Grow beyond the clinic with an upgradable car park. Watch cars drive in, park and leave after their patients receive care. Give waiting patients a toilet and vending machine, then collect the tips they leave. A varied cast of visitors, passing traffic and pedestrians brings the neighbourhood to life.
 
 Explore the miniature 3D world by dragging and pinching. Coins fly from their collection point to your wallet, and scaffolding shows room renovations in progress. Your existing clinic continues in this update, including progress made while away.
 ```
@@ -43,10 +43,10 @@ The clinic has a fuller neighbourhood, more varied people and individual staff a
 
 • Update from 3.1 and check that your clinic money, staff, rooms, waiting patients, preferences and ongoing renovation are preserved.
 • Upgrade one reception desk or nursing station and train its staff. Confirm the selected workplace becomes faster and the other workplace retains its level. Try the room-tier upgrade limits.
-• Build and improve the car park. Watch patients walk from occupied bays to reception and return after care.
+• Build and improve the car park. Watch cars enter, park and wait while their patients receive care. Patients should return before cars reverse and use the exit; occupied bays must remain reserved throughout.
 • Add a toilet and vending machine after building the waiting room. Watch patients visit and return, then collect vending tips. Repeated taps or relaunching should never repeat a collection.
 • Renovate a room while patients receive care. Check the scaffolding, progress display and completion, including after leaving and reopening the game.
-• Explore the furnished clinic and surrounding streets. Check varied people, seating, doors, traffic, notice boards and clear walking paths.
+• Explore the furnished clinic and surrounding streets. Check continuous walls, framed doors, traffic, notice boards and clear walking paths. Patients should walk rather than glide, including when queues advance and reduced motion is enabled.
 • Pan, pinch and tap on a small screen. Verify that dragging across a purchase or cash never activates it. Try reduced motion and VoiceOver, including individual upgrade controls.
 
 Please report the device, iOS version and steps for any visual overlap, missing control, stuck patient or lost progress.
@@ -54,7 +54,7 @@ Please report the device, iOS version and steps for any visual overlap, missing 
 
 ## Exact release sequence
 
-Complete final Unity and native acceptance, then freeze and push only the intended source and release changes. Preserve unrelated native work. `OrchardBuild.Prepare` now sets **3.2 (16)**. The package requires all seven fixtures: `ClinicSimulationTests`, `ClinicProfileTests`, `ClinicWorldTests`, `ClinicHUDTests`, `ClinicPerformanceTests`, `ClinicExpansionTests` and `ClinicMigrationTests`, under `IdleClinic.Tests`. Every case in the final unfiltered report must pass, with zero skipped or inconclusive cases. A filtered or historical report is not final-source evidence.
+Complete final Unity and native acceptance, then freeze and push only the intended source and release changes. Preserve unrelated native work. `OrchardBuild.Prepare` now sets **3.2 (16)**. The package requires all eleven fixtures: `ClinicSimulationTests`, `ClinicProfileTests`, `ClinicWorldTests`, `ClinicHUDTests`, `ClinicPerformanceTests`, `ClinicExpansionTests`, `ClinicMigrationTests`, `ClinicParkingFlowTests`, `ClinicWalkingTests`, `ClinicArchitectureTests` and `ClinicParkingWorldTests`, under `IdleClinic.Tests`. Every case in the final unfiltered report must pass, with zero skipped or inconclusive cases. A filtered or historical report is not final-source evidence.
 
 Export the frozen source using `OrbitOrchard.Editor.OrchardBuild.BuildIOS` into a new Device export directory. Package it with `Tools/package_unity_export.py EXPORT_DIRECTORY --output NEW_DIRECTORY/orbit-orchard-ios.zip --test-results FINAL_UNITY_XML --write`. Require the exact source SHA, `sourceDirty=false`, `developmentBuild=false`, `iosSdk=device`, successful export, and package version 3.2/build 16.
 

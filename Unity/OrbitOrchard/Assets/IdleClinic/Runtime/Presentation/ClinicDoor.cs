@@ -7,20 +7,24 @@ namespace IdleClinic.Presentation
     {
         private readonly Vector3 center;
         private readonly Transform left,right;
+        private readonly float halfPanel,slide;
         private float openness,hold;
         private bool rendered;
-        internal ClinicDoor(ClinicArt art,Transform parent,bool entrance=false)
+        internal ClinicDoor(ClinicArt art,Transform parent,bool entrance=false,Vector3? position=null,float yaw=0,float openingWidth=1.65f,string name=null)
         {
-            center=new Vector3(.675f,.14f,entrance?-5.13f:-.15f);
-            var root=art.Group(entrance?"Clinic entrance doorway":"Care wing doorway",parent,center);
+            center=position??new Vector3(.675f,.14f,entrance?-5.13f:-.15f);
+            halfPanel=openingWidth*.25f;slide=openingWidth*.5f+.05f;
+            var root=art.Group(name??(entrance?"Clinic entrance doorway":"Care wing doorway"),parent,center);root.localRotation=Quaternion.Euler(0,yaw,0);
             // Entrance rows pass 0.35m north/south of the frame; slim leaves preserve a 0.30m visitor radius.
             float depth=entrance?.05f:.13f;
             for(int side=-1;side<=1;side+=2)
-                art.Box("Care doorway jamb",root,new Vector3(side*.91f,.975f,0),new Vector3(.12f,1.95f,depth),"SageDark");
-            art.Box("Care doorway header",root,new Vector3(0,2.025f,0),new Vector3(1.95f,.15f,.17f),"Ivory");
-            art.Box("Care doorway rail",root,new Vector3(0,.013f,0),new Vector3(1.82f,.025f,entrance?.045f:.065f),"Gold");
-            left=Panel(art,root,entrance?"Entrance door left panel":"Care door left panel",-.4125f,entrance);
-            right=Panel(art,root,entrance?"Entrance door right panel":"Care door right panel",.4125f,entrance);
+                art.Box("Care doorway jamb",root,new Vector3(side*(openingWidth*.5f+.085f),.975f,0),new Vector3(.12f,1.95f,depth),"SageDark");
+            art.Box("Care doorway header",root,new Vector3(0,2.025f,0),new Vector3(openingWidth+.30f,.15f,.17f),"Ivory");
+            art.Box("Door head seal",root,new Vector3(0,1.865f,0),new Vector3(openingWidth+.03f,.17f,depth),"Sage");
+            art.Box("Care doorway rail",root,new Vector3(0,.013f,0),new Vector3(openingWidth+.17f,.025f,entrance?.045f:.065f),"Gold");
+            left=Panel(art,root,entrance?"Entrance door left panel":"Care door left panel",-halfPanel,entrance);
+            right=Panel(art,root,entrance?"Entrance door right panel":"Care door right panel",halfPanel,entrance);
+            left.localScale=right.localScale=new Vector3(openingWidth/1.65f,1,1);
             if(entrance)
             {
                 art.Box("Clinic name plaque",root,new Vector3(0,2.37f,0),new Vector3(3.48f,.55f,.14f),"SageDark");
@@ -51,7 +55,7 @@ namespace IdleClinic.Presentation
             if(actors.ApproachesDoor(center,1.20f,1.40f))hold=.45f;else hold=Mathf.Max(0,hold-Mathf.Max(0,deltaTime));
             float target=hold>0?1:0;
             openness=reducedMotion||!rendered?target:Mathf.MoveTowards(openness,target,Mathf.Max(0,deltaTime)*(target>openness?8f:2.5f));rendered=true;
-            left.localPosition=new Vector3(-.4125f-.875f*openness,0,0);right.localPosition=new Vector3(.4125f+.875f*openness,0,0);
+            left.localPosition=new Vector3(-halfPanel-slide*openness,0,0);right.localPosition=new Vector3(halfPanel+slide*openness,0,0);
         }
     }
 }

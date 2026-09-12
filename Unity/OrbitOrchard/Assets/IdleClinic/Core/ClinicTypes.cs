@@ -12,7 +12,8 @@ namespace IdleClinic.Core
     {
         Arriving, ReceptionQueue, WalkingToReception, CheckingIn, WaitingForTreatment,
         WalkingToWaiting, Seated, WalkingToTreatment, Treating, Leaving,
-        WalkingToAmenity, UsingAmenity, ReturningFromAmenity
+        WalkingToAmenity, UsingAmenity, ReturningFromAmenity,
+        WaitingToPark, DrivingToParking, WaitingToExit, DrivingFromParking
     }
     public enum ClinicConstructionKind { WaitingRoom, RoomRenovation }
     public enum ClinicEventKind

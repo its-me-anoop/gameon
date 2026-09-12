@@ -35,15 +35,20 @@ namespace IdleClinic.Presentation
             {
                 var person=state.Patients[i];
                 if(!patients.TryGetValue(person.Id,out var actor))
-                { actor=patientPool.Count>0?patientPool.Pop():Create("Patient");patients.Add(person.Id,actor);actor.Root.name="Patient "+person.Id;actor.Root.gameObject.SetActive(true);actor.From=null;actor.To=null; }
+                { actor=patientPool.Count>0?patientPool.Pop():Create("Patient");patients.Add(person.Id,actor);actor.Root.name="Patient "+person.Id;actor.ResetPlacement(person.Id*.17); }
+                bool inVehicle=person.Phase==ClinicPatientPhase.WaitingToPark||person.Phase==ClinicPatientPhase.DrivingToParking||
+                    person.Phase==ClinicPatientPhase.WaitingToExit||person.Phase==ClinicPatientPhase.DrivingFromParking;
+                actor.Root.gameObject.SetActive(!inVehicle);
+                if(inVehicle){actor.HasPosition=false;actor.Moving=false;continue;}
                 actor.Appearance.Apply(person.AppearanceId);
                 bool walking=person.Phase==ClinicPatientPhase.Arriving||person.Phase==ClinicPatientPhase.WalkingToReception||
                     person.Phase==ClinicPatientPhase.WalkingToWaiting||person.Phase==ClinicPatientPhase.WalkingToTreatment||person.Phase==ClinicPatientPhase.Leaving||
                     person.Phase==ClinicPatientPhase.WalkingToAmenity||person.Phase==ClinicPatientPhase.ReturningFromAmenity;
                 bool seated=((person.Phase==ClinicPatientPhase.Seated||person.Phase==ClinicPatientPhase.Treating)&&world.HasSeatAt(person.ToAnchor))||
                     (person.Phase==ClinicPatientPhase.UsingAmenity&&person.VisitingAmenity==ClinicAmenity.Toilet);
-                int pose=walking?1:person.Phase==ClinicPatientPhase.CheckingIn||person.Phase==ClinicPatientPhase.UsingAmenity&&!seated?2:seated?4:0;
-                Place(actor,person.FromAnchor,person.ToAnchor,Progress(tick,person.PhaseStartedTick,person.PhaseEndsTick),walking,false);
+                Place(actor,person.FromAnchor,person.ToAnchor,Progress(tick,person.PhaseStartedTick,person.PhaseEndsTick),walking,false,tick,
+                    person.Phase==ClinicPatientPhase.ReceptionQueue);
+                int pose=actor.Moving?1:person.Phase==ClinicPatientPhase.CheckingIn||person.Phase==ClinicPatientPhase.UsingAmenity&&!seated?2:seated?4:0;
                 actor.Sample(pose,tick*.1+person.Id*.17,reducedMotion,person.Phase==ClinicPatientPhase.Leaving);actor.Appearance.AfterPose(seated);
             }
             foreach(var entry in staff)
@@ -62,20 +67,52 @@ namespace IdleClinic.Presentation
                 int pose=walking?1:member.PatientId<0?0:member.Role==ClinicStaffRole.Receptionist?2:3;
                 if(!walking&&member.Role==ClinicStaffRole.Nurse&&member.PatientId>=0)
                     for(int p=0;p<state.Patients.Count;p++)if(state.Patients[p].Id==member.PatientId&&state.Patients[p].Phase==ClinicPatientPhase.WalkingToTreatment){pose=5;break;}
-                Place(actor,member.FromAnchor,member.ToAnchor,Progress(tick,member.MoveStartedTick,member.MoveEndsTick),walking,true);
+                Place(actor,member.FromAnchor,member.ToAnchor,Progress(tick,member.MoveStartedTick,member.MoveEndsTick),walking,true,tick,false);
                 actor.Sample(pose,tick*.1+member.Id*.13,reducedMotion);actor.Appearance.AfterPose(false);
             }
         }
         private static float Progress(double tick,long from,long until)=>until<=from?1:Mathf.Clamp01((float)((tick-from)/(until-from)));
-        private void Place(Actor actor,string from,string to,float progress,bool walking,bool isStaff)
+        private void Place(Actor actor,string from,string to,float progress,bool walking,bool isStaff,double tick,bool queued)
         {
-            actor.Moving=walking;
+            var before=actor.Root.position;bool placed=actor.HasPosition;
+            float seconds=placed?(float)Math.Max(0,(tick-actor.LastTick)*.1):0;
             if(!walking)
-            { actor.Root.position=world.GetAnchorPoint(to);actor.Root.rotation=Quaternion.LookRotation(world.Facing(to));return; }
-            if(actor.From!=from||actor.To!=to||actor.IsStaff!=isStaff)
-            { actor.From=from;actor.To=to;actor.IsStaff=isStaff;actor.Route.Build(world,from,to,isStaff); }
-            actor.Root.position=actor.Route.Sample(progress,out var direction);
-            if(direction.sqrMagnitude>.0001f)actor.Root.rotation=Quaternion.LookRotation(direction);
+            {
+                var destination=world.GetAnchorPoint(to);
+                // Queue indices change without a new simulation phase. Walk from the
+                // last visible position instead of snapping an idle rig to its next slot.
+                if(queued&&placed&&(destination-before).sqrMagnitude>.000001f)
+                {
+                    if(!actor.QueueMoving||actor.To!=to)
+                    { actor.Route.Build(world,actor.To,to,false,before);actor.QueueDistance=0; }
+                    actor.QueueDistance=Mathf.Min(actor.Route.Length,actor.QueueDistance+seconds*1.35f);
+                    actor.Root.position=actor.Route.Sample(actor.Route.Length<=.001f?1:actor.QueueDistance/actor.Route.Length,out var direction);
+                    if(direction.sqrMagnitude>.0001f)actor.Root.rotation=Quaternion.LookRotation(direction);
+                    actor.QueueMoving=actor.QueueDistance<actor.Route.Length;
+                    actor.Moving=actor.QueueMoving||(actor.Root.position-before).sqrMagnitude>.000001f;
+                }
+                else
+                { actor.Root.position=destination;actor.Root.rotation=Quaternion.LookRotation(world.Facing(to));actor.QueueMoving=false;actor.Moving=false; }
+            }
+            else
+            {
+                if(!placed||actor.From!=from||actor.To!=to||actor.IsStaff!=isStaff||actor.QueueMoving)
+                {
+                    actor.Route.Build(world,from,to,isStaff,placed?(Vector3?)before:null);
+                    actor.RouteStartProgress=placed?progress:0;actor.QueueMoving=false;
+                }
+                float routeProgress=progress>=1?1:Mathf.InverseLerp(actor.RouteStartProgress,1,progress);
+                actor.Root.position=actor.Route.Sample(routeProgress,out var direction);
+                if(direction.sqrMagnitude>.0001f)actor.Root.rotation=Quaternion.LookRotation(direction);
+                actor.Moving=progress<1&&actor.Route.Length>.001f;
+            }
+            if(placed)
+            {
+                var travelled=actor.Root.position-before;travelled.y=0;
+                // The authored feet cover 0.54m per step, two steps per cycle.
+                actor.WalkCycles+=travelled.magnitude/(1.08f*Mathf.Max(.1f,actor.Root.localScale.z));
+            }
+            actor.HasPosition=true;actor.LastTick=tick;actor.From=from;actor.To=to;actor.IsStaff=isStaff;
         }
         internal bool ApproachesDoor(Vector3 point,float halfWidth,float distance)
         {
@@ -101,7 +138,7 @@ namespace IdleClinic.Presentation
             {
                 if(!source[i].name.EndsWith(PoseNames[p],StringComparison.Ordinal))continue;
                 animation.AddClip(source[i],PoseNames[p]);states[p]=animation[PoseNames[p]];
-                states[p].enabled=false;states[p].wrapMode=WrapMode.Loop;states[p].weight=1;break;
+                states[p].enabled=false;states[p].wrapMode=WrapMode.Loop;states[p].weight=1;states[p].speed=0;break;
             }
             // All animation bounds include the bent arms and seated knees; culling remains enabled.
             foreach(var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>())
@@ -131,7 +168,9 @@ namespace IdleClinic.Presentation
             internal readonly ClinicAppearance Appearance;
             internal readonly ClinicRoute Route=new ClinicRoute();
             internal string From,To;
-            internal bool IsStaff,Moving;
+            internal bool IsStaff,Moving,HasPosition,QueueMoving;
+            internal double LastTick,WalkCycles;
+            internal float QueueDistance,RouteStartProgress;
             private readonly Animation animation;
             private readonly AnimationState[] states;
             private readonly Transform head,relief;
@@ -139,12 +178,18 @@ namespace IdleClinic.Presentation
             private int current=-1;
             internal Actor(Transform root,Animation animation,AnimationState[] states,Transform head,Transform relief,AnimationState departureWave,ClinicAppearance appearance)
             { Appearance=appearance;Root=root;this.animation=animation;this.states=states;this.head=head;this.relief=relief;this.departureWave=departureWave; }
+            internal void ResetPlacement(double cycle)
+            { From=null;To=null;HasPosition=false;Moving=false;QueueMoving=false;QueueDistance=0;RouteStartProgress=0;WalkCycles=cycle; }
             internal void Sample(int pose,double seconds,bool reducedMotion,bool departing=false)
             {
                 if(states[pose]==null)pose=0;if(states[pose]==null)return;
                 if(current!=pose)
                 { if(current>=0&&states[current]!=null)states[current].enabled=false;current=pose;states[current].enabled=true; }
-                var state=states[current];state.time=reducedMotion||pose==4?0:(float)(seconds%Math.Max(.001f,state.length));
+                var state=states[current];state.enabled=true;
+                // Walking explains essential travel, even with reduced motion. Freeze
+                // optional idle/service motion, not the feet of a moving character.
+                state.time=pose==1?(float)(WalkCycles%1)*state.length:
+                    reducedMotion||pose==4?0:(float)(seconds%Math.Max(.001f,state.length));
                 if(departureWave!=null)
                 { departureWave.enabled=departing&&!reducedMotion;departureWave.time=(float)(seconds%Math.Max(.001f,departureWave.length)); }
                 animation.Sample();
@@ -163,10 +208,11 @@ namespace IdleClinic.Presentation
         private readonly Vector3[] points=new Vector3[24];
         private int count;
         private float length;
-        internal void Build(ClinicWorld world,string from,string to,bool staff)
+        internal float Length=>length;
+        internal void Build(ClinicWorld world,string from,string to,bool staff,Vector3? visibleStart=null)
         {
-            count=0;length=0;var start=world.GetAnchorPoint(from);var end=world.GetAnchorPoint(to);Add(start);
-            if(from==to){Add(end);return;}
+            count=0;length=0;var start=visibleStart??world.GetAnchorPoint(from);var end=world.GetAnchorPoint(to);Add(start);
+            if(from==to&&(end-start).sqrMagnitude<.000001f){Add(end);return;}
             float lane=staff?.95f:.40f;
             bool fromDesk=Starts(from,"reception.desk."),toDesk=Starts(to,"reception.desk.");
             bool fromQueue=Starts(from,"reception.queue."),toQueue=Starts(to,"reception.queue.");
@@ -174,8 +220,25 @@ namespace IdleClinic.Presentation
             bool fromCare=Starts(from,"firstaid.station."),toCare=Starts(to,"firstaid.station.");
             bool fromParking=Starts(from,"parking.bay."),toParking=Starts(to,"parking.bay.");
             bool fromAmenity=Starts(from,"waiting.toilet.")||Starts(from,"waiting.vending."),toAmenity=Starts(to,"waiting.toilet.")||Starts(to,"waiting.vending.");
+            if(fromQueue&&toQueue)
+            {
+                if((start.z<-5.13f)!=(end.z<-5.13f))
+                { Add(new Vector3(lane,start.y,start.z));Add(new Vector3(lane,end.y,end.z)); }
+                Add(end);return;
+            }
             if(fromParking)
-            { Add(new Vector3(start.x,start.y,-6.72f));Add(new Vector3(.67f,start.y,-6.72f));Add(new Vector3(.67f,start.y,-5.80f)); }
+            {
+                // A queue may advance during the walk from a parked car. Rejoin the
+                // remaining walkway from the visible position, without walking back
+                // to the bay or repeating its first southward step.
+                float crossingZ=world.GetAnchorPoint(from).z-.58f;
+                if(start.x<-6.651f)
+                { Add(new Vector3(start.x,start.y,crossingZ));Add(new Vector3(-6.65f,start.y,crossingZ)); }
+                if(start.x<=-6.649f)
+                { Add(new Vector3(-6.65f,start.y,-6.90f));Add(new Vector3(.67f,start.y,-6.90f)); }
+                else if(start.z<-5.13f&&start.x<.67f)Add(new Vector3(.67f,start.y,-6.90f));
+                else Add(new Vector3(lane,start.y,start.z));
+            }
             else if(fromAmenity)
             {
                 if(Starts(from,"waiting.toilet.")){Add(new Vector3(start.x,start.y,5.65f));Add(new Vector3(3.40f,start.y,5.65f));}
@@ -185,10 +248,11 @@ namespace IdleClinic.Presentation
             else if(fromDesk) { float z=staff?-1.15f:-4.05f;Add(new Vector3(start.x,start.y,z));Add(new Vector3(lane,start.y,z)); }
             else if(fromSeat) { Add(new Vector3(3.40f,start.y,start.z));if(!toAmenity){Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f));} }
             else if(fromCare) { Add(new Vector3(start.x,start.y,1.03f));Add(new Vector3(lane,start.y,1.03f)); }
-            else if(fromQueue && !toDesk && !toQueue) { Add(new Vector3(start.x,start.y,-5.82f));Add(new Vector3(lane,start.y,-5.82f)); }
+            else if(fromQueue && !toDesk)
+            { Add(new Vector3(lane,start.y,start.z));Add(new Vector3(lane,start.y,-4.05f)); }
             else if(!fromQueue)Add(new Vector3(lane,start.y,start.z));
             if(toParking)
-            { Add(new Vector3(lane,end.y,-5.80f));Add(new Vector3(.67f,end.y,-6.72f));Add(new Vector3(end.x,end.y,-6.72f)); }
+            { Add(new Vector3(lane,end.y,-6.90f));Add(new Vector3(-6.65f,end.y,-6.90f));Add(new Vector3(-6.65f,end.y,end.z-.58f));Add(new Vector3(end.x,end.y,end.z-.58f)); }
             else if(toAmenity)
             {
                 if(!fromSeat){Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));}
@@ -199,6 +263,8 @@ namespace IdleClinic.Presentation
             {
                 float z=staff?-1.15f:-4.05f;
                 if(!fromQueue)Add(new Vector3(lane,end.y,z));
+                else if(start.z<-5.13f)
+                { Add(new Vector3(lane,start.y,start.z));Add(new Vector3(lane,end.y,z)); }
                 else Add(new Vector3(start.x,end.y,z));
                 Add(new Vector3(end.x,end.y,z));
             }

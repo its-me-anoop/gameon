@@ -17,6 +17,16 @@ namespace IdleClinic.Core
         public const long TreatmentStationCost = 180;
         public const long ReceptionistCost = 300;
         public const int WaitingRoomBuildSeconds = 20;
+        public const int StreetCrossingCycleTicks = 400;
+        public const int StreetCrossingStartsTick = 110;
+        public const int StreetCrossingEndsTick = 180;
+        public const int ParkingEntryTicks = 180;
+        public const int ParkingReverseTicks = 40;
+        public const int ParkingGearChangeTicks = 8;
+        public const int ParkingExitTravelTicks = 160;
+        public const int ParkingExitTicks = ParkingReverseTicks + ParkingGearChangeTicks + ParkingExitTravelTicks;
+        public const int FastestTreatmentTicks = 64;
+        public const int EarliestCalledPatientCompletionTicks = 106;
 
         public static int TrackCap(int tier) => tier == 1 ? 2 : tier == 2 ? 4 : 6;
         public static int ComponentCap(int tier) => TrackCap(tier);

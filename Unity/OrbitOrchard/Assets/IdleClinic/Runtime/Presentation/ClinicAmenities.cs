@@ -6,53 +6,20 @@ namespace IdleClinic.Presentation
     /// <summary>Amenity tiers and occupancy are projections of simulation state, never an income source.</summary>
     internal sealed class ClinicAmenities
     {
-        internal static readonly Vector3 ParkingPoint=new Vector3(-9.7f,.75f,-4.7f);
+        internal static readonly Vector3 ParkingPoint=ClinicParkingLayout.SignPoint;
         internal static readonly Vector3 ToiletPoint=new Vector3(4.65f,1.3f,5.75f);
         internal static readonly Vector3 VendingPoint=new Vector3(5.17f,1.15f,-2.55f);
         internal static readonly Vector3 VendingCashPoint=new Vector3(5.56f,1.38f,-2.65f);
-        private readonly GameObject[] bayMarks=new GameObject[6],parkedCars=new GameObject[6],futureBays=new GameObject[6];
+        private readonly ClinicParkingPresentation parkingWorld;
         private readonly GameObject[,] tierDetails=new GameObject[3,3];
-        private readonly GameObject toilet,vending,toiletPlot,vendingPlot,parkingPlot,cash,tipCup;
+        private readonly GameObject toilet,vending,toiletPlot,vendingPlot,toiletClosure,cash,tipCup;
         private readonly Transform toiletDoor,vendingButton,vendingTip;
         internal long VendingTill { get; private set; }
-        internal static Vector3 BayPatient(int bay)=>new Vector3(bay%2==0?-9.95f:-7.1f,.14f,-3.0f+(bay/2)*2.9f);
+        internal static Vector3 BayPatient(int bay)=>ClinicParkingLayout.BayDoor(bay);
         internal ClinicAmenities(ClinicArt art,Transform parent)
         {
             var root=art.Group("Clinic amenities",parent);
-            var lot=art.Group("Clinic car park",root);
-            art.Box("Car park surface",lot,new Vector3(-10.05f,-.02f,0),new Vector3(6.3f,.25f,10.2f),"Asphalt");
-            art.Box("Parking pedestrian path",lot,new Vector3(-7.1f,.10f,-.3f),new Vector3(.9f,.08f,10.9f),"TilePeach");
-            art.Box("Parking entrance apron",lot,new Vector3(-10,.04f,-6.05f),new Vector3(5.6f,.12f,2.1f),"Asphalt");
-            for(int i=0;i<6;i++)
-            {
-                float x=i%2==0?-11.3f:-8.6f,z=-3f+(i/2)*2.9f;
-                var bay=art.Group("Parking bay "+i,lot,new Vector3(x,.12f,z));bayMarks[i]=bay.gameObject;
-                for(int side=-1;side<=1;side+=2)art.Box("Parking bay stripe",bay,new Vector3(0,0,side*1.23f),new Vector3(2.25f,.008f,.06f),"Linen");
-                art.Box("Parking stop",bay,new Vector3(-.91f,.055f,0),new Vector3(.13f,.11f,1.08f),"Gold");
-                parkedCars[i]=ClinicStreetLife.Car(art,lot,"Parked patient car "+i,new Vector3(x,.14f,z),i);parkedCars[i].transform.rotation=Quaternion.Euler(0,90,0);
-                parkedCars[i].SetActive(false);bayMarks[i].SetActive(false);
-                futureBays[i]=BuildFutureBay(art,lot,i,new Vector3(x,.12f,z));
-            }
-            parkingPlot=art.Group("Parking expansion marker",lot,ParkingPoint).gameObject;
-            art.Box("Parking sign",parkingPlot.transform,Vector3.zero,new Vector3(.88f,.70f,.08f),"SageDark");
-            art.Box("Parking letter stem",parkingPlot.transform,new Vector3(-.12f,0,-.05f),new Vector3(.09f,.44f,.018f),"Linen");
-            art.Box("Parking letter top",parkingPlot.transform,new Vector3(.03f,.17f,-.05f),new Vector3(.32f,.09f,.018f),"Linen");
-            art.Box("Parking letter middle",parkingPlot.transform,new Vector3(.03f,0,-.05f),new Vector3(.32f,.09f,.018f),"Linen");
-            art.Box("Parking letter curve",parkingPlot.transform,new Vector3(.16f,.085f,-.05f),new Vector3(.09f,.22f,.018f),"Linen");
-            art.Box("Parking sign post",lot,ParkingPoint+new Vector3(0,-.35f,.04f),new Vector3(.07f,.85f,.07f),"Gold");
-            for(int level=1;level<=3;level++)
-            {
-                var detail=art.Group("Parking tier "+level,lot);tierDetails[0,level-1]=detail.gameObject;
-                float z=-3f+(level-1)*2.9f;
-                art.Box("Parking planting strip",detail,new Vector3(-13.02f,.23f,z),new Vector3(.32f,.35f,2.5f),"Clay");
-                for(int n=0;n<3;n++)art.Orb("Parking hedge",detail,new Vector3(-13.02f,.60f,z-.8f+n*.8f),new Vector3(.58f,.66f,.83f),"Leaf");
-                if(level>1)
-                {
-                    art.Cylinder("Parking lamp post",detail,new Vector3(-12.95f,1.6f,z),new Vector3(.065f,3.0f,.065f),"SageDark");
-                    art.Orb("Parking lamp globe",detail,new Vector3(-12.95f,3.15f,z),new Vector3(.34f,.30f,.34f),"Linen");
-                }
-                detail.gameObject.SetActive(false);
-            }
+            parkingWorld=new ClinicParkingPresentation(art,root);
             var annex=art.Group("Waiting toilet annex",root);
             art.Box("Toilet annex foundation",annex,new Vector3(4.2f,.05f,6.05f),new Vector3(3.15f,.2f,2.3f),"Clay");
             art.Box("Toilet tile floor",annex,new Vector3(4.2f,.15f,6.05f),new Vector3(3.1f,.03f,2.25f),"TileBlue");
@@ -60,6 +27,8 @@ namespace IdleClinic.Presentation
             art.Box("Toilet plot placard",toiletPlot.transform,Vector3.zero,new Vector3(.7f,.55f,.07f),"Sage");
             art.Orb("Toilet pictogram head",toiletPlot.transform,new Vector3(0,.12f,-.055f),new Vector3(.11f,.11f,.035f),"Linen");
             art.Box("Toilet pictogram body",toiletPlot.transform,new Vector3(0,-.04f,-.055f),new Vector3(.16f,.18f,.035f),"Linen");
+            toiletClosure=art.Box("Future toilet doorway closure",annex,new Vector3(3.4375f,.94f,4.97f),new Vector3(.90f,1.60f,.08f),"Wood");
+            art.Box("Toilet construction crossbar",toiletClosure.transform,new Vector3(0,.10f,-.56f),new Vector3(.85f,.09f,.10f),"Apricot");
             toilet=art.Group("Patient toilet",annex).gameObject;
             art.Box("Toilet privacy back",toilet.transform,new Vector3(4.2f,1.15f,7.20f),new Vector3(3.15f,2.0f,.14f),"TileSage");
             art.Box("Toilet privacy east",toilet.transform,new Vector3(5.75f,.80f,6.1f),new Vector3(.14f,1.3f,2.15f),"TileSage");
@@ -116,25 +85,6 @@ namespace IdleClinic.Presentation
             vendingTip=art.Cylinder("Patient leaves a tip",root,VendingCashPoint,new Vector3(.14f,.035f,.14f),"Gold").transform;
             toilet.SetActive(false);vending.SetActive(false);cash.SetActive(false);vendingTip.gameObject.SetActive(false);
         }
-        private static GameObject BuildFutureBay(ClinicArt art,Transform parent,int index,Vector3 position)
-        {
-            var root=art.Group("Future parking bay "+index,parent,position);
-            art.Box("Parking staging pad",root,new Vector3(0,.008f,0),new Vector3(1.95f,.018f,2.30f),index%2==0?"TilePeach":"TileSage");
-            for(int corner=-1;corner<=1;corner+=2)
-            {
-                art.Box("Parking survey corner",root,new Vector3(corner*.79f,.029f,corner*.94f),new Vector3(.30f,.012f,.04f),"Linen");
-                art.Box("Parking survey corner",root,new Vector3(corner*.92f,.029f,corner*.81f),new Vector3(.04f,.012f,.30f),"Linen");
-            }
-            var supplies=art.Group("Covered parking pavers",root,new Vector3(-.15f,0,-.23f));
-            art.Box("Paver delivery pallet",supplies,new Vector3(0,.09f,0),new Vector3(.92f,.07f,.70f),"Wood");
-            art.Box("Stacked paving slabs",supplies,new Vector3(0,.22f,0),new Vector3(.82f,.20f,.60f),"Clay");
-            art.Box("Paver weather cover",supplies,new Vector3(0,.38f,0),new Vector3(.90f,.12f,.67f),index%2==0?"TileBlue":"Apricot");
-            art.Box("Paver securing strap",supplies,new Vector3(0,.383f,0),new Vector3(.065f,.135f,.70f),"Gold");
-            art.Box("Portable parking planter",root,new Vector3(.37f,.18f,.63f),new Vector3(.46f,.28f,.46f),"Wood");
-            art.Orb("Portable planter foliage",root,new Vector3(.37f,.45f,.63f),new Vector3(.63f,.40f,.62f),"Leaf");
-            return root.gameObject;
-        }
-
         internal void Render(ClinicState state,bool reducedMotion)
         {
             int parking=0,toiletLevel=0,vendingLevel=0;VendingTill=0;
@@ -146,13 +96,9 @@ namespace IdleClinic.Presentation
                 else { vendingLevel=level;VendingTill=amenity.Till; }
 
             }
-            for(int kind=0;kind<3;kind++)for(int tier=1;tier<=3;tier++)tierDetails[kind,tier-1].SetActive(tier<=(kind==0?parking:kind==1?toiletLevel:vendingLevel));
-            for(int i=0;i<6;i++)
-            {
-                bayMarks[i].SetActive(i<parking*2);futureBays[i].SetActive(i>=parking*2);bool occupied=false;
-                for(int p=0;p<state.Patients.Count;p++)if(state.Patients[p].ParkingBayId==i){occupied=true;break;}
-                parkedCars[i].SetActive(i<parking*2&&occupied);
-            }
+            for(int kind=1;kind<3;kind++)for(int tier=1;tier<=3;tier++)tierDetails[kind,tier-1].SetActive(tier<=(kind==0?parking:kind==1?toiletLevel:vendingLevel));
+            parkingWorld.Render(state,parking,reducedMotion);
+            toiletClosure.SetActive(toiletLevel==0);
             toilet.SetActive(toiletLevel>0);toiletPlot.SetActive(toiletLevel==0);vending.SetActive(vendingLevel>0);vendingPlot.SetActive(vendingLevel==0);
             tipCup.SetActive(vendingLevel>0);cash.SetActive(vendingLevel>0&&VendingTill>0);
             bool toiletApproach=false,toiletOccupied=false;ClinicPatientState vendingUser=null;
