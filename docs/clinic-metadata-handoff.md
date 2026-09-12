@@ -1,8 +1,8 @@
 # Clinic beta metadata handoff
 
-These commands are prepared, **not executed**. Run them from the repository root only after the final clinic candidate is accepted. The first operation belongs immediately before promoting its sealed archive, so build 15 does not become available with the old train description. Existing prices, products, leaderboards, contacts, agreements, tester groups and review submissions remain outside this operation.
+The clinic metadata handoff is **complete**, with exact readback at **08:51:39 UTC on 12 September 2026**. The beta description and reviewer instructions were updated before archive promotion; the testing notes were applied to verified 3.1 (15). Existing prices, products, leaderboards, contacts, agreements, tester groups and review submissions were preserved. The commands below remain read-only by default and are retained as the reproducible recipe.
 
-Read-only verification at **07:54:25 UTC, 12 September 2026** found build 15 and version 3.1 unused across all build/build-upload pages. The Internal group `a1098f67-cfde-4eaa-8626-e250f881596a` still has access to all builds. Recheck immediately before upload. Both beta text records still describe the train game.
+The final paginated readback verifies Apple build `57f80045-8962-44b7-87e6-4b444beaedbb` as 3.1 (15), `VALID`, unexpired and `IN_BETA_TESTING`, with explicit membership in Internal group `a1098f67-cfde-4eaa-8626-e250f881596a`. Description, reviewer notes and en-US build localization `7275a9cc-e570-4b57-8a34-1abafe653edc` match their committed text files. See [the delivery record](idle-clinic-release.md) and [provider readback](../build/qa-clinic/ec09-final-delivery-readback.json). Build 15 is now used and must not be uploaded again.
 
 | Operation | Endpoint | Fields and committed source |
 | --- | --- | --- |

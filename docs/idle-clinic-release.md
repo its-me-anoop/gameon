@@ -1,8 +1,26 @@
 # Little Lifeline 3.1 — idle clinic release
 
-This candidate replaces the train game with a fixed 3D clinic. The public display name stays **Little Lifeline**, bundle `com.flutterly.gravitile`, app `6786840477`, team `K6623R3GP5`. Planned version/build: **3.1 (15)**. New internal product marker: `idle-clinic`; launch scene: `Assets/IdleClinic/Scenes/Clinic.unity`.
+**Little Lifeline 3.1 (15) is available to the Internal TestFlight group**, independently verified at **08:51:39 UTC on 12 September 2026**. It replaces the train game with a fixed 3D starter clinic, including reception dividers, nursing partitions, an animated named entrance and a surrounding neighbourhood. Bundle: `com.flutterly.gravitile`; app: `6786840477`; team: `K6623R3GP5`; product marker: `idle-clinic`; scene: `Assets/IdleClinic/Scenes/Clinic.unity`.
 
-No clinic App Store metadata changes or uploads have been performed during implementation. A dedicated development profile was created for the existing certificate and registered QA phone; see the device recipe. The preceding release, 3.0 (14), was verified VALID and internally available on 12 September 2026; its source was `0c82dbf4b13db31812662f2d2b396e416066027e`. Archive run `34659231780` and promotion run `34659787504` demonstrate the pipeline, not validation of this new clinic candidate.
+The clinic beta description, reviewer instructions and this build's testing notes were updated and read back exactly. No App Store review or external beta review was submitted. New monetisation and leaderboards remain deferred. The final physical-phone retest was unavailable; simulator evidence and the earlier bounded device measurements are reported separately in [the QA record](qa/idle-clinic.md).
+
+## Delivered build
+
+| Evidence | Verified value |
+| --- | --- |
+| Frozen app source | `ec09a5d9cba07f8d7e2ae9d80092f348e6ad9fa0` |
+| Unity validation | 298 passed, zero failed or skipped; XML SHA-256 `f35fbc2cc649f9618935ef7abf371ada6458d5087a190a4624e750ea40287526` |
+| Native simulator validation | Full guided run on `e8cf10b`, then final UI-only regression on `ec09a5d`; both passed. See the scoped [QA evidence](qa/idle-clinic.md) |
+| Production export | Device SDK, nondevelopment; SHA-256 `c26f14aec4e5f9e89acc77f8eeeb069bc83b63b46d2e267b3bea2adf2ab25e62` |
+| Private transfer draft | `unity-export-clinic-ec09a5d9cba0-b15`; asset `558916093`, 208,752,653 bytes; remains unpublished |
+| Signed archive | [Run 34683645410](https://github.com/its-me-anoop/gameon/actions/runs/34683645410), successful; SHA-256 `877d8c808b961e39dcf03e8a2ac75e7f062beab1456c87f0608fde4222ee7737` |
+| Upload of the same archive | [Run 34684109021](https://github.com/its-me-anoop/gameon/actions/runs/34684109021), successful at 08:48:13 UTC; archive/export jobs skipped, no rebuild |
+| Release toolchain | Xcode 26.6 (17F113), macOS 26.6.2 (25G83); signature, identity, privacy reasons and all thirteen Apple bridge exports passed |
+| Apple build UUID | `57f80045-8962-44b7-87e6-4b444beaedbb` — 3.1 (15), `VALID`, unexpired, upload `COMPLETE` with no reported errors/warnings |
+| Internal availability | `IN_BETA_TESTING`; explicit membership in group `a1098f67-cfde-4eaa-8626-e250f881596a` verified across all pages |
+| Testing notes | en-US localization `7275a9cc-e570-4b57-8a34-1abafe653edc`, exact equality with the committed clinic What to Test |
+
+The final [App Store Connect readback](../build/qa-clinic/ec09-final-delivery-readback.json), [archive receipt](../build/clinic-sealed-archive-34683645410/verification.json) and [promotion receipt](../build/clinic-promotion-34684109021/verification.json) preserve the delivery evidence. Superseded archive `34682932589` was not uploaded. Generated local export/build copies were reclaimed after checksum verification; source, installed simulator app, saves, recordings and receipts remain preserved. The recipes below describe the release process; do not rerun them with this already-used build number.
 
 ## Save and Apple service behavior
 
