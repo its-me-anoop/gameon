@@ -144,6 +144,37 @@ class ArchiveTests(unittest.TestCase):
         self.assertFalse(any(call[0] == 'codesign' for call in self.calls))
         self.assertEqual(C.sha256(self.package), self.args.unsigned_sha256)
 
+    def certificate_display(self, calls, nested_cert=None):
+        def display(*args):
+            calls.append(args)
+            if args[:2] == ('codesign', '--verify'):
+                return b''
+            if args[:3] == ('codesign', '-d', '--entitlements'):
+                return b'' if Path(args[-1]).name == 'UnityFramework' else plistlib.dumps(C.app_entitlements())
+            if args[:2] == ('codesign', '-d') and str(args[2]).startswith('--extract-certificates='):
+                self.assertEqual(len(args), 4, 'The optional extraction prefix must be part of the option token.')
+                prefix = str(args[2]).split('=', 1)[1]
+                cert = nested_cert if nested_cert is not None and Path(args[-1]).name == 'UnityFramework' else self.cert
+                Path(prefix + '0').write_bytes(cert)
+                return b''
+            raise AssertionError('Unexpected code-signature inspection: ' + str(args))
+        return display
+
+    def test_signature_verification_uses_attached_certificate_prefix_for_both_objects(self):
+        calls = []
+        signed_app = self.make_signed() / self.app.relative_to(self.archive)
+        with patch.object(C, 'run', side_effect=self.certificate_display(calls)):
+            C.verify_signature(signed_app, self.args.signer_sha256)
+        extracted = [args for args in calls if len(args) > 2 and str(args[2]).startswith('--extract-certificates=')]
+        self.assertEqual({Path(args[-1]).name for args in extracted}, {'LittleLifeline', 'UnityFramework'})
+        self.assertFalse(any('--sign' in args for args in calls))
+
+    def test_signature_verification_rejects_wrong_nested_public_certificate(self):
+        signed_app = self.make_signed() / self.app.relative_to(self.archive)
+        with patch.object(C, 'run', side_effect=self.certificate_display([], b'wrong public certificate')):
+            with self.assertRaisesRegex(ValueError, 'different signer'):
+                C.verify_signature(signed_app, self.args.signer_sha256)
+
     def test_clone_preflight_only_probes_and_preserves_unsigned_input(self):
         self.args.clone_copies = True
         with patch.object(C, 'clone_copyfile', side_effect=shutil.copy2) as clone, \

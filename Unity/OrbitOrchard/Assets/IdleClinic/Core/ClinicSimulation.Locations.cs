@@ -119,8 +119,9 @@ namespace IdleClinic.Core
             {
                 if (staff.PatientId >= 0 || staff.MoveEndsTick > State.Tick) continue;
                 var patient = State.Patients.Where(p => p.NextService == role && (p.Phase == ClinicPatientPhase.WaitingForTreatment || p.Phase == ClinicPatientPhase.Seated)
-                    && (role != ClinicStaffRole.Pharmacist || CanCallPatientDuringVehicleMovement(p))).OrderBy(p => p.Id).FirstOrDefault();
+                    && (role != ClinicStaffRole.Pharmacist || CanCallPatientDuringVehicleMovement(p) && CanReserveTaxiWaitingPlace(p))).OrderBy(p => p.Id).FirstOrDefault();
                 if (patient == null) break;
+                if (role == ClinicStaffRole.Pharmacist && patient.UsesTaxi) ReserveTaxiWaitingPlace(patient);
                 staff.PatientId = patient.Id;
                 patient.SeatId = -1;
                 if (role == ClinicStaffRole.Doctor) patient.ConsultationStationId = staff.StationId;
@@ -162,6 +163,13 @@ namespace IdleClinic.Core
             patient.PhaseStartedTick = State.Tick;
             patient.PhaseEndsTick = State.Tick + ClinicDoctorsNavigation.WalkTicks(patient.ArrivalPath);
         }
+        private void JoinReceptionFromTransport(ClinicPatientState patient, string origin)
+        {
+            Phase(patient, ClinicPatientPhase.Arriving, origin, ClinicRules.QueueAnchor(patient.QueueIndex), 80);
+            // Joining the physical queue happens after parking or drop-off. An older
+            // booking must not jump visitors who have already walked into the clinic.
+            ReindexQueue(patient);
+        }
 
         private void RetargetQueueMove(ClinicPatientState patient, string target)
         {
@@ -185,8 +193,8 @@ namespace IdleClinic.Core
         }
         private bool CanApproachDoctorsDesk(ClinicPatientState patient, int deskId)
         {
-            // Preserve FIFO through vehicle arrivals and physical queue movement. A
-            // later visitor cannot start care from an earlier visitor's reserved slot.
+            // Preserve FIFO through physical arrivals and queue movement. Offscreen
+            // transport bookings do not prevent visitors already here from checking in.
             if (patient.Phase != ClinicPatientPhase.ReceptionQueue || patient.QueueIndex != 0 || patient.QueueMoveEndsTick > State.Tick)
                 return false;
             if (State.Patients.Any(p => p.Phase == ClinicPatientPhase.WalkingToReception
@@ -200,12 +208,13 @@ namespace IdleClinic.Core
         private static bool IsWalkingPhase(ClinicPatientPhase phase) => phase == ClinicPatientPhase.Arriving || phase == ClinicPatientPhase.WalkingToReception
             || phase == ClinicPatientPhase.WalkingToWaiting || phase == ClinicPatientPhase.WalkingToTreatment || phase == ClinicPatientPhase.Leaving
             || phase == ClinicPatientPhase.WalkingToAmenity || phase == ClinicPatientPhase.ReturningFromAmenity
-            || phase == ClinicPatientPhase.WalkingToConsultation || phase == ClinicPatientPhase.WalkingToPharmacy || phase == ClinicPatientPhase.WalkingToTaxi;
+            || phase == ClinicPatientPhase.WalkingToConsultation || phase == ClinicPatientPhase.WalkingToPharmacy || phase == ClinicPatientPhase.WalkingToTaxi
+            || phase == ClinicPatientPhase.WalkingToTaxiBoarding;
 
         private void BeginDeparture(ClinicPatientState patient)
         {
             if (patient.UsesTaxi)
-                Phase(patient, ClinicPatientPhase.WalkingToTaxi, patient.ToAnchor, ClinicRules.TaxiPatientAnchor(patient.TaxiDockId), 80);
+                Phase(patient, ClinicPatientPhase.WalkingToTaxi, patient.ToAnchor, ClinicRules.TaxiWaitingAnchor(patient.TaxiWaitingSlot), 80);
             else Phase(patient, ClinicPatientPhase.Leaving, patient.ToAnchor,
                 patient.ParkingBayId >= 0 ? ClinicRules.ParkingPatientAnchor(patient.ParkingBayId) : "exit", patient.ParkingBayId >= 0 ? 100 : 30);
         }

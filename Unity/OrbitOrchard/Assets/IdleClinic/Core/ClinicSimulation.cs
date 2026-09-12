@@ -28,6 +28,8 @@ namespace IdleClinic.Core
             // fields mean a stationary visitor at the saved slot, never a replayed walk.
             foreach (var patient in State.Patients)
                 if (patient.QueueMovePath == null) patient.QueueMovePath = new List<ClinicMovementPoint>();
+            if (ClinicRules.IsDoctors(State))
+            { RestoreLegacyTaxiWaitingReservations(); ReindexQueue(); }
         }
 
         public static ClinicSimulation CreateNew(ulong seed = 42)
@@ -110,7 +112,8 @@ namespace IdleClinic.Core
                     if (patient.QueueMoveEndsTick > 0)
                     { patient.QueueMoveStartedTick += skippedTicks; patient.QueueMoveEndsTick += skippedTicks; }
                 }
-                foreach (var ride in State.TaxiRides) { ride.PhaseStartedTick += skippedTicks; if (ride.PhaseEndsTick > 0) ride.PhaseEndsTick += skippedTicks; }
+                foreach (var ride in State.TaxiRides)
+                { ride.PhaseStartedTick += skippedTicks; if (ride.PhaseEndsTick > 0) ride.PhaseEndsTick += skippedTicks; if (ride.RoadRequestedTick > 0) ride.RoadRequestedTick += skippedTicks; }
                 foreach (var staff in State.Staff)
                 { staff.MoveStartedTick += skippedTicks; staff.MoveEndsTick += skippedTicks; }
                 foreach (var desk in State.ReceptionDesks)
@@ -265,6 +268,8 @@ namespace IdleClinic.Core
                 {
                     var clears = ClinicDoctorsNavigation.ReceptionDepartureClearTick(patient);
                     if (clears > State.Tick) next = Math.Min(next, clears);
+                    var curbClears = TaxiCurbClearTick(patient);
+                    if (curbClears > State.Tick) next = Math.Min(next, curbClears);
                 }
             }
             foreach (var staff in State.Staff)
@@ -286,7 +291,8 @@ namespace IdleClinic.Core
                 switch (patient.Phase)
                 {
                     case ClinicPatientPhase.DrivingToParking:
-                        Phase(patient, ClinicPatientPhase.Arriving, ClinicRules.ParkingPatientAnchor(patient.ParkingBayId), ClinicRules.QueueAnchor(patient.QueueIndex), 100);
+                        if (ClinicRules.IsDoctors(State)) JoinReceptionFromTransport(patient, ClinicRules.ParkingPatientAnchor(patient.ParkingBayId));
+                        else Phase(patient, ClinicPatientPhase.Arriving, ClinicRules.ParkingPatientAnchor(patient.ParkingBayId), ClinicRules.QueueAnchor(patient.QueueIndex), 100);
                         break;
                     case ClinicPatientPhase.DrivingFromParking:
                         State.Patients.Remove(patient);
@@ -320,6 +326,9 @@ namespace IdleClinic.Core
                     case ClinicPatientPhase.WalkingToTaxi:
                         Rest(patient, ClinicPatientPhase.WaitingForTaxi);
                         break;
+                    case ClinicPatientPhase.WalkingToTaxiBoarding:
+                        BeginTaxiBoarding(patient);
+                        break;
                     case ClinicPatientPhase.WalkingToTreatment:
                         Phase(patient, ClinicPatientPhase.Treating, patient.ToAnchor, patient.ToAnchor, ClinicRules.TreatmentTicks(State, patient.TreatmentStationId));
                         Emit(ClinicEventKind.TreatmentStarted, ClinicRoom.FirstAid, patient.Id,
@@ -352,10 +361,12 @@ namespace IdleClinic.Core
             CheckWaitingUnlock();
             PlaceWaitingPatients();
             DispatchAmenities();
+            if (ClinicRules.IsDoctors(State)) ReindexQueue();
             DispatchReception();
             ReindexQueue();
             DispatchParkingVehicles();
             DispatchTaxis();
+            CallTaxiPassenger();
         }
 
         private void AdmitPatient()
@@ -392,7 +403,9 @@ namespace IdleClinic.Core
                 var staff = State.Staff.Find(s => s.Id == desk.Id);
                 if (desk.PatientId >= 0 || staff.MoveEndsTick > State.Tick) continue;
                 if (State.Patients.Count(p => p.HasAdmissionReservation) >= AdmissionCapacity) break;
-                var patient = State.Patients.Where(p => ClinicRules.IsDoctors(State) ? IsUnpaidQueue(p) : p.Phase == ClinicPatientPhase.ReceptionQueue).OrderBy(p => p.Id).FirstOrDefault();
+                var patient = ClinicRules.IsDoctors(State)
+                    ? State.Patients.Where(IsPhysicalReceptionQueue).OrderBy(p => p.QueueIndex).FirstOrDefault()
+                    : State.Patients.Where(p => p.Phase == ClinicPatientPhase.ReceptionQueue).OrderBy(p => p.Id).FirstOrDefault();
                 if (patient == null) break;
                 if (ClinicRules.IsDoctors(State) && !CanApproachDoctorsDesk(patient, desk.Id)) break;
                 var quote = ClinicRules.VisitFee(State) + (patient.ParkingBayId >= 0 ? 5L * ClinicRules.LocationMultiplier(State) * State.Amenity(ClinicAmenity.Parking).Level : 0);
@@ -502,10 +515,14 @@ namespace IdleClinic.Core
             Emit(ClinicEventKind.WaitingRoomUnlocked, ClinicRoom.Waiting, source: "waiting.plot");
         }
 
-        private void ReindexQueue()
+        private void ReindexQueue(ClinicPatientState joining = null)
         {
             var index = 0;
-            foreach (var patient in State.Patients.Where(IsUnpaidQueue).OrderBy(p => p.Id))
+            var queue = ClinicRules.IsDoctors(State)
+                ? State.Patients.Where(IsUnpaidQueue).OrderBy(p => IsPhysicalReceptionQueue(p) ? 0 : 1)
+                    .ThenBy(p => p == joining ? int.MaxValue : p.QueueIndex).ThenBy(p => p.Id).ToArray()
+                : State.Patients.Where(IsUnpaidQueue).OrderBy(p => p.Id).ToArray();
+            foreach (var patient in queue)
             {
                 patient.QueueIndex = index++;
                 var target = ClinicRules.QueueAnchor(patient.QueueIndex);
@@ -565,6 +582,8 @@ namespace IdleClinic.Core
         private static bool IsUnpaidQueue(ClinicPatientState patient) => patient.Phase == ClinicPatientPhase.Arriving || patient.Phase == ClinicPatientPhase.ReceptionQueue
             || patient.Phase == ClinicPatientPhase.WaitingToPark || patient.Phase == ClinicPatientPhase.DrivingToParking
             || patient.Phase == ClinicPatientPhase.TaxiArriving || patient.Phase == ClinicPatientPhase.TaxiDroppingOff;
+        private static bool IsPhysicalReceptionQueue(ClinicPatientState patient)
+            => patient.Phase == ClinicPatientPhase.Arriving || patient.Phase == ClinicPatientPhase.ReceptionQueue;
         private static bool IsPaidWaiting(ClinicPatientState patient) => patient.Paid && (patient.Phase == ClinicPatientPhase.WaitingForTreatment
             || patient.Phase == ClinicPatientPhase.WalkingToWaiting || patient.Phase == ClinicPatientPhase.Seated || IsVisitingAmenity(patient));
         private static bool IsVisitingAmenity(ClinicPatientState patient) => patient.Phase == ClinicPatientPhase.WalkingToAmenity

@@ -168,6 +168,8 @@ namespace IdleClinic.Presentation
             for(int i=0;i<4;i++)anchor("firstaid.standing."+i,new Vector3(-2.20f,.14f,-1.05f+i*.72f),Vector3.left);
             for(int i=0;i<12;i++)anchor("parking.bay."+i+".patient",DoctorsParkingLayout.BayDoor(i),Vector3.right);
             for(int i=0;i<2;i++){anchor("waiting.toilet."+i+".patient",new Vector3(11.35f+i*1.75f,.14f,-3.70f),Vector3.back);anchor("taxi.dock."+i+".patient",DoctorsParkingLayout.TaxiDoor(i),Vector3.forward);}
+            for(int i=0;i<ClinicRules.TaxiWaitingCapacity;i++)
+            {string name=ClinicRules.TaxiWaitingAnchor(i);var point=ClinicDoctorsNavigation.Anchor(name);anchor(name,new Vector3(point.x,.14f,point.z),Vector3.back);}
             anchor("waiting.vending.patient",new Vector3(9.05f,.14f,-1.82f),Vector3.forward);anchor("waiting.vending.cash",VendingCashPoint,Vector3.forward);
             foreach(ClinicRoom room in Enum.GetValues(typeof(ClinicRoom)))anchor(room==ClinicRoom.FirstAid?"firstaid.progress":room.ToString().ToLowerInvariant()+".progress",RoomPoint(room),Vector3.forward);
         }
@@ -276,6 +278,12 @@ namespace IdleClinic.Presentation
             art.Box("Clinic entrance promenade",parent,new Vector3(.775f,.06f,-10.675f),new Vector3(30.45f,.12f,3.35f),"TilePeach");
             art.Box("Clinic front promenade east",parent,new Vector3(28.05f,.06f,-10.675f),new Vector3(8.9f,.12f,3.35f),"TilePeach");
             art.Box("Taxi sheltered passenger pavement",parent,new Vector3(19.8f,.06f,-9.45f),new Vector3(7.6f,.12f,.90f),"TilePeach");
+            art.Box("Taxi waiting promenade",parent,new Vector3(20.45f,.06f,-7.475f),new Vector3(12.1f,.12f,3.05f),"TilePeach");
+            for(int i=0;i<ClinicRules.TaxiWaitingCapacity;i++)
+            {
+                var point=ClinicDoctorsNavigation.Anchor(ClinicRules.TaxiWaitingAnchor(i));
+                for(int side=-1;side<=1;side+=2)art.Orb("Taxi waiting footprint",parent,new Vector3(point.x+side*.115f,.13f,point.z),new Vector3(.105f,.016f,.22f),"TileSage");
+            }
             art.Box("Taxi layby passenger kerb",parent,new Vector3(19.8f,.03f,-9.94f),new Vector3(7.6f,.14f,.08f),"Clay");
             art.Box("Far pavement",parent,new Vector3(0,.04f,-16.45f),new Vector3(90,.17f,1.55f),"Linen");
             for(int stripe=0;stripe<8;stripe++)art.Box("Doctors road crossing",parent,new Vector3(1.4f,-.105f,-12.65f-stripe*.39f),new Vector3(1.3f,.018f,.19f),"Linen");
@@ -299,7 +307,7 @@ namespace IdleClinic.Presentation
             {
                 float x=16+i*4.0f;art.Box("Garden bench seat",parent,new Vector3(x,.57f,-5.5f),new Vector3(2.2f,.12f,.58f),"Wood");art.Box("Garden bench back",parent,new Vector3(x,.94f,-5.22f),new Vector3(2.2f,.62f,.10f),"Wood");
                 for(int side=-1;side<=1;side+=2)art.Box("Bench foot",parent,new Vector3(x+side*.83f,.28f,-5.5f),new Vector3(.09f,.55f,.48f),"SageDark");
-                art.Model("Plant",parent,new Vector3(x,.14f,-6.65f));
+                art.Model("Plant",parent,new Vector3(x,.14f,i<3?-4.7f:-6.65f));
             }
         }
         private void CabinetSupplies(Vector3 position,float width)
@@ -338,7 +346,7 @@ namespace IdleClinic.Presentation
             if(!world.TryViewportToGround(uv,out var p))return default;
             if(p.x<-14.3f&&p.x>-23&&p.z>-9.5f&&p.z<10)return new ClinicHit(ClinicHitKind.Parking);
             if(p.x>10.25f&&p.x<14.0f&&p.z>-7.9f&&p.z<-3.1f)return new ClinicHit(ClinicHitKind.Toilet);
-            if(p.x>16.0f&&p.x<23.8f&&p.z>-11.8f&&p.z<-7.8f)return new ClinicHit(ClinicHitKind.Taxi);
+            if(p.x>16.0f&&p.x<26.5f&&p.z>-11.8f&&p.z<-5.95f)return new ClinicHit(ClinicHitKind.Taxi);
             for(int i=0;i<5;i++){var b=RoomBounds[i];if(p.x>=b.min.x&&p.x<=b.max.x&&p.z>=b.min.z&&p.z<=b.max.z)return new ClinicHit(i==0?ClinicHitKind.Reception:i==1?ClinicHitKind.Treatment:i==2?(waitingBuilt?ClinicHitKind.Waiting:ClinicHitKind.Expansion):i==3?ClinicHitKind.Consultation:ClinicHitKind.Pharmacy,i);}
             return default;
         }

@@ -45,6 +45,8 @@ namespace IdleClinic.Core
                 return new Point(id % 2 == 0 ? -21f : -16.2f, -7.84f + (id / 2) * 2.9f);
             if (anchor.StartsWith("taxi.dock.", StringComparison.Ordinal) && id >= 0 && id < 2 && patient)
                 return new Point(18f + id * 3.6f, -9.8f);
+            if (anchor.StartsWith("taxi.waiting.", StringComparison.Ordinal) && id >= 0 && id < ClinicRules.TaxiWaitingCapacity && patient)
+                return new Point(16.8f + id, -7.25f);
             if (anchor.StartsWith("waiting.toilet.", StringComparison.Ordinal) && id >= 0 && id < 2 && patient)
                 return new Point(11.35f + id * 1.75f, -3.70f);
             if (anchor == "waiting.vending.patient") return new Point(9.05f, -1.82f);
@@ -148,6 +150,10 @@ namespace IdleClinic.Core
             Point end=Anchor(to);
             bool F(string prefix)=>from!=null&&from.StartsWith(prefix,StringComparison.Ordinal);
             bool T(string prefix)=>to!=null&&to.StartsWith(prefix,StringComparison.Ordinal);
+            if (F("taxi.waiting.") && T("taxi.dock."))
+            { add(new Point(start.x,-8.10f)); add(new Point(end.x,-8.10f)); add(end); return; }
+            if (F("taxi.dock.") && T("taxi.waiting."))
+            { add(new Point(14.85f,start.z)); add(new Point(14.85f,-6.40f)); add(new Point(end.x,-6.40f)); add(end); return; }
             // Queue advancement is a local shuffle along the snake, not a new trip
             // through the clinic entrance. Use the displayed position when a second
             // admission retargets someone who is still rounding the previous corner.
@@ -189,6 +195,7 @@ namespace IdleClinic.Core
             else P(lane,start.z);
             if(T("parking.bay.")){P(lane,-10.90f);P(-14.65f,-10.90f);P(-14.65f,end.z-.58f);P(end.x,end.z-.58f);}
             else if(T("taxi.dock.")){P(lane,-10.90f);P(14.85f,-10.90f);P(14.85f,-9.80f);P(end.x,-9.80f);}
+            else if(T("taxi.waiting.")){P(lane,-10.90f);P(14.85f,-10.90f);P(14.85f,-6.40f);P(end.x,-6.40f);}
             else if(T("reception.desk.")){P(lane,staff?-3.90f:-6.61f);P(end.x,staff?-3.90f:-6.61f);}
             else if(T("firstaid.station.")){P(lane,-.34f);P(end.x,-.34f);}
             else if(T("consultation.station."))

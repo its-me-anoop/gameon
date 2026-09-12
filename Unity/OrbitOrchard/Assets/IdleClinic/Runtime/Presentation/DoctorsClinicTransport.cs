@@ -39,12 +39,24 @@ namespace IdleClinic.Presentation
                 if(level==1)
                 {art.Box("Taxi call post",d,new Vector3(4.0f,.85f,-10.15f),new Vector3(.12f,1.7f,.12f),"Gold");art.Box("Taxi sign",d,new Vector3(4.0f,1.65f,-10.15f),new Vector3(.83f,.44f,.08f),"SageDark");art.Box("Taxi pictogram body",d,new Vector3(4.0f,1.63f,-10.2f),new Vector3(.52f,.12f,.018f),"Gold");}
                 else if(level==2)
-                {for(int side=-1;side<=1;side+=2)art.Box("Taxi shelter upright",d,new Vector3(7.2f+side*2.4f,1.10f,-9.80f),new Vector3(.10f,2.2f,.10f),"SageDark");art.Box("Taxi shelter roof",d,new Vector3(7.2f,2.20f,-10.10f),new Vector3(5.2f,.16f,1.25f),"Wood");}
+                {
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        art.Box("Taxi shelter upright",d,new Vector3(7.2f+side*2.4f,1.10f,-9.80f),new Vector3(.10f,2.2f,.10f),"SageDark");
+                        art.Box("Taxi canopy long rim",d,new Vector3(7.2f,2.20f,-10.10f+side*.58f),new Vector3(5.2f,.10f,.09f),"Wood");
+                        art.Box("Taxi canopy end rim",d,new Vector3(7.2f+side*2.4f,2.20f,-10.10f),new Vector3(.10f,.10f,1.25f),"Wood");
+                        art.Box("Taxi canopy crossmember",d,new Vector3(7.2f+side*1.5f,2.20f,-10.10f),new Vector3(.06f,.07f,1.16f),"Wood");
+                    }
+                }
                 else if(level==3)
-                {art.Box("Taxi waiting bench",d,new Vector3(7.2f,.56f,-9.72f),new Vector3(2.1f,.13f,.48f),"Wood");for(int side=-1;side<=1;side+=2)art.Box("Taxi bench foot",d,new Vector3(7.2f+side*.8f,.29f,-9.72f),new Vector3(.1f,.54f,.4f),"SageDark");}
-                else if(level==4)ClinicFurnishings.NoticeBoard(art,d,"Taxi routes board",new Vector3(9.70f,1.3f,-9.70f),0,.7f);
+                {art.Box("Taxi waiting bench",d,new Vector3(12.8f,.56f,-8.35f),new Vector3(2.1f,.13f,.48f),"Wood");for(int side=-1;side<=1;side+=2)art.Box("Taxi bench foot",d,new Vector3(12.8f+side*.8f,.29f,-8.35f),new Vector3(.1f,.54f,.4f),"SageDark");}
+                else if(level==4)
+                {
+                    ClinicFurnishings.NoticeBoard(art,d,"Taxi routes board",new Vector3(12.2f,1.3f,-9.85f),0,.7f);
+                    art.Box("Taxi routes board support",d,new Vector3(12.2f,.59f,-9.85f),new Vector3(.08f,.94f,.08f),"SageDark");
+                }
                 else if(level==5){art.Model("Plant",d,new Vector3(3.0f,.14f,-10.0f));art.Model("Plant",d,new Vector3(11.1f,.14f,-10.0f));}
-                else {for(int i=0;i<3;i++)art.Orb("Taxi shelter downlight",d,new Vector3(5.8f+i*1.4f,2.10f,-10.15f),new Vector3(.20f,.12f,.2f),"Linen");}
+                else {for(int i=0;i<3;i++)art.Orb("Taxi shelter downlight",d,new Vector3(5.8f+i*1.4f,2.10f,-10.68f),new Vector3(.20f,.12f,.2f),"Linen");}
             }
         }
         internal void Render(ClinicState state,bool reduced)

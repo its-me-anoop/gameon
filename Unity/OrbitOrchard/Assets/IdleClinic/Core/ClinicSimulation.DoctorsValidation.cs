@@ -77,6 +77,7 @@ namespace IdleClinic.Core
             var queues = new HashSet<int>();
             var bays = new HashSet<int>();
             var cubicles = new HashSet<int>();
+            var taxiWaiting = new HashSet<int>();
             var workstations = new HashSet<int>();
             int vendingVisitors = 0, movingCars = 0, reserved = 0, currentPaid = 0;
             long currentTips = 0;
@@ -94,6 +95,8 @@ namespace IdleClinic.Core
                     || patient.ParkingBayId >= 0 && (patient.Id == 0 || patient.Id % 3 != 0 || patient.UsesTaxi || !bays.Add(patient.ParkingBayId))
                     || patient.UsesTaxi != (patient.TaxiDockId >= 0) || patient.TaxiDockId < -1 || patient.TaxiDockId >= ClinicRules.TaxiDockCount(state)
                     || patient.UsesTaxi && patient.Id % 4 != 2
+                    || patient.TaxiWaitingSlot < 0 || patient.TaxiWaitingSlot >= ClinicRules.TaxiWaitingCapacity
+                    || patient.TaxiWaitingReserved && (!patient.UsesTaxi || !patient.FirstAidComplete || !taxiWaiting.Add(patient.TaxiWaitingSlot))
                     || patient.TipPaid < 0 || patient.TipPaid > 84 || !patient.UsedVending && patient.TipPaid != 0
                     || patient.UsedVending && !patient.Paid || patient.UsedToilet && (!patient.Paid || patient.Id % 3 != 1)) return false;
                 var atReception = patient.Phase == ClinicPatientPhase.WalkingToReception || patient.Phase == ClinicPatientPhase.CheckingIn;
@@ -189,6 +192,7 @@ namespace IdleClinic.Core
             for (int i = 0; i < ClinicRules.WaitingCapacity(state); i++) anchors.Add(ClinicRules.WaitingAnchor(true, i));
             for (int i = 0; i < ClinicRules.ParkingCapacity(state); i++) anchors.Add(ClinicRules.ParkingPatientAnchor(i));
             for (int i = 0; i < 2; i++) { anchors.Add(ClinicRules.ToiletPatientAnchor(state, i)); anchors.Add(ClinicRules.TaxiPatientAnchor(i)); }
+            for (int i = 0; i < ClinicRules.TaxiWaitingCapacity; i++) anchors.Add(ClinicRules.TaxiWaitingAnchor(i));
             anchors.Add(ClinicRules.AmenityPatientAnchor(ClinicAmenity.Vending));
             return anchors;
         }
@@ -234,14 +238,22 @@ namespace IdleClinic.Core
         private static bool ValidateDoctorsTaxiPassenger(ClinicPatientState patient)
         {
             bool phase = patient.Phase == ClinicPatientPhase.TaxiArriving || patient.Phase == ClinicPatientPhase.TaxiDroppingOff || patient.Phase == ClinicPatientPhase.WalkingToTaxi
-                || patient.Phase == ClinicPatientPhase.WaitingForTaxi || patient.Phase == ClinicPatientPhase.TaxiPickingUp || patient.Phase == ClinicPatientPhase.TaxiDeparting;
+                || patient.Phase == ClinicPatientPhase.WaitingForTaxi || patient.Phase == ClinicPatientPhase.TaxiPickingUp || patient.Phase == ClinicPatientPhase.TaxiDeparting
+                || patient.Phase == ClinicPatientPhase.WalkingToTaxiBoarding;
             if (phase && !patient.UsesTaxi) return false;
             var dock = patient.UsesTaxi ? ClinicRules.TaxiPatientAnchor(patient.TaxiDockId) : null;
-            if (patient.FromAnchor.StartsWith("taxi.", StringComparison.Ordinal) && patient.FromAnchor != dock || patient.ToAnchor.StartsWith("taxi.", StringComparison.Ordinal) && patient.ToAnchor != dock) return false;
+            var waiting = ClinicRules.TaxiWaitingAnchor(patient.TaxiWaitingSlot);
+            if (patient.FromAnchor.StartsWith("taxi.", StringComparison.Ordinal) && patient.FromAnchor != dock && patient.FromAnchor != waiting
+                || patient.ToAnchor.StartsWith("taxi.", StringComparison.Ordinal) && patient.ToAnchor != dock && patient.ToAnchor != waiting) return false;
             if (!phase) return true;
             bool entry = patient.Phase == ClinicPatientPhase.TaxiArriving || patient.Phase == ClinicPatientPhase.TaxiDroppingOff;
-            return entry ? !patient.Paid && patient.FromAnchor == dock && patient.ToAnchor == ClinicRules.QueueAnchor(patient.QueueIndex)
-                : patient.PharmacyComplete && patient.ToAnchor == dock;
+            if (entry) return !patient.Paid && patient.FromAnchor == dock && patient.ToAnchor == ClinicRules.QueueAnchor(patient.QueueIndex);
+            if (!patient.PharmacyComplete) return false;
+            if (patient.Phase == ClinicPatientPhase.WalkingToTaxi || patient.Phase == ClinicPatientPhase.WaitingForTaxi)
+                return patient.ToAnchor == (patient.TaxiWaitingReserved ? waiting : dock); // legacy schema-3 input
+            if (patient.Phase == ClinicPatientPhase.WalkingToTaxiBoarding)
+                return patient.TaxiWaitingReserved && patient.FromAnchor == waiting && patient.ToAnchor == dock;
+            return !patient.TaxiWaitingReserved && patient.ToAnchor == dock;
         }
         private static bool ValidateTaxiRides(ClinicState state, int movingCars)
         {
@@ -250,8 +262,9 @@ namespace IdleClinic.Core
             {
                 if (ride == null || !Defined(ride.Phase) || !ids.Add(ride.Id) || !docks.Add(ride.DockId) || !owners.Add(ride.PatientId)
                     || ride.Id != ride.PatientId * 2L + (ride.Pickup ? 1 : 0) || ride.DockId < 0 || ride.DockId >= 2
+                    || ride.RoadRequestedTick < 0 || ride.RoadRequestedTick > ride.PhaseStartedTick
                     || ride.PhaseStartedTick < 0 || ride.PhaseStartedTick > state.Tick
-                    || (ride.Phase == ClinicTaxiPhase.WaitingToDepart ? ride.PhaseEndsTick != 0 : ride.PhaseEndsTick <= state.Tick)) return false;
+                    || (ride.Phase == ClinicTaxiPhase.WaitingToDepart || ride.Phase == ClinicTaxiPhase.WaitingForPassenger ? ride.PhaseEndsTick != 0 : ride.PhaseEndsTick <= state.Tick)) return false;
                 var patient = state.Patients.Find(p => p.Id == ride.PatientId);
                 if (patient == null || !patient.UsesTaxi || patient.TaxiDockId != ride.DockId) return false;
                 if ((ride.Phase == ClinicTaxiPhase.Approaching || ride.Phase == ClinicTaxiPhase.Departing) && ++movingCars > 1) return false;
@@ -266,12 +279,19 @@ namespace IdleClinic.Core
                         if (savedDuration == (16000 + 100 + 15 * (level - 1) - 1) / (100 + 15 * (level - 1))) matches = true;
                     if (!matches) return false;
                 }
-                else if (ride.Phase != ClinicTaxiPhase.WaitingToDepart && savedDuration != duration) return false;
+                else if (ride.Phase != ClinicTaxiPhase.WaitingToDepart && ride.Phase != ClinicTaxiPhase.WaitingForPassenger && savedDuration != duration) return false;
+                if (ride.Phase == ClinicTaxiPhase.WaitingForPassenger)
+                {
+                    if (!ride.Pickup || !patient.TaxiWaitingReserved || (patient.Phase != ClinicPatientPhase.WaitingForTaxi
+                        && patient.Phase != ClinicPatientPhase.WalkingToTaxi && patient.Phase != ClinicPatientPhase.WalkingToTaxiBoarding)) return false;
+                    continue;
+                }
                 var expected = ride.Phase == ClinicTaxiPhase.Approaching ? (ride.Pickup ? ClinicPatientPhase.WaitingForTaxi : ClinicPatientPhase.TaxiArriving)
                     : ride.Phase == ClinicTaxiPhase.Boarding ? (ride.Pickup ? ClinicPatientPhase.TaxiPickingUp : ClinicPatientPhase.TaxiDroppingOff) : ClinicPatientPhase.TaxiDeparting;
-                if ((ride.Pickup || ride.Phase == ClinicTaxiPhase.Approaching || ride.Phase == ClinicTaxiPhase.Boarding) && patient.Phase != expected) return false;
+                if ((ride.Pickup || ride.Phase == ClinicTaxiPhase.Approaching || ride.Phase == ClinicTaxiPhase.Boarding) && patient.Phase != expected
+                    && !(ride.Pickup && ride.Phase == ClinicTaxiPhase.Approaching && patient.Phase == ClinicPatientPhase.WalkingToTaxi && patient.TaxiWaitingReserved)) return false;
             }
-            foreach (var patient in state.Patients.Where(p => p.Phase == ClinicPatientPhase.TaxiPickingUp || p.Phase == ClinicPatientPhase.TaxiDroppingOff || p.Phase == ClinicPatientPhase.TaxiDeparting))
+            foreach (var patient in state.Patients.Where(p => p.Phase == ClinicPatientPhase.TaxiPickingUp || p.Phase == ClinicPatientPhase.TaxiDroppingOff || p.Phase == ClinicPatientPhase.TaxiDeparting || p.Phase == ClinicPatientPhase.WalkingToTaxiBoarding))
                 if (!owners.Contains(patient.Id)) return false;
             return true;
         }

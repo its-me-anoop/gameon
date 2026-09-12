@@ -31,6 +31,16 @@ namespace OrbitOrchard.Editor
                     string patient=ClinicRules.StationPatientAnchor((ClinicStaffRole)role,i);max.Patients.Add(new ClinicPatientState{Id=100+role*10+i,AppearanceId=(role*4+i)%12,Phase=role==0?ClinicPatientPhase.CheckingIn:role==1?ClinicPatientPhase.Treating:role==2?ClinicPatientPhase.Consulting:ClinicPatientPhase.Dispensing,FromAnchor=patient,ToAnchor=patient,PhaseStartedTick=0,PhaseEndsTick=600});
                 }
                 for(int i=0;i<18;i++)max.Patients.Add(new ClinicPatientState{Id=300+i,AppearanceId=i%12,Phase=ClinicPatientPhase.Seated,FromAnchor="waiting.seat."+i,ToAnchor="waiting.seat."+i,SeatId=i,ParkingBayId=i<12?i:-1});
+                // Deliberately authored geometry fixture, not a saved or simulated
+                // campaign: expose all occupied taxi places for camera/roof review.
+                for(int slot=0;slot<ClinicRules.TaxiWaitingCapacity;slot++)
+                {
+                    int id=402+slot*4;string anchor=ClinicRules.TaxiWaitingAnchor(slot);
+                    max.Patients.Add(new ClinicPatientState{Id=id,AppearanceId=ClinicRules.PatientAppearance(max.Seed,id),
+                        Phase=ClinicPatientPhase.WaitingForTaxi,UsesTaxi=true,TaxiDockId=slot%2,
+                        TaxiWaitingReserved=true,TaxiWaitingSlot=slot,FromAnchor=anchor,ToAnchor=anchor,
+                        Paid=true,ConsultationComplete=true,FirstAidComplete=true,PharmacyComplete=true});
+                }
                 max.TaxiRides.Add(new ClinicTaxiState{Id=90,PatientId=45,DockId=0,Phase=ClinicTaxiPhase.Boarding,PhaseStartedTick=0,PhaseEndsTick=60});
                 max.TaxiRides.Add(new ClinicTaxiState{Id=92,PatientId=46,DockId=1,Phase=ClinicTaxiPhase.Approaching,PhaseStartedTick=0,PhaseEndsTick=160});
                 max.Construction.Add(new ClinicConstructionState{Id=1,Room=ClinicRoom.Consultation,StartedTick=0,EndsTick=600,TargetTier=6});max.Tick=40;world.Render(max,.1f);world.Home(true);CaptureFrame(world,output,"doctors-complete-home");
@@ -39,7 +49,9 @@ namespace OrbitOrchard.Editor
                 View(world,new Vector3(-1f,0,6.4f),12.5f);CaptureFrame(world,output,"doctors-consultations");
                 View(world,new Vector3(6.9f,0,-3.0f),7.1f);CaptureFrame(world,output,"doctors-waiting-pharmacy-toilets");
                 View(world,new Vector3(-16.8f,0,-.8f),10.2f);CaptureFrame(world,output,"doctors-parking");
-                View(world,new Vector3(19.8f,0,-9.1f),5.5f);CaptureFrame(world,output,"doctors-taxi");
+                View(world,new Vector3(20.3f,0,-8.1f),7.8f);CaptureFrame(world,output,"doctors-taxi");
+                File.WriteAllText(Path.Combine(output,"doctors-taxi-static-fixture.txt"),
+                    "Static Editor geometry fixture, not gameplay evidence. doctors-taxi.png shows eight authored waiting patients in their reserved shared navigation anchors, with all six taxi furnishing tiers enabled. Inspect roof occlusion, distinguishable bodies, and the incoming/boarding aisles. This capture does not prove taxi scheduling, physical arrivals, boarding, or save validity.\n");
                 world.SetRenderSize(1600,1100);View(world,new Vector3(-4,0,-1.8f),17f);CaptureFrame(world,output,"doctors-neighbourhood-overview");
                 Debug.Log("Doctors preview captures written to "+output);
             }

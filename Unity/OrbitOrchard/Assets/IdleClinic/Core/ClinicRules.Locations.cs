@@ -73,6 +73,9 @@ namespace IdleClinic.Core
             : role == ClinicStaffRole.Nurse ? TreatmentStaffAnchor(id) : (role == ClinicStaffRole.Doctor ? "consultation.station." : "pharmacy.station.") + id + ".staff";
         public static string ToiletPatientAnchor(ClinicState state, int id) => IsDoctors(state) ? "waiting.toilet." + id + ".patient" : AmenityPatientAnchor(ClinicAmenity.Toilet);
         public static string TaxiPatientAnchor(int id) => "taxi.dock." + id + ".patient";
+        public const int TaxiWaitingCapacity = 8;
+        public const int TaxiBookingCapacity = 6;
+        public static string TaxiWaitingAnchor(int id) => "taxi.waiting." + id + ".patient";
         public static string RoomPlotAnchor(ClinicRoom room) => room == ClinicRoom.FirstAid ? "firstaid.plot" : room.ToString().ToLowerInvariant() + ".plot";
         public static long MaximumVisitFee(ClinicState state) => IsDoctors(state) ? 820 : 140;
         public static List<string> StarterCompletion(ClinicState state)

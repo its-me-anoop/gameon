@@ -11,6 +11,8 @@ This release adds a playable second location to Little Lifeline, preserving the 
 - Six room tiers. Component, workstation and staff-training caps increase by two per room tier, reaching twelve. The starter remains at its existing three tiers and six levels.
 - New-location income, corresponding base prices and base service/construction times are multiplied by two. Existing exponential growth continues. Renovations take 120, 360, 1,080, 3,240 and 9,720 seconds. New-role prices use explicit documented bases and the same exponential policy.
 - New patient flow: reception payment and admission reservation → consultation → nurse first aid → pharmacy dispensing → departure. One check-in quote covers care; transitions do not charge or award the same money again. Waiting and optional amenity visits preserve the next required service and reservation.
+- Reception follows the order in which visitors physically join its queue. A car or taxi passenger still travelling to the clinic cannot block visitors already waiting inside.
+- The taxi shelter has eight individually reserved waiting places. A taxi waits at its dock while its called passenger walks to board; that walk finishes before the boarding timer begins. When exterior places are full, paid patients retain their indoor care/waiting reservations until a place is available.
 - Existing optional features remain functional: waiting seats, upgrades, decorations, scaffolding, notice boards, collection flights, parking, vending tips, sound/haptics and camera gestures.
 - A larger car park supports twelve bays across six upgrades, with real entrance/parking/reverse/exit journeys. A larger toilet has at least two distinct usable cubicles and six upgrade levels. Vending has six levels. A taxi stand has six improvements and actual patient drop-off/pickup journeys, with bounded vehicle/dock reservations.
 - Doubled room space does not scale characters or silently quadruple floor area. Queue/seating formulas must support the added staff without multiplying both their upgrade count and every increment indiscriminately.
@@ -94,3 +96,5 @@ replay sounds. Footsteps, door openings and care effects follow actual world
 activity. Development performance reports include music playback position,
 active effect voices and mixed-output RMS; these are engine output measurements,
 not a claim about physical speaker volume.
+
+New taxi bookings are limited to six concurrent journeys. Further visitors walk in; existing bookings remain intact. A taxi keeps its original road-request priority through the curb stop, while the movement scheduler still requires a complete safe road window.

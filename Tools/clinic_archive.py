@@ -254,7 +254,7 @@ def verify_signature(app, signer_sha256):
         for index, path in enumerate(paths):
             run('codesign', '--verify', '--strict', path)
             prefix = Path(temporary) / f'certificate-{index}-'
-            run('codesign', '-d', '--extract-certificates', prefix, path)
+            run('codesign', '-d', f'--extract-certificates={prefix}', path)
             require(sha256(str(prefix) + '0') == signer_sha256, 'Nested code uses a different signer.')
             if path != main:
                 raw = run('codesign', '-d', '--entitlements', ':-', path).strip()

@@ -7,6 +7,7 @@ The new location includes four receptionists, four nurses, four doctors in priva
 Please try:
 • Opening the new clinic, returning to the starter clinic and travelling back. The wallet follows you; each clinic keeps its own uncollected payments and patients.
 • Watching paid patients proceed through consultation, first aid and pharmacy, including car and taxi arrivals and departures.
+• Watching taxi passengers wait separately and walk to their called car. Reception should keep serving people inside while other visitors are still travelling to the clinic.
 • Improving individual stations, training staff and renovating while the clinic remains open.
 • Panning, zooming and collecting from each reception desk without accidental purchases.
 • Listening to the original background score and action sounds. Music and Effects have separate switches in Settings; Less motion remains available.

@@ -6,10 +6,14 @@ namespace IdleClinic.Core
     {
         private static bool IsMovingVehicle(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.DrivingToParking||phase==ClinicPatientPhase.DrivingFromParking;
         private static bool IsVehiclePhase(ClinicPatientPhase phase)=>IsMovingVehicle(phase)||phase==ClinicPatientPhase.WaitingToPark||phase==ClinicPatientPhase.WaitingToExit;
-        private static bool HasCompletedCare(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.Leaving||phase==ClinicPatientPhase.WaitingToExit||phase==ClinicPatientPhase.DrivingFromParking||phase==ClinicPatientPhase.WalkingToTaxi||phase==ClinicPatientPhase.WaitingForTaxi||phase==ClinicPatientPhase.TaxiPickingUp||phase==ClinicPatientPhase.TaxiDeparting;
+        private static bool HasCompletedCare(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.Leaving||phase==ClinicPatientPhase.WaitingToExit||phase==ClinicPatientPhase.DrivingFromParking||phase==ClinicPatientPhase.WalkingToTaxi||phase==ClinicPatientPhase.WaitingForTaxi||phase==ClinicPatientPhase.TaxiPickingUp||phase==ClinicPatientPhase.TaxiDeparting||phase==ClinicPatientPhase.WalkingToTaxiBoarding;
         private bool CanCallPatientDuringVehicleMovement(ClinicPatientState patient)
         {
             if(patient.ParkingBayId<0)return true;
+            // Paid drivers already waiting to leave get a complete road window
+            // before another car owner's pharmacy visit schedules a fresh crossing.
+            // Otherwise continuous fast pharmacy completions can starve every exit.
+            if(ClinicRules.IsDoctors(State)&&State.Patients.Any(p=>p.Phase==ClinicPatientPhase.WaitingToExit))return false;
             var moving=State.Patients.FirstOrDefault(p=>IsMovingVehicle(p.Phase));
             // Even fully upgraded care cannot finish before the shared aisle clears.
             // Other visitors remain eligible, so transport never stops the clinic.

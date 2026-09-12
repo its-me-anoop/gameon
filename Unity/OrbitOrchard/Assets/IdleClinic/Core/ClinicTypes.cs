@@ -16,9 +16,10 @@ namespace IdleClinic.Core
         WalkingToAmenity, UsingAmenity, ReturningFromAmenity,
         WaitingToPark, DrivingToParking, WaitingToExit, DrivingFromParking,
         WalkingToConsultation, Consulting, WalkingToPharmacy, Dispensing,
-        WaitingForTaxi, TaxiArriving, TaxiDroppingOff, WalkingToTaxi, TaxiPickingUp, TaxiDeparting
+        WaitingForTaxi, TaxiArriving, TaxiDroppingOff, WalkingToTaxi, TaxiPickingUp, TaxiDeparting,
+        WalkingToTaxiBoarding
     }
-    public enum ClinicTaxiPhase { Approaching, Boarding, Departing, WaitingToDepart }
+    public enum ClinicTaxiPhase { Approaching, Boarding, Departing, WaitingToDepart, WaitingForPassenger }
     public enum ClinicConstructionKind { WaitingRoom, RoomRenovation }
     public enum ClinicEventKind
     {
@@ -138,6 +139,8 @@ namespace IdleClinic.Core
         public int ParkingBayId = -1;
         public int TaxiDockId = -1;
         public bool UsesTaxi;
+        public bool TaxiWaitingReserved;
+        public int TaxiWaitingSlot;
         public int ToiletCubicleId = -1;
         public int ConsultationStationId = -1;
         public int PharmacyStationId = -1;
@@ -176,6 +179,8 @@ namespace IdleClinic.Core
     public sealed class ClinicTaxiState
     {
         public long Id;
+        // Keep road-queue age through the curb stop; phase timestamps animate each leg.
+        public long RoadRequestedTick;
         public int PatientId;
         public int DockId;
         public bool Pickup;

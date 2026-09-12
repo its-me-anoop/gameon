@@ -52,7 +52,7 @@ namespace IdleClinic.Presentation
                 actor.Appearance.Apply(person.AppearanceId);
                 bool walking=person.Phase==ClinicPatientPhase.Arriving||person.Phase==ClinicPatientPhase.WalkingToReception||
                     person.Phase==ClinicPatientPhase.WalkingToWaiting||person.Phase==ClinicPatientPhase.WalkingToTreatment||person.Phase==ClinicPatientPhase.Leaving||
-                    person.Phase==ClinicPatientPhase.WalkingToAmenity||person.Phase==ClinicPatientPhase.ReturningFromAmenity||person.Phase==ClinicPatientPhase.WalkingToConsultation||person.Phase==ClinicPatientPhase.WalkingToPharmacy||person.Phase==ClinicPatientPhase.WalkingToTaxi;
+                    person.Phase==ClinicPatientPhase.WalkingToAmenity||person.Phase==ClinicPatientPhase.ReturningFromAmenity||person.Phase==ClinicPatientPhase.WalkingToConsultation||person.Phase==ClinicPatientPhase.WalkingToPharmacy||person.Phase==ClinicPatientPhase.WalkingToTaxi||person.Phase==ClinicPatientPhase.WalkingToTaxiBoarding;
                 bool seated=((person.Phase==ClinicPatientPhase.Seated||person.Phase==ClinicPatientPhase.Treating||person.Phase==ClinicPatientPhase.Consulting)&&world.HasSeatAt(person.ToAnchor))||
                     (person.Phase==ClinicPatientPhase.UsingAmenity&&person.VisitingAmenity==ClinicAmenity.Toilet);
                 bool doctors=state.Location==ClinicLocation.DoctorsClinic;
