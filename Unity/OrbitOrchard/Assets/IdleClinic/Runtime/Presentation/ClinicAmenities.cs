@@ -10,7 +10,7 @@ namespace IdleClinic.Presentation
         internal static readonly Vector3 ToiletPoint=new Vector3(4.65f,1.3f,5.75f);
         internal static readonly Vector3 VendingPoint=new Vector3(5.17f,1.15f,-2.55f);
         internal static readonly Vector3 VendingCashPoint=new Vector3(5.56f,1.38f,-2.65f);
-        private readonly GameObject[] bayMarks=new GameObject[6],parkedCars=new GameObject[6];
+        private readonly GameObject[] bayMarks=new GameObject[6],parkedCars=new GameObject[6],futureBays=new GameObject[6];
         private readonly GameObject[,] tierDetails=new GameObject[3,3];
         private readonly GameObject toilet,vending,toiletPlot,vendingPlot,parkingPlot,cash,tipCup;
         private readonly Transform toiletDoor,vendingButton,vendingTip;
@@ -31,6 +31,7 @@ namespace IdleClinic.Presentation
                 art.Box("Parking stop",bay,new Vector3(-.91f,.055f,0),new Vector3(.13f,.11f,1.08f),"Gold");
                 parkedCars[i]=ClinicStreetLife.Car(art,lot,"Parked patient car "+i,new Vector3(x,.14f,z),i);parkedCars[i].transform.rotation=Quaternion.Euler(0,90,0);
                 parkedCars[i].SetActive(false);bayMarks[i].SetActive(false);
+                futureBays[i]=BuildFutureBay(art,lot,i,new Vector3(x,.12f,z));
             }
             parkingPlot=art.Group("Parking expansion marker",lot,ParkingPoint).gameObject;
             art.Box("Parking sign",parkingPlot.transform,Vector3.zero,new Vector3(.88f,.70f,.08f),"SageDark");
@@ -115,6 +116,25 @@ namespace IdleClinic.Presentation
             vendingTip=art.Cylinder("Patient leaves a tip",root,VendingCashPoint,new Vector3(.14f,.035f,.14f),"Gold").transform;
             toilet.SetActive(false);vending.SetActive(false);cash.SetActive(false);vendingTip.gameObject.SetActive(false);
         }
+        private static GameObject BuildFutureBay(ClinicArt art,Transform parent,int index,Vector3 position)
+        {
+            var root=art.Group("Future parking bay "+index,parent,position);
+            art.Box("Parking staging pad",root,new Vector3(0,.008f,0),new Vector3(1.95f,.018f,2.30f),index%2==0?"TilePeach":"TileSage");
+            for(int corner=-1;corner<=1;corner+=2)
+            {
+                art.Box("Parking survey corner",root,new Vector3(corner*.79f,.029f,corner*.94f),new Vector3(.30f,.012f,.04f),"Linen");
+                art.Box("Parking survey corner",root,new Vector3(corner*.92f,.029f,corner*.81f),new Vector3(.04f,.012f,.30f),"Linen");
+            }
+            var supplies=art.Group("Covered parking pavers",root,new Vector3(-.15f,0,-.23f));
+            art.Box("Paver delivery pallet",supplies,new Vector3(0,.09f,0),new Vector3(.92f,.07f,.70f),"Wood");
+            art.Box("Stacked paving slabs",supplies,new Vector3(0,.22f,0),new Vector3(.82f,.20f,.60f),"Clay");
+            art.Box("Paver weather cover",supplies,new Vector3(0,.38f,0),new Vector3(.90f,.12f,.67f),index%2==0?"TileBlue":"Apricot");
+            art.Box("Paver securing strap",supplies,new Vector3(0,.383f,0),new Vector3(.065f,.135f,.70f),"Gold");
+            art.Box("Portable parking planter",root,new Vector3(.37f,.18f,.63f),new Vector3(.46f,.28f,.46f),"Wood");
+            art.Orb("Portable planter foliage",root,new Vector3(.37f,.45f,.63f),new Vector3(.63f,.40f,.62f),"Leaf");
+            return root.gameObject;
+        }
+
         internal void Render(ClinicState state,bool reducedMotion)
         {
             int parking=0,toiletLevel=0,vendingLevel=0;VendingTill=0;
@@ -129,7 +149,7 @@ namespace IdleClinic.Presentation
             for(int kind=0;kind<3;kind++)for(int tier=1;tier<=3;tier++)tierDetails[kind,tier-1].SetActive(tier<=(kind==0?parking:kind==1?toiletLevel:vendingLevel));
             for(int i=0;i<6;i++)
             {
-                bayMarks[i].SetActive(i<parking*2);bool occupied=false;
+                bayMarks[i].SetActive(i<parking*2);futureBays[i].SetActive(i>=parking*2);bool occupied=false;
                 for(int p=0;p<state.Patients.Count;p++)if(state.Patients[p].ParkingBayId==i){occupied=true;break;}
                 parkedCars[i].SetActive(i<parking*2&&occupied);
             }

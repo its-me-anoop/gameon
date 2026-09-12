@@ -27,7 +27,7 @@ Little Lifeline 3.2 (16) expands the Unity idle-clinic game. No account or sign-
 
 A new clinic starts with one receptionist. The first patient pays 50 coins. Tap the counter cash, then use the highlighted control to hire the first nurse. Regular arrivals and other purchases unlock after the first treatment. Two paid patients waiting unlock the waiting-room construction option.
 
-Tap a room for shared upgrades and renovation. Tap an individual reception desk or nursing station for its equipment and assigned staff member's training; numbered shortcuts are also available in the room controls. Use the P camera-toolbar control to manage the car park. Once the waiting room is built, its controls include shortcuts to the toilet and vending machine. These amenities have three levels; waiting-room tier limits toilet and vending upgrades.
+Tap a room for shared upgrades and renovation. Tap an individual reception desk or nursing station for its equipment and assigned staff member's training; numbered shortcuts are also available in the room controls. Use the car-park control in the camera toolbar to manage parking. Once the waiting room is built, its controls include shortcuts to the toilet and vending machine. These amenities have three levels; waiting-room tier limits toilet and vending upgrades.
 
 Tips appear at the vending machine after eligible waiting patients use it. Tap its coins or use its collection control. Reception payments and vending tips accumulate until collected. Offline simulation earns for up to eight hours; construction uses the full absence. Services continue during room renovation.
 

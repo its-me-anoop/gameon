@@ -664,5 +664,50 @@ namespace IdleClinic.Tests
             Assert.That(world.SceneCamera.transform.position,Is.EqualTo(finalPosition));Assert.That(world.SceneCamera.orthographicSize,Is.EqualTo(finalSize));
         }
 
+        [TestCase(0)][TestCase(1)][TestCase(2)][TestCase(3)]
+        public void UnavailableParkingBaysRemainDressedUntilTheirOwnPairOpens(int level)
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Amenity(ClinicAmenity.Parking).Level=level;
+            world.Render(state,0,true);
+            for(int bay=0;bay<6;bay++)
+            {
+                var staging=Find("Future parking bay "+bay);Assert.That(staging,Is.Not.Null);
+                Assert.That(staging.gameObject.activeInHierarchy,Is.EqualTo(bay>=level*2));
+                Assert.That(Find("Parking bay "+bay).gameObject.activeInHierarchy,Is.EqualTo(bay<level*2));
+                Assert.That(staging.GetComponentsInChildren<Renderer>(true).Length,Is.GreaterThanOrEqualTo(8));
+                float x=bay%2==0?-11.3f:-8.6f,z=-3f+(bay/2)*2.9f;
+                foreach(var renderer in staging.GetComponentsInChildren<Renderer>(true))
+                {
+                    Assert.That(renderer.bounds.min.x,Is.GreaterThanOrEqualTo(x-1.0f));Assert.That(renderer.bounds.max.x,Is.LessThanOrEqualTo(x+1.0f));
+                    Assert.That(renderer.bounds.min.z,Is.GreaterThanOrEqualTo(z-1.18f));Assert.That(renderer.bounds.max.z,Is.LessThanOrEqualTo(z+1.18f));
+                }
+            }
+            state.Amenity(ClinicAmenity.Parking).Level=0;world.Render(state,0,true);
+            for(int bay=0;bay<6;bay++)Assert.That(Find("Future parking bay "+bay).gameObject.activeInHierarchy,Is.True,"Restoring an unbuilt clinic restores its staging.");
+        }
+
+        [Test]
+        public void FutureParkingDressingLeavesBothPassengerLanesAndEntrancesClear()
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Patients.Clear();
+            var person=new ClinicPatientState{Id=97,Phase=ClinicPatientPhase.Arriving,ToAnchor="reception.queue.0",PhaseStartedTick=0,PhaseEndsTick=100};
+            state.Patients.Add(person);world.Render(state,0,true);
+            var dressing=new System.Collections.Generic.List<Renderer>();
+            for(int bay=0;bay<6;bay++)dressing.AddRange(Find("Future parking bay "+bay).GetComponentsInChildren<Renderer>());
+            for(int bay=0;bay<6;bay++)
+            {
+                person.FromAnchor="parking.bay."+bay+".patient";
+                for(int tick=0;tick<=100;tick++)
+                {
+                    state.Tick=tick;world.Render(state,.1f,true);var actor=Find("Patient 97").position+Vector3.up*.30f;
+                    foreach(var renderer in dressing)
+                    {
+                        var bounds=renderer.bounds;if(bounds.max.y<.22f)continue;bounds.Expand(new Vector3(.60f,0,.60f));
+                        Assert.That(bounds.Contains(actor),Is.False,renderer.name+" obstructs parking passenger "+bay+" at tick "+tick);
+                    }
+                }
+            }
+        }
+
     }
 }
