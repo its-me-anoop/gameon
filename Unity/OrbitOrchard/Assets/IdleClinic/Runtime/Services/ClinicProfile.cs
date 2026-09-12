@@ -14,7 +14,7 @@ namespace IdleClinic.Services
     [Serializable]
     public sealed class ClinicProfile
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public long revision;
         public ClinicState state;
         public ClinicPreferences preferences = new ClinicPreferences();

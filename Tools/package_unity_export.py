@@ -59,7 +59,8 @@ def read_tests(path):
         raise ValueError('The final Unity report must pass every test with zero skipped or inconclusive cases.')
     fixtures = ('IdleClinic.Tests.ClinicSimulationTests.',
                 'IdleClinic.Tests.ClinicProfileTests.', 'IdleClinic.Tests.ClinicWorldTests.',
-                'IdleClinic.Tests.ClinicHUDTests.', 'IdleClinic.Tests.ClinicPerformanceTests.')
+                'IdleClinic.Tests.ClinicHUDTests.', 'IdleClinic.Tests.ClinicPerformanceTests.',
+                'IdleClinic.Tests.ClinicExpansionTests.', 'IdleClinic.Tests.ClinicMigrationTests.')
     cases = list(result.iter('test-case'))
     if len(cases) != total or any(case.get('result', '').lower() != 'passed' for case in cases):
         raise ValueError('Every reported Unity case must be present and passed.')

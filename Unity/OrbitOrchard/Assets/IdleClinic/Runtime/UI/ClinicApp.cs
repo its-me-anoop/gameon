@@ -29,6 +29,7 @@ namespace IdleClinic.App
         private AudioSource audioSource;
         private AudioClip collectSound, careSound, buildSound;
         private ClinicRoom? selectedRoom;
+        private ClinicHit? selectedObject;
         private bool settingsOpen, ready, inactive, skipNextDelta=true, restoreRequested, restoreObservedBusy;
         private double saveClock, readoutClock, toastUntil;
         private string dockKey = "";
@@ -38,7 +39,10 @@ namespace IdleClinic.App
         private readonly Dictionary<int, ClinicProgress> patientRings = new Dictionary<int, ClinicProgress>();
         private readonly Dictionary<int, VisualElement> constructionMarkers = new Dictionary<int, VisualElement>();
         private readonly Dictionary<ClinicRoom, VisualElement> roomTargets = new Dictionary<ClinicRoom, VisualElement>();
-        private VisualElement waitingMarker;
+        private VisualElement waitingMarker,vendingCashMarker;
+        private Button parkingControl;
+        private readonly Dictionary<string,VisualElement> objectTargets=new Dictionary<string,VisualElement>();
+        private readonly Dictionary<VisualElement,ClinicHit> objectHits=new Dictionary<VisualElement,ClinicHit>();
         private bool ReducedMotion => profile != null && (profile.preferences.reducedMotion || (apple != null && apple.IsReduceMotionEnabled));
         private ClinicState State => simulation.State;
 
@@ -96,7 +100,7 @@ namespace IdleClinic.App
             gameObject.AddComponent<ClinicPerformanceRecorder>();
 #endif
             if(saves.LastOfflineReport.applied && saves.LastOfflineReport.tillEarned>0)
-                Notify("While away: " + Money(saves.LastOfflineReport.tillEarned) + " at reception",8);
+                Notify("While away: " + Money(saves.LastOfflineReport.tillEarned) + " ready to collect",8);
             if(!string.IsNullOrEmpty(saves.Error)) Notify(saves.Error,10);
         }
 
@@ -118,6 +122,7 @@ namespace IdleClinic.App
             IconButton(cameraTools,ClinicGlyph.Home,"Return to reception",()=>world.Home(ReducedMotion),"round-control").name="camera-home";
             IconButton(cameraTools,ClinicGlyph.Plus,"Zoom in",()=>world.Zoom(.82f,new Vector2(.5f,.5f)),"round-control").name="camera-zoom-in";
             IconButton(cameraTools,ClinicGlyph.Minus,"Zoom out",()=>world.Zoom(1.22f,new Vector2(.5f,.5f)),"round-control").name="camera-zoom-out";
+            parkingControl=IconButton(cameraTools,ClinicGlyph.Parking,"Manage car park",()=>SelectObject(new ClinicHit(ClinicHitKind.Parking)),"round-control");
             dock=Box(root,"context-dock");dock.style.display=DisplayStyle.None;
             dock.RegisterCallback<GeometryChangedEvent>(_=>ApplySafeArea());
             toast=Text(root,"","toast");toast.style.display=DisplayStyle.None;toast.pickingMode=PickingMode.Ignore;
@@ -145,11 +150,12 @@ namespace IdleClinic.App
         private void UpdateReadouts()
         {
             walletLabel.text=Money(State.Wallet);
+            if(parkingControl!=null)parkingControl.style.display=State.Tutorial==ClinicTutorialStep.Complete?DisplayStyle.Flex:DisplayStyle.None;
             if(lastTutorial!=State.Tutorial)
             {
                 lastTutorial=State.Tutorial;
-                if(lastTutorial==ClinicTutorialStep.HireFirstNurse){selectedRoom=ClinicRoom.FirstAid;settingsOpen=false;world.SelectRoom(ClinicRoom.FirstAid);}
-                if(lastTutorial==ClinicTutorialStep.Complete){selectedRoom=null;world.SelectRoom(default(ClinicHit));Notify("Your clinic is open",3);}
+                if(lastTutorial==ClinicTutorialStep.HireFirstNurse){selectedObject=null;selectedRoom=ClinicRoom.FirstAid;settingsOpen=false;world.SelectRoom(ClinicRoom.FirstAid);}
+                if(lastTutorial==ClinicTutorialStep.Complete){selectedObject=null;selectedRoom=null;world.SelectRoom(default(ClinicHit));Notify("Your clinic is open",3);}
                 dockKey="";
             }
             hintLabel.text=State.Tutorial==ClinicTutorialStep.FirstArrival ? "Your first patient is checking in"
@@ -157,9 +163,13 @@ namespace IdleClinic.App
                 : State.Tutorial==ClinicTutorialStep.HireFirstNurse ? "A nurse makes all the difference"
                 : State.Tutorial==ClinicTutorialStep.FirstTreatment ? "A little care. A fresh start." : "";
             hint.style.display=string.IsNullOrEmpty(hintLabel.text)?DisplayStyle.None:DisplayStyle.Flex;
-            var key=(settingsOpen?"settings":selectedRoom.ToString())+":"+State.Tutorial+":"+State.Staff.Count+":"+State.WaitingRoomUnlocked+":"+
+            var key=(settingsOpen?"settings":selectedObject.HasValue?selectedObject.Value.Kind+":"+selectedObject.Value.Id:selectedRoom.ToString())+":"+State.Tutorial+":"+State.Staff.Count+":"+State.WaitingRoomUnlocked+":"+
                 string.Join(";",State.Rooms.Select(r=>$"{r.Built}:{r.Tier}:{r.EquipmentLevel}:{r.FacilitiesLevel}:{r.DecorationLevel}:{r.StationCount}"))+":"+
-                string.Join(";",State.Construction.Select(c=>c.Id));
+                string.Join(";",State.Construction.Select(c=>c.Id))+":"+
+                string.Join(";",State.ReceptionDesks.Select(d=>$"{d.Id}:{d.EquipmentLevel}"))+":"+
+                string.Join(";",State.TreatmentStations.Select(s=>$"{s.Id}:{s.EquipmentLevel}"))+":"+
+                string.Join(";",State.Staff.Select(s=>$"{s.Id}:{s.TrainingLevel}"))+":"+
+                string.Join(";",State.Amenities.Select(a=>$"{a.Kind}:{a.Level}"));
             if(key!=dockKey){dockKey=key;RebuildDock();}
             foreach(var update in readouts.ToArray())update();
             UpdateAccessibilityValues();
@@ -178,11 +188,11 @@ namespace IdleClinic.App
         private void Select(ClinicRoom room)
         {
             if(!ClinicSelectionPolicy.CanSelectRoom(State.Tutorial,room))return;
-            settingsOpen=false;selectedRoom=room;world.SelectRoom(room);dockKey="";UpdateReadouts();
+            settingsOpen=false;selectedObject=null;selectedRoom=room;world.SelectRoom(room);dockKey="";UpdateReadouts();
         }
         private void CloseContext()
         {
-            selectedRoom=null;settingsOpen=false;world.SelectRoom(default(ClinicHit));dockKey="";UpdateReadouts();
+            selectedRoom=null;selectedObject=null;settingsOpen=false;world.SelectRoom(default(ClinicHit));dockKey="";UpdateReadouts();
         }
 
         private void Run(Func<ClinicCommandResult> action)
@@ -205,11 +215,12 @@ namespace IdleClinic.App
             {
                 if(e.Kind==ClinicEventKind.CashCollected)
                 {
-                    LaunchCoins(e.DeskId,e.Amount);
+                    if(ClinicCashPresentation.IsVendingCollection(e))LaunchCoinsFrom(world.GetVendingCashPoint());
+                    else LaunchCoins(e.DeskId,e.Amount);
                     Feedback(collectSound,.32f,0);
                 }
                 else if(e.Kind==ClinicEventKind.TreatmentCompleted)Feedback(careSound,.12f,-1);
-                else if(e.Kind==ClinicEventKind.NurseHired || e.Kind==ClinicEventKind.ReceptionistHired || e.Kind==ClinicEventKind.EquipmentUpgraded || e.Kind==ClinicEventKind.StationAdded)
+                else if(e.Kind==ClinicEventKind.NurseHired || e.Kind==ClinicEventKind.ReceptionistHired || e.Kind==ClinicEventKind.EquipmentUpgraded || e.Kind==ClinicEventKind.StationAdded || e.Kind==ClinicEventKind.StaffTrained || e.Kind==ClinicEventKind.StationUpgraded || e.Kind==ClinicEventKind.AmenityUpgraded)
                     Feedback(buildSound,.2f,1);
                 else if(e.Kind==ClinicEventKind.ConstructionCompleted){Feedback(buildSound,.24f,1);Notify(RoomName(e.Room)+" is ready");}
                 else if(e.Kind==ClinicEventKind.WaitingRoomUnlocked)Notify("A waiting room is ready to build",5);
@@ -242,7 +253,7 @@ namespace IdleClinic.App
             else
             {
                 cameraTools.style.top=StyleKeyword.Auto;
-                cameraTools.style.bottom=bottom+(selectedRoom.HasValue||settingsOpen?
+                cameraTools.style.bottom=bottom+(selectedRoom.HasValue||selectedObject.HasValue||settingsOpen?
                     (float.IsNaN(dockHeight)?236:Math.Max(0,dockHeight)+24):20);
             }
             toast.style.top=top+112;
@@ -264,7 +275,7 @@ namespace IdleClinic.App
         {
             var report=saves.ApplyOffline(DateTimeOffset.UtcNow);profile=saves.Profile;simulation=new ClinicSimulation(profile.state);
             skipNextDelta=true;
-            if(report.applied && report.tillEarned>0)Notify("While away: "+Money(report.tillEarned)+" at reception",7);
+            if(report.applied && report.tillEarned>0)Notify("While away: "+Money(report.tillEarned)+" ready to collect",7);
             if(!string.IsNullOrEmpty(saves.Error))Notify(saves.Error,10);
             dockKey="";if(ready)UpdateReadouts();
         }
@@ -324,11 +335,11 @@ namespace IdleClinic.App
             if(bold && boldFont!=null)label.style.unityFontDefinition=FontDefinition.FromFont(boldFont);
             parent.Add(label);return label;
         }
-        private Button IconButton(VisualElement parent,ClinicGlyph glyph,string label,Action action,string classes)
+        private Button IconButton(VisualElement parent,ClinicGlyph glyph,string label,Action action,string classes,Func<string> value=null)
         {
             var button=new Button(action){tooltip=label,name=label.ToLowerInvariant().Replace(' ','-')};
             foreach(var name in classes.Split(' '))button.AddToClassList(name);
-            button.Add(new ClinicIcon(glyph));parent.Add(button);RegisterAccessibleButton(button,label,action);return button;
+            button.Add(new ClinicIcon(glyph));parent.Add(button);RegisterAccessibleButton(button,label,action,value);return button;
         }
     }
 }

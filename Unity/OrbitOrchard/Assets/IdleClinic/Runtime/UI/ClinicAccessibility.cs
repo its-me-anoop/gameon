@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using IdleClinic.Core;
+using IdleClinic.Presentation;
 using UnityEngine;
 using UnityEngine.Accessibility;
 using UnityEngine.UIElements;
@@ -100,13 +102,19 @@ namespace IdleClinic.App
             if(overlay!=null&&overlay.Contains(element)&&WorldPointIsCovered(bounds.center))return false;
             // Mobile accessibility activates by tapping the node center. Match the
             // cash/plot priority in WorldTap so a room label cannot invoke another action.
-            if(roomTargets.ContainsValue(element)&&RoomPointHasHigherPriorityAction(bounds.center))return false;
+            if((roomTargets.ContainsValue(element)||objectHits.ContainsKey(element))&&RoomPointHasHigherPriorityAction(bounds.center))return false;
+            if(roomTargets.ContainsValue(element)&&TryPickManagementTarget(bounds.center,out _))return false;
+            if(world!=null&&board!=null&&objectHits.TryGetValue(element,out var expected))
+            {
+                var actual=world.Pick(ToViewport(bounds.center));
+                if(actual.Kind!=expected.Kind||actual.Id!=expected.Id)return false;
+            }
             return true;
         }
         private bool RoomPointHasHigherPriorityAction(Vector2 point)
         {
             foreach(var marker in cashMarkers.Values)if(CoversWorldPoint(marker,point))return true;
-            return CoversWorldPoint(waitingMarker,point);
+            return CoversWorldPoint(vendingCashMarker,point)||CoversWorldPoint(waitingMarker,point);
         }
         private bool WorldPointIsCovered(Vector2 point)
         {

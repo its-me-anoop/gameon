@@ -6,6 +6,7 @@ namespace IdleClinic.Core
     public static class ClinicRules
     {
         public const int TicksPerSecond = 10;
+        public const long MaximumCurrency = 1000000000000000L;
         public const int MaximumNurses = 2;
         public const int MaximumReceptionists = 2;
         public const int MaximumRoomTier = 3;
@@ -45,9 +46,56 @@ namespace IdleClinic.Core
         public static double ReceptionSeconds(ClinicState state) => ReceptionTicks(state) / 10d;
         public static double TreatmentSeconds(ClinicState state) => TreatmentTicks(state) / 10d;
         public static double WaitingCallSeconds(ClinicState state) => WaitingCallTicks(state) / 10d;
-        public static int ReceptionTicks(ClinicState state) => SpeedTicks(140, state.Room(ClinicRoom.Reception).EquipmentLevel);
-        public static int TreatmentTicks(ClinicState state) => SpeedTicks(180, state.Room(ClinicRoom.FirstAid).EquipmentLevel);
-        public static int WaitingCallTicks(ClinicState state) => SpeedTicks(20, state.Room(ClinicRoom.Waiting).EquipmentLevel);
+        public static int ReceptionTicks(ClinicState state) => ReceptionTicks(state, 0);
+        public static int TreatmentTicks(ClinicState state) => TreatmentTicks(state, 0);
+        public static int WaitingCallTicks(ClinicState state, int equipmentLevelsAdded = 0) => SpeedTicks(20, state.Room(ClinicRoom.Waiting).EquipmentLevel + equipmentLevelsAdded);
+        public static int PatientAppearance(ulong seed, int patientId) => (int)((seed % 12 + (ulong)patientId * 7) % 12);
+        public static int ParkingCapacity(ClinicState state) => 2 * state.Amenity(ClinicAmenity.Parking).Level;
+        public static long VendingTip(ClinicState state) => 5L * state.Amenity(ClinicAmenity.Vending).Level;
+        public static long VendingTipForPatient(ClinicState state, ClinicPatientState patient)
+        {
+            if (patient.UsedVending || state.TotalEarned < 0 || state.TotalEarned > MaximumCurrency) return 0;
+            var amount = VendingTip(state) + (patient.UsedToilet ? 2L * state.Amenity(ClinicAmenity.Toilet).Level : 0);
+            if (amount <= 0 || state.TotalTips < 0 || state.TotalTips > MaximumCurrency - amount
+                || state.Amenity(ClinicAmenity.Vending).Till < 0 || state.Amenity(ClinicAmenity.Vending).Till > MaximumCurrency - amount) return 0;
+            var headroom = MaximumCurrency - state.TotalEarned;
+            // Reception has already quoted these admissions. Optional tips cannot consume the
+            // space needed to honour their pending payments.
+            foreach (var admission in state.Patients.Where(p => !p.Paid && p.HasAdmissionReservation))
+            {
+                if (admission.Payment < 0 || admission.Payment > headroom) return 0;
+                headroom -= admission.Payment;
+            }
+            return amount <= headroom ? amount : 0;
+        }
+        public static int AmenityUseTicks(ClinicState state, ClinicAmenity kind) => kind == ClinicAmenity.Toilet
+            ? (6000 + 100 + 25 * (state.Amenity(kind).Level - 1) - 1) / (100 + 25 * (state.Amenity(kind).Level - 1)) : 30;
+        public static int StationLevel(ClinicState state, ClinicStaffRole role, int stationId)
+            => role == ClinicStaffRole.Receptionist ? state.ReceptionDesks.Find(d => d.Id == stationId)?.EquipmentLevel ?? 0
+                : role == ClinicStaffRole.Nurse ? state.TreatmentStations.Find(s => s.Id == stationId)?.EquipmentLevel ?? 0 : 0;
+        public static long StationUpgradeCost(ClinicState state, ClinicStaffRole role, int stationId)
+        {
+            var level = StationLevel(state, role, stationId);
+            return level < 1 ? 0 : ScaleCost(role == ClinicStaffRole.Receptionist ? 90 : 110, 9, 5, level - 1);
+        }
+        public static long StaffTrainingCost(ClinicStaffState staff) => staff == null ? 0
+            : ScaleCost(staff.Role == ClinicStaffRole.Receptionist ? 80 : 100, 9, 5, staff.TrainingLevel - 1);
+        public static long AmenityUpgradeCost(ClinicAmenity kind, int currentLevel) => !Enum.IsDefined(typeof(ClinicAmenity), kind)
+            || currentLevel < 0 || currentLevel >= 3 ? 0 : ScaleCost(kind == ClinicAmenity.Parking ? 220 : kind == ClinicAmenity.Toilet ? 140 : 180, 2, 1, currentLevel);
+        public static int ReceptionTicks(ClinicState state, int deskId) => StationServiceTicks(state, ClinicStaffRole.Receptionist, deskId);
+        public static int TreatmentTicks(ClinicState state, int stationId) => StationServiceTicks(state, ClinicStaffRole.Nurse, stationId);
+        public static int StationServiceTicks(ClinicState state, ClinicStaffRole role, int stationId,
+            int equipmentLevelsAdded = 0, int trainingLevelsAdded = 0, int roomEquipmentLevelsAdded = 0)
+        {
+            var room = state.Room(role == ClinicStaffRole.Nurse ? ClinicRoom.FirstAid : ClinicRoom.Reception);
+            var staff = state.Staff.Find(s => s.Role == role && s.StationId == stationId);
+            var speed = 100 + 15 * (room.EquipmentLevel - 1 + roomEquipmentLevelsAdded)
+                + 10 * (Math.Max(1, StationLevel(state, role, stationId)) - 1 + equipmentLevelsAdded)
+                + 12 * ((staff?.TrainingLevel ?? 1) - 1 + trainingLevelsAdded);
+            return ((role == ClinicStaffRole.Nurse ? 180 : 140) * 100 + speed - 1) / speed;
+        }
+        public static string ParkingPatientAnchor(int id) => "parking.bay." + id + ".patient";
+        public static string AmenityPatientAnchor(ClinicAmenity kind) => kind == ClinicAmenity.Toilet ? "waiting.toilet.patient" : "waiting.vending.patient";
         private static int SpeedTicks(int baseTicks, int level) => (baseTicks * 100 + (100 + 15 * (level - 1)) - 1) / (100 + 15 * (level - 1));
         private static long ScaleCost(long basis, long numerator, long denominator, int exponent)
         {

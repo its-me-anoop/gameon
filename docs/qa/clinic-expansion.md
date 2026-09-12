@@ -1,0 +1,36 @@
+# Little Lifeline 3.2 (16) QA
+
+**Release pending.** The current Unity source passes all 383 EditMode tests. The expanded clinic has completed native simulator acceptance on the earlier presentation snapshot; the final marker-polish simulator check remains **PENDING**. No 3.2 TestFlight availability is claimed here. The [3.1 QA record](idle-clinic.md) remains separate historical evidence.
+
+## Source and test evidence
+
+| Check | Result and scope |
+| --- | --- |
+| Full Unity EditMode run | **383 passed, zero failed, skipped or inconclusive**, 12 September 2026, 09:40:35–09:40:46 UTC. [NUnit XML](../../build/clinic-v2-tests.xml), SHA-256 `de4dfc4746a7cd6beb8246cdcf766651436e1d4ce377c78d77d576ffd875f7d8` |
+| Current tested source | [424-file snapshot](../../build/qa-clinic-v2/final-tested-source-identity.json), digest `2ae3287ea3fb2a9a7bc3b594e7e94407cbe577b9ba9b4011126629ec2a4856c7`. This is a file-inventory digest, not a Git commit or release archive |
+| Standalone compilation | 20 Editor/runtime/test assembly variants compiled; 105 selected managed tests passed. [Summary](../../build/clinic-v2-source-check/summary.txt). This check does not execute native JSON, Unity rendering or Apple APIs |
+| Packaging validation | **25 synthetic tests passed**. [Log](../../build/qa-clinic-v2/package-tests.log). The seven-fixture gate includes expansion and migration; these synthetic tests are not an exported-player test |
+| Native simulator acceptance | Run 03: **one test passed in 165.022 seconds**, zero failures/skips/runtime warnings in the summary. [XCTest summary](../../build/qa-clinic-v2/final-xctest-summary.json), [raw log](../../build/qa-clinic-v2/ios-smoke/03-final-acceptance.log), [result bundle](../../build/qa-clinic-v2/ios-smoke/03-final-acceptance.xcresult) |
+
+The Unity run includes 235 clinic cases across all seven required fixtures: simulation 20, expansion 16, profiles 18, migration 6, world 105, HUD 67 and performance-recorder logic 3. Remaining cases cover the preserved earlier game modules. Coverage includes money conservation and cap handling, deterministic reservations, migration/recovery, individual progression, room limits, routes, scenery clearance, construction timing, camera bounds, gesture cancellation and accessibility bindings. Recorder tests do not establish device performance.
+
+## Native simulator evidence before final marker polish
+
+The test device is the dedicated **iPhone SE (3rd generation), iOS 26.5 (23F77), 375 × 667 points**, simulator `5E4A146F-56E1-440C-BEB2-E63AF80E8647`. The installed development player identifies as 3.2 (16). [Build](../../build/qa-clinic-v2/simulator-build-receipt.json) and [installation](../../build/qa-clinic-v2/simulator-install-receipt.json) receipts verify UnityFramework SHA-256 `c4c9d84ea426cd38a703977ffc8b6ed41ce259c556d485b92a8aee29f2e4d123` against the installed binary. Its source inventory is [the 09:19 snapshot](../../build/qa-clinic-v2/simulator-source-identity.json), digest `6c9a6f27550fea697a6beefacf6174ba835be23d20d12d14a06d12babac17e15`.
+
+Migration used the existing simulator installation and save, without resetting the clinic. A [preserved 3.1 fixture and receipt](../../build/qa-clinic-v2/legacy-3.1/receipt.json) record wallet 3,807, tills 3,960/7,740, four staff, completed tutorial and existing room upgrades. Run 01 reached its migration checkpoint and verified the wallet remained exactly **3,807** before collecting cash. Later runs resumed the resulting 3.2 clinic. Native JSON migration, preservation and write-failure recovery also pass in the six Unity migration cases.
+
+Acceptance accumulated across the following runs; failed runs are not counted as complete passes:
+
+- **Run 01 — failed harness assertion.** Launch/migration and initial collection completed. The camera assertion compared an unsuitable accessibility anchor after zoom. Its result bundle later became unreadable during disk exhaustion; the [raw log](../../build/qa-clinic-v2/ios-smoke/01-expansion.log) retains the limited checkpoint evidence. This is not a passing migration-to-expansion playthrough.
+- **Run 02 — failed harness selector.** The revised camera checks passed. An upgrade-button drag left money and level unchanged. Desk 1 equipment/training purchases deducted 90/80; station 1 deducted 110/100. The second desk/station retained their own levels. Parking purchases deducted 220, 440 and 880, reaching six bays. The run then selected an inactive world toilet accessibility node instead of the visible shortcut. The harness was corrected to prefer exact, hittable, enabled matches. [Log](../../build/qa-clinic-v2/ios-smoke/02-expansion.log) and [attachments](../../build/qa-clinic-v2/ios-smoke/02-attachments/manifest.json) retain these checkpoints.
+- **Run 03 — passed.** It restored and checked the independently upgraded staff/stations and maxed car park. It built the toilet for 140 and vending machine for 180, checked the waiting-tier cap, renovated the waiting room for 120, and then upgraded toilet/vending for 280/360 after completion. Vending collection credited the exact displayed till. Actual input verified panning, anchored pinch, Home restoration, room selection without camera movement and collection after gestures. Background/resume and terminate/relaunch retained wallet **23,660** and reduced-motion preference; offline earnings remained uncollected. [Attachments](../../build/qa-clinic-v2/ios-smoke/03-attachments/manifest.json) and [recording](../../build/qa-clinic-v2/clinic32-final-acceptance.mp4) preserve the run.
+
+The recordings and screenshots include the furnished clinic, varied visitors, parking, street traffic, amenities and active scaffolding. Run 03 precedes the compact-marker polish. Comparing its source inventory with the current tested snapshot shows only the marker UI/style/helper changes and HUD/world test changes; gameplay/core and world presentation source are otherwise the same. Do not present this earlier installed player as a final-source native pass.
+
+## Remaining gates and limits
+
+- **PENDING:** final-source native marker check: separate 44-point cash targets, exact collection and immediate repeat tap, compact progress, camera extremes, vending collection, renovation completion and relaunch. Preserve its binary/source identity and fresh recording separately.
+- **NOT ASSESSED:** physical-iPhone gameplay, device frame times, thermals and actual VoiceOver operation for 3.2. The available phone record reports an unavailable connection and no developer-device services. Simulator XCTest uses the development accessibility export; this is not a physical VoiceOver check. Earlier 3.1 device measurements are not 3.2 evidence.
+- **NOT RERUN:** the original zero-money opening and its full guided economy timing on this expansion candidate. Earlier starter-clinic timing remains in the 3.1 record; expansion runtime acceptance uses the existing clinic save.
+- **PENDING:** frozen production Device export, sealed signed archive, promotion and independent App Store Connect `VALID`/unexpired/internal-membership readback. Use the [3.2 metadata handoff](../clinic32-metadata-handoff.md). New monetisation and leaderboards remain deferred.

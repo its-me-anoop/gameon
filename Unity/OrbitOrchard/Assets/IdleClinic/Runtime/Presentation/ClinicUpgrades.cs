@@ -7,8 +7,27 @@ namespace IdleClinic.Presentation
     internal sealed class ClinicUpgrades
     {
         private readonly GameObject[,,] details=new GameObject[3,3,5];
+        private readonly GameObject[,,] stationDetails=new GameObject[2,2,5];
         internal ClinicUpgrades(ClinicArt art,Transform parent)
         {
+            for(int kind=0;kind<2;kind++)for(int station=0;station<2;station++)for(int level=2;level<=6;level++)
+            {
+                var root=art.Group((kind==0?"Desk ":"Station ")+station+" equipment "+level,parent);stationDetails[kind,station,level-2]=root.gameObject;
+                float x=(kind==0?-3.85f:-3.88f)+station*(kind==0?2.12f:2.15f);
+                if(kind==0)
+                {
+                    float px=x-.65f+(level-2)*.13f;
+                    art.Box("Individual desk terminal",root,new Vector3(px,1.245f,-2.70f),new Vector3(.11f,.17f,.16f),level%2==0?"SageDark":"Gold");
+                    art.Box("Individual terminal display",root,new Vector3(px,1.335f,-2.70f),new Vector3(.08f,.015f,.10f),"Blue");
+                }
+                else
+                {
+                    float px=x-.84f+(level-2)*.10f;
+                    art.Box("Individual care instrument",root,new Vector3(px,1.27f,3.08f),new Vector3(.08f,.22f,.20f),level%2==0?"Blue":"Apricot");
+                    art.Box("Instrument clean label",root,new Vector3(px,1.29f,2.973f),new Vector3(.052f,.06f,.013f),"Linen");
+                }
+                root.gameObject.SetActive(false);
+            }
             for(int room=0;room<3;room++)for(int track=0;track<3;track++)for(int level=2;level<=6;level++)
             {
                 var root=art.Group(((ClinicRoom)room)+" "+((UpgradeTrack)track)+" level "+level,parent);
@@ -21,6 +40,13 @@ namespace IdleClinic.Presentation
         }
         internal void Render(ClinicState state)
         {
+            for(int kind=0;kind<2;kind++)for(int station=0;station<2;station++)
+            {
+                int equipment=0;
+                if(kind==0){for(int i=0;i<state.ReceptionDesks.Count;i++)if(state.ReceptionDesks[i].Id==station)equipment=state.ReceptionDesks[i].EquipmentLevel;}
+                else {for(int i=0;i<state.TreatmentStations.Count;i++)if(state.TreatmentStations[i].Id==station)equipment=state.TreatmentStations[i].EquipmentLevel;}
+                for(int level=2;level<=6;level++)stationDetails[kind,station,level-2].SetActive(level<=equipment);
+            }
             for(int room=0;room<3;room++)
             {
                 ClinicRoomState data=null;for(int i=0;i<state.Rooms.Count;i++)if((int)state.Rooms[i].Kind==room){data=state.Rooms[i];break;}

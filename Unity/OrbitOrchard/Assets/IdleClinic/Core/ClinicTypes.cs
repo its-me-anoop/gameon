@@ -6,11 +6,13 @@ namespace IdleClinic.Core
     public enum ClinicRoom { Reception, FirstAid, Waiting }
     public enum UpgradeTrack { Equipment, Facilities, Decoration }
     public enum ClinicStaffRole { Receptionist, Nurse }
+    public enum ClinicAmenity { Parking, Toilet, Vending }
     public enum ClinicTutorialStep { FirstArrival, CollectFirstPayment, HireFirstNurse, FirstTreatment, Complete }
     public enum ClinicPatientPhase
     {
         Arriving, ReceptionQueue, WalkingToReception, CheckingIn, WaitingForTreatment,
-        WalkingToWaiting, Seated, WalkingToTreatment, Treating, Leaving
+        WalkingToWaiting, Seated, WalkingToTreatment, Treating, Leaving,
+        WalkingToAmenity, UsingAmenity, ReturningFromAmenity
     }
     public enum ClinicConstructionKind { WaitingRoom, RoomRenovation }
     public enum ClinicEventKind
@@ -18,14 +20,14 @@ namespace IdleClinic.Core
         PatientArrived, CheckInStarted, PaymentReceived, CashCollected, NurseHired,
         ReceptionistHired, TreatmentStarted, TreatmentCompleted, WaitingRoomUnlocked,
         ConstructionStarted, ConstructionCompleted, EquipmentUpgraded, StationAdded,
-        TutorialAdvanced
+        TutorialAdvanced, StationUpgraded, StaffTrained, AmenityUpgraded, AmenityVisitStarted, TipReceived
     }
 
     [Serializable]
     public sealed class ClinicState
     {
-        public int SchemaVersion = 1;
-        public int RulesVersion = 1;
+        public int SchemaVersion = 2;
+        public int RulesVersion = 2;
         public ulong Seed = 42;
         public long Tick;
         public double SubTick;
@@ -39,14 +41,18 @@ namespace IdleClinic.Core
         public long TotalEarned;
         public long TotalSpent;
         public long TotalTreatments;
+        public long TotalTips;
         public bool WaitingRoomUnlocked;
         public ClinicTutorialStep Tutorial;
         public List<ClinicRoomState> Rooms = new List<ClinicRoomState>();
         public List<ReceptionDeskState> ReceptionDesks = new List<ReceptionDeskState>();
+        public List<TreatmentStationState> TreatmentStations = new List<TreatmentStationState>();
+        public List<ClinicAmenityState> Amenities = new List<ClinicAmenityState>();
         public List<ClinicStaffState> Staff = new List<ClinicStaffState>();
         public List<ClinicPatientState> Patients = new List<ClinicPatientState>();
         public List<ClinicConstructionState> Construction = new List<ClinicConstructionState>();
 
+        public ClinicAmenityState Amenity(ClinicAmenity kind) => Amenities.Find(a => a.Kind == kind);
         public ClinicRoomState Room(ClinicRoom kind) => Rooms.Find(r => r.Kind == kind);
         public ClinicRoomState GetRoom(ClinicRoom kind) => Room(kind);
     }
@@ -70,8 +76,24 @@ namespace IdleClinic.Core
     {
         public int Id;
         public long Till;
+        public int EquipmentLevel = 1;
         public int PatientId = -1;
         public long LastStartedTick = -1;
+    }
+
+    [Serializable]
+    public sealed class TreatmentStationState
+    {
+        public int Id;
+        public int EquipmentLevel = 1;
+    }
+
+    [Serializable]
+    public sealed class ClinicAmenityState
+    {
+        public ClinicAmenity Kind;
+        public int Level;
+        public long Till;
     }
 
     [Serializable]
@@ -79,6 +101,7 @@ namespace IdleClinic.Core
     {
         public int Id;
         public ClinicStaffRole Role;
+        public int TrainingLevel = 1;
         public int StationId;
         public int PatientId = -1;
         public string FromAnchor = "entrance";
@@ -92,6 +115,12 @@ namespace IdleClinic.Core
     {
         public int Id;
         public ClinicPatientPhase Phase;
+        public int AppearanceId;
+        public int ParkingBayId = -1;
+        public ClinicAmenity VisitingAmenity;
+        public bool UsedToilet;
+        public bool UsedVending;
+        public long TipPaid;
         public long ArrivalTick;
         public long PhaseStartedTick;
         public long PhaseEndsTick;
@@ -127,6 +156,7 @@ namespace IdleClinic.Core
         public int StaffId = -1;
         public int DeskId = -1;
         public ClinicRoom Room;
+        public ClinicAmenity Amenity;
         public string SourceAnchor = "";
         public long Amount;
     }

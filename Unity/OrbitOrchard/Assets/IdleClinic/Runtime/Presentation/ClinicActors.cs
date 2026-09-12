@@ -35,13 +35,16 @@ namespace IdleClinic.Presentation
             {
                 var person=state.Patients[i];
                 if(!patients.TryGetValue(person.Id,out var actor))
-                { actor=patientPool.Count>0?patientPool.Pop():Create("Patient");patients.Add(person.Id,actor);actor.Root.name="Patient "+person.Id;actor.Root.gameObject.SetActive(true); }
+                { actor=patientPool.Count>0?patientPool.Pop():Create("Patient");patients.Add(person.Id,actor);actor.Root.name="Patient "+person.Id;actor.Root.gameObject.SetActive(true);actor.From=null;actor.To=null; }
+                actor.Appearance.Apply(person.AppearanceId);
                 bool walking=person.Phase==ClinicPatientPhase.Arriving||person.Phase==ClinicPatientPhase.WalkingToReception||
-                    person.Phase==ClinicPatientPhase.WalkingToWaiting||person.Phase==ClinicPatientPhase.WalkingToTreatment||person.Phase==ClinicPatientPhase.Leaving;
-                bool seated=(person.Phase==ClinicPatientPhase.Seated||person.Phase==ClinicPatientPhase.Treating)&&world.HasSeatAt(person.ToAnchor);
-                int pose=walking?1:person.Phase==ClinicPatientPhase.CheckingIn?2:seated?4:0;
+                    person.Phase==ClinicPatientPhase.WalkingToWaiting||person.Phase==ClinicPatientPhase.WalkingToTreatment||person.Phase==ClinicPatientPhase.Leaving||
+                    person.Phase==ClinicPatientPhase.WalkingToAmenity||person.Phase==ClinicPatientPhase.ReturningFromAmenity;
+                bool seated=((person.Phase==ClinicPatientPhase.Seated||person.Phase==ClinicPatientPhase.Treating)&&world.HasSeatAt(person.ToAnchor))||
+                    (person.Phase==ClinicPatientPhase.UsingAmenity&&person.VisitingAmenity==ClinicAmenity.Toilet);
+                int pose=walking?1:person.Phase==ClinicPatientPhase.CheckingIn||person.Phase==ClinicPatientPhase.UsingAmenity&&!seated?2:seated?4:0;
                 Place(actor,person.FromAnchor,person.ToAnchor,Progress(tick,person.PhaseStartedTick,person.PhaseEndsTick),walking,false);
-                actor.Sample(pose,tick*.1+person.Id*.17,reducedMotion,person.Phase==ClinicPatientPhase.Leaving);
+                actor.Sample(pose,tick*.1+person.Id*.17,reducedMotion,person.Phase==ClinicPatientPhase.Leaving);actor.Appearance.AfterPose(seated);
             }
             foreach(var entry in staff)
             {
@@ -54,12 +57,13 @@ namespace IdleClinic.Presentation
                 if(!staff.TryGetValue(member.Id,out var actor))
                 { actor=Create(member.Role==ClinicStaffRole.Nurse?"Nurse":"Receptionist");staff.Add(member.Id,actor);actor.Root.name="Staff "+member.Id; }
                 if(!actor.Root.gameObject.activeSelf)actor.Root.gameObject.SetActive(true);
+                actor.Appearance.Apply(member.Id%12,member.TrainingLevel);
                 bool walking=tick<member.MoveEndsTick;
                 int pose=walking?1:member.PatientId<0?0:member.Role==ClinicStaffRole.Receptionist?2:3;
                 if(!walking&&member.Role==ClinicStaffRole.Nurse&&member.PatientId>=0)
                     for(int p=0;p<state.Patients.Count;p++)if(state.Patients[p].Id==member.PatientId&&state.Patients[p].Phase==ClinicPatientPhase.WalkingToTreatment){pose=5;break;}
                 Place(actor,member.FromAnchor,member.ToAnchor,Progress(tick,member.MoveStartedTick,member.MoveEndsTick),walking,true);
-                actor.Sample(pose,tick*.1+member.Id*.13,reducedMotion);
+                actor.Sample(pose,tick*.1+member.Id*.13,reducedMotion);actor.Appearance.AfterPose(false);
             }
         }
         private static float Progress(double tick,long from,long until)=>until<=from?1:Mathf.Clamp01((float)((tick-from)/(until-from)));
@@ -119,11 +123,12 @@ namespace IdleClinic.Presentation
                     art.Box("Relieved smile",relief,new Vector3(i*.015f,-.074f+.006f*i*i,.163f),new Vector3(.019f,.011f,.011f),"Ink");
                 relief.gameObject.SetActive(false);
             }
-            return new Actor(root,animation,states,head,relief,departureWave);
+            return new Actor(root,animation,states,head,relief,departureWave,new ClinicAppearance(art,root,model=="Patient"));
         }
         private sealed class Actor
         {
             internal readonly Transform Root;
+            internal readonly ClinicAppearance Appearance;
             internal readonly ClinicRoute Route=new ClinicRoute();
             internal string From,To;
             internal bool IsStaff,Moving;
@@ -132,8 +137,8 @@ namespace IdleClinic.Presentation
             private readonly Transform head,relief;
             private readonly AnimationState departureWave;
             private int current=-1;
-            internal Actor(Transform root,Animation animation,AnimationState[] states,Transform head,Transform relief,AnimationState departureWave)
-            { Root=root;this.animation=animation;this.states=states;this.head=head;this.relief=relief;this.departureWave=departureWave; }
+            internal Actor(Transform root,Animation animation,AnimationState[] states,Transform head,Transform relief,AnimationState departureWave,ClinicAppearance appearance)
+            { Appearance=appearance;Root=root;this.animation=animation;this.states=states;this.head=head;this.relief=relief;this.departureWave=departureWave; }
             internal void Sample(int pose,double seconds,bool reducedMotion,bool departing=false)
             {
                 if(states[pose]==null)pose=0;if(states[pose]==null)return;
@@ -155,7 +160,7 @@ namespace IdleClinic.Presentation
     /// <summary>Routes use the open front aisle and central corridor, never a straight line through furniture.</summary>
     internal sealed class ClinicRoute
     {
-        private readonly Vector3[] points=new Vector3[12];
+        private readonly Vector3[] points=new Vector3[24];
         private int count;
         private float length;
         internal void Build(ClinicWorld world,string from,string to,bool staff)
@@ -167,19 +172,37 @@ namespace IdleClinic.Presentation
             bool fromQueue=Starts(from,"reception.queue."),toQueue=Starts(to,"reception.queue.");
             bool fromSeat=Starts(from,"waiting.seat."),toSeat=Starts(to,"waiting.seat.");
             bool fromCare=Starts(from,"firstaid.station."),toCare=Starts(to,"firstaid.station.");
-            if(fromDesk) { float z=staff?-1.15f:-4.05f;Add(new Vector3(start.x,start.y,z));Add(new Vector3(lane,start.y,z)); }
-            else if(fromSeat) { Add(new Vector3(3.40f,start.y,start.z));Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f)); }
+            bool fromParking=Starts(from,"parking.bay."),toParking=Starts(to,"parking.bay.");
+            bool fromAmenity=Starts(from,"waiting.toilet.")||Starts(from,"waiting.vending."),toAmenity=Starts(to,"waiting.toilet.")||Starts(to,"waiting.vending.");
+            if(fromParking)
+            { Add(new Vector3(start.x,start.y,-6.72f));Add(new Vector3(.67f,start.y,-6.72f));Add(new Vector3(.67f,start.y,-5.80f)); }
+            else if(fromAmenity)
+            {
+                if(Starts(from,"waiting.toilet.")){Add(new Vector3(start.x,start.y,5.65f));Add(new Vector3(3.40f,start.y,5.65f));}
+                else {Add(new Vector3(start.x,start.y,-3.42f));Add(new Vector3(3.40f,start.y,-3.42f));}
+                if(!toSeat){Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f));}
+            }
+            else if(fromDesk) { float z=staff?-1.15f:-4.05f;Add(new Vector3(start.x,start.y,z));Add(new Vector3(lane,start.y,z)); }
+            else if(fromSeat) { Add(new Vector3(3.40f,start.y,start.z));if(!toAmenity){Add(new Vector3(3.40f,start.y,.35f));Add(new Vector3(lane,start.y,.35f));} }
             else if(fromCare) { Add(new Vector3(start.x,start.y,1.03f));Add(new Vector3(lane,start.y,1.03f)); }
             else if(fromQueue && !toDesk && !toQueue) { Add(new Vector3(start.x,start.y,-5.82f));Add(new Vector3(lane,start.y,-5.82f)); }
             else if(!fromQueue)Add(new Vector3(lane,start.y,start.z));
-            if(toDesk)
+            if(toParking)
+            { Add(new Vector3(lane,end.y,-5.80f));Add(new Vector3(.67f,end.y,-6.72f));Add(new Vector3(end.x,end.y,-6.72f)); }
+            else if(toAmenity)
+            {
+                if(!fromSeat){Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));}
+                if(Starts(to,"waiting.toilet.")){Add(new Vector3(3.40f,end.y,5.65f));Add(new Vector3(end.x,end.y,5.65f));}
+                else {Add(new Vector3(3.40f,end.y,-3.42f));Add(new Vector3(end.x,end.y,-3.42f));}
+            }
+            else if(toDesk)
             {
                 float z=staff?-1.15f:-4.05f;
                 if(!fromQueue)Add(new Vector3(lane,end.y,z));
                 else Add(new Vector3(start.x,end.y,z));
                 Add(new Vector3(end.x,end.y,z));
             }
-            else if(toSeat) { Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));Add(new Vector3(3.40f,end.y,end.z)); }
+            else if(toSeat) { if(!fromAmenity){Add(new Vector3(lane,end.y,.35f));Add(new Vector3(3.40f,end.y,.35f));}Add(new Vector3(3.40f,end.y,end.z)); }
             else if(toCare) { Add(new Vector3(lane,end.y,1.03f));Add(new Vector3(end.x,end.y,1.03f)); }
             else if(toQueue) { Add(new Vector3(lane,end.y,end.z)); }
             else Add(new Vector3(lane,end.y,end.z));

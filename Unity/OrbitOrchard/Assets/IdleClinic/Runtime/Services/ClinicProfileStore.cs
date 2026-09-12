@@ -19,6 +19,8 @@ namespace IdleClinic.Services
         private readonly string directory;
         private readonly string path;
         private bool primaryWasUnreadable;
+        private bool migrationPending;
+        private string migrationSourcePath;
         private long pendingOfflineUtcTicks;
         public ClinicProfile Profile { get; private set; }
         public ClinicOfflineReport LastOfflineReport { get; private set; } = new ClinicOfflineReport();
@@ -40,16 +42,23 @@ namespace IdleClinic.Services
             LastOfflineReport = new ClinicOfflineReport();
             HasPendingOfflineProgress = false;
             primaryWasUnreadable = false;
+            migrationPending = false;
+            migrationSourcePath = null;
             pendingOfflineUtcTicks = 0;
             string recovery = null;
-            if (TryRead(path, out var saved)) Profile = saved;
+            if (TryRead(path, out var saved, out var migrated))
+            {
+                Profile = saved;
+                if (migrated) migrationSourcePath = path;
+            }
             else
             {
                 primaryWasUnreadable = File.Exists(path);
                 if (primaryWasUnreadable) PreserveUnreadable(path);
-                if (TryRead(path + ".backup", out saved))
+                if (TryRead(path + ".backup", out saved, out migrated))
                 {
                     Profile = saved;
+                    if (migrated) migrationSourcePath = path + ".backup";
                     recovery = "Your clinic was recovered from its last good backup. The unreadable save is preserved.";
                 }
                 else
@@ -65,6 +74,12 @@ namespace IdleClinic.Services
                     };
                     Save(Profile, now);
                 }
+            }
+            if (migrated)
+            {
+                migrationPending = true;
+                HasPendingOfflineProgress = true;
+                pendingOfflineUtcTicks = now.UtcDateTime.Ticks;
             }
             ApplyOffline(now);
             if (Error == null) Error = recovery;
@@ -98,9 +113,15 @@ namespace IdleClinic.Services
         {
             var result = new ClinicOfflineReport();
             if (!IsValid(Profile)) return result;
+            if (migrationPending && !CommitMigration()) return result;
             var targetTicks = Math.Max(now.UtcDateTime.Ticks, pendingOfflineUtcTicks);
             var elapsed = (targetTicks - Profile.lastAccountedUtcTicks) / (double)TimeSpan.TicksPerSecond;
-            if (elapsed <= 0) return result;
+            if (elapsed <= 0)
+            {
+                HasPendingOfflineProgress = false;
+                pendingOfflineUtcTicks = 0;
+                return result;
+            }
             var candidate = Copy(Profile);
             var advanced = new ClinicSimulation(candidate.state).AdvanceOffline(elapsed);
             candidate.lastAccountedUtcTicks = Math.Max(candidate.lastAccountedUtcTicks, targetTicks);
@@ -124,6 +145,49 @@ namespace IdleClinic.Services
             result.applied = true;
             LastOfflineReport = result;
             return result;
+        }
+
+        private bool CommitMigration()
+        {
+            // Do not advance the old watermark while upgrading the schema. Offline operations
+            // get their own subsequent revision, so a failed write can never replay either step.
+            if (!PreserveLegacyMigration()) return false;
+            var candidate = Copy(Profile);
+            candidate.revision = NextRevision(candidate.revision);
+            if (!WriteSnapshot(candidate)) return false;
+            Profile = candidate;
+            migrationPending = false;
+            migrationSourcePath = null;
+            HasPendingOfflineProgress = false;
+            return true;
+        }
+
+        private bool PreserveLegacyMigration()
+        {
+            try
+            {
+                if (!TryRead(migrationSourcePath, out var source, out var isLegacy) || !isLegacy
+                    || source.revision != Profile.revision || JsonUtility.ToJson(source) != JsonUtility.ToJson(Profile))
+                    throw new InvalidDataException("The legacy snapshot changed before migration.");
+                var original = File.ReadAllBytes(migrationSourcePath);
+                var archive = path + ".v1-before-migration-" + Profile.revision;
+                if (File.Exists(archive))
+                {
+                    if (Convert.ToBase64String(File.ReadAllBytes(archive)) != Convert.ToBase64String(original))
+                        throw new InvalidDataException("The preserved legacy snapshot differs.");
+                    return true;
+                }
+                var temporary = archive + ".tmp";
+                using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+                { stream.Write(original, 0, original.Length); stream.Flush(true); }
+                File.Move(temporary, archive);
+                return true;
+            }
+            catch (Exception)
+            {
+                Error = "Your existing clinic is safe. Free a little storage so its upgrade can be saved.";
+                return false;
+            }
         }
 
         private bool WriteSnapshot(ClinicProfile profile)
@@ -159,15 +223,24 @@ namespace IdleClinic.Services
             }
         }
 
-        private static bool TryRead(string file, out ClinicProfile profile)
+        private static bool TryRead(string file, out ClinicProfile profile) => TryRead(file, out profile, out _);
+
+        private static bool TryRead(string file, out ClinicProfile profile, out bool migrated)
         {
             profile = null;
+            migrated = false;
             if (!TryPayload(file, out var payload)) return false;
             try
             {
                 var candidate = new ClinicProfile();
                 JsonUtility.FromJsonOverwrite(payload, candidate);
-                if (!IsValid(candidate)) return false;
+                if (candidate.schemaVersion == 1)
+                {
+                    if (!IsValidHeader(candidate, 1) || !ClinicStateMigration.TryMigrateV1(candidate.state)) return false;
+                    candidate.schemaVersion = 2;
+                    migrated = true;
+                }
+                if (!IsValid(candidate)) { migrated = false; return false; }
                 candidate.Normalize();
                 profile = candidate;
                 return true;
@@ -214,10 +287,12 @@ namespace IdleClinic.Services
             catch (Exception) { return false; }
         }
 
+        private static bool IsValidHeader(ClinicProfile profile, int version)
+            => profile != null && profile.schemaVersion == version && profile.revision >= 0
+                && profile.lastAccountedUtcTicks > 0 && profile.lastAccountedUtcTicks <= DateTime.MaxValue.Ticks && profile.state != null;
+
         private static bool IsValid(ClinicProfile profile)
-            => profile != null && profile.schemaVersion == 1 && profile.revision >= 0
-                && profile.lastAccountedUtcTicks > 0 && profile.lastAccountedUtcTicks <= DateTime.MaxValue.Ticks
-                && profile.state != null && ClinicSimulation.IsValidState(profile.state);
+            => IsValidHeader(profile, 2) && ClinicSimulation.IsValidState(profile.state);
 
         private static ClinicProfile Copy(ClinicProfile profile)
         {

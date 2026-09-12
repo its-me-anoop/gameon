@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace IdleClinic.App
 {
-    public enum ClinicGlyph { Coin, Nurse, Reception, Bed, Chair, Equipment, Facility, Plant, Upgrade, Clock, Home, Plus, Minus, Close, Check, Settings, Sound, Haptic, Motion, Help, Arrow, Restore }
+    public enum ClinicGlyph { Coin, Nurse, Reception, Bed, Chair, Equipment, Facility, Plant, Upgrade, Clock, Home, Plus, Minus, Close, Check, Settings, Sound, Haptic, Motion, Help, Arrow, Restore, Parking, Toilet, Vending, Training, Room }
 
     public sealed class ClinicIcon : VisualElement
     {
@@ -33,6 +33,11 @@ namespace IdleClinic.App
             void Cross(float x,float y,float half) { Line(x-half,y,x+half,y);Line(x,y-half,x,y+half); }
             switch(glyph)
             {
+                case ClinicGlyph.Parking: Line(5,12,7,7,17,7,19,12);Box(3,12,18,7);Circle(6,20,1.5f,true);Circle(18,20,1.5f,true);Line(6,15,8,15);Line(16,15,18,15);Line(9,4,9,1,12,1,13,2.5f,12,4,9,4);break;
+                case ClinicGlyph.Toilet: Box(5,3,6,9);Line(4,13,20,13,18,17,13,19,13,22,7,22,8,17,5,15);Line(16,10,21,10);Circle(8,6,.7f,true);break;
+                case ClinicGlyph.Vending: Box(4,2,16,20);Box(7,5,7,9);Line(10.5f,5,10.5f,14);Line(7,9.5f,14,9.5f);Circle(17,7,.6f,true);Circle(17,11,.6f,true);Box(8,17,8,2);break;
+                case ClinicGlyph.Training: Line(2,8,12,3,22,8,12,13,2,8);Line(6,10,6,16,12,19,18,16,18,10);Line(22,8,22,16);Circle(22,18,1,true);break;
+                case ClinicGlyph.Room: Line(3,21,3,3,21,3,21,21,16,21,16,13,9,13,9,21,3,21);Cross(12,8,2);break;
                 case ClinicGlyph.Coin: Circle(12,12,9); Circle(12,12,6); Line(12,8,15,12,12,16,9,12,12,8);break;
                 case ClinicGlyph.Nurse: Circle(12,8,3.5f); Line(5,21,5,18,8,14,16,14,19,18,19,21);Box(7,2,10,4);Cross(12,4,1);break;
                 case ClinicGlyph.Reception: Box(3,12,18,7);Line(5,19,5,22);Line(19,19,19,22);Circle(9,6,3);Line(6,12,6,10,12,10,12,12);Box(15,6,5,4);break;

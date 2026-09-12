@@ -11,14 +11,16 @@ namespace IdleClinic.App
         private void RebuildDock()
         {
             dock.Clear();readouts.Clear();
-            dock.RemoveFromClassList("upgrade-dock");
-            if(!settingsOpen && !selectedRoom.HasValue){dock.style.display=DisplayStyle.None;ApplySafeArea();return;}
+            dock.RemoveFromClassList("upgrade-dock");dock.RemoveFromClassList("management-dock");
+            if(!settingsOpen && !selectedRoom.HasValue&&!selectedObject.HasValue){dock.style.display=DisplayStyle.None;ApplySafeArea();return;}
             dock.style.display=DisplayStyle.Flex;
             var heading=Box(dock,"dock-heading");
-            var title=Text(heading,settingsOpen?"Make yourself at home":RoomName(selectedRoom.Value),"dock-title");
+            var title=Text(heading,settingsOpen?"Make yourself at home":selectedObject.HasValue?ObjectName(selectedObject.Value):RoomName(selectedRoom.Value),"dock-title");
             if(displayFont!=null)title.style.unityFontDefinition=FontDefinition.FromFont(displayFont);
+            if(!settingsOpen&&!selectedObject.HasValue&&State.Tutorial==ClinicTutorialStep.Complete)BuildRoomShortcuts(heading,selectedRoom.Value);
             IconButton(heading,ClinicGlyph.Close,"Close controls",CloseContext,"round-control close-control");
             if(settingsOpen){BuildSettings();ApplySafeArea();return;}
+            if(selectedObject.HasValue){BuildManagementDock(selectedObject.Value);ApplySafeArea();return;}
             var room=State.Room(selectedRoom.Value);
             if(!room.Built)
             {
@@ -105,9 +107,11 @@ namespace IdleClinic.App
         {
             if(track==UpgradeTrack.Decoration)return "+5% fee";
             if(track==UpgradeTrack.Facilities)return room.Kind==ClinicRoom.Waiting?"+2 seats":room.Kind==ClinicRoom.Reception?"+1 place":"+15% fee";
-            var basis=room.Kind==ClinicRoom.Reception?14:room.Kind==ClinicRoom.FirstAid?18:2;
-            var next=basis/(1+.15*room.Level(track));
-            return next.ToString("0.#",System.Globalization.CultureInfo.InvariantCulture)+"s";
+            if(room.Kind==ClinicRoom.Waiting)return ServiceTime(ClinicRules.WaitingCallTicks(State,equipmentLevelsAdded:1));
+            var role=room.Kind==ClinicRoom.Reception?ClinicStaffRole.Receptionist:ClinicStaffRole.Nurse;
+            var ids=role==ClinicStaffRole.Receptionist?State.ReceptionDesks.Select(d=>d.Id):State.TreatmentStations.Select(s=>s.Id);
+            var times=ids.Select(id=>ClinicRules.StationServiceTicks(State,role,id,roomEquipmentLevelsAdded:1)).OrderBy(t=>t).ToArray();
+            return times.First()==times.Last()?ServiceTime(times.First()):ServiceTime(times.First()).TrimEnd('s')+"–"+ServiceTime(times.Last());
         }
 
         private static string UpgradeBenefit(ClinicRoom room,UpgradeTrack track)
@@ -143,7 +147,7 @@ namespace IdleClinic.App
             });
         }
 
-        private void ToggleSettings(){settingsOpen=!settingsOpen;selectedRoom=null;dockKey="";UpdateReadouts();}
+        private void ToggleSettings(){settingsOpen=!settingsOpen;selectedRoom=null;selectedObject=null;dockKey="";UpdateReadouts();}
         private void BuildSettings()
         {
             var row=Box(dock,"settings-row");

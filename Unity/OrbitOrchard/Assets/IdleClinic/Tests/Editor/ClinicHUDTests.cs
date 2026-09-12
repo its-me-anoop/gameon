@@ -1,5 +1,6 @@
 using IdleClinic.App;
 using IdleClinic.Core;
+using IdleClinic.Presentation;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -11,6 +12,278 @@ namespace IdleClinic.Tests
 {
     public sealed class ClinicHUDTests
     {
+        [Test]
+        public void WideMarkerModeHasHysteresisInsteadOfFlippingAtOneZoomBoundary()
+        {
+            Assert.That(ClinicMarkerPresentation.IsWide(8.2f,false),Is.False);
+            Assert.That(ClinicMarkerPresentation.IsWide(8.3f,false),Is.True);
+            Assert.That(ClinicMarkerPresentation.IsWide(8.0f,true),Is.True);
+            Assert.That(ClinicMarkerPresentation.IsWide(7.7f,true),Is.False);
+        }
+        [Test]
+        public void CrowdedOnScreenCountersUseIconsEvenAtCloseCameraZoom()
+        {
+            var viewport=new Rect(0,0,375,667);var first=new Vector2(100,300);
+            Assert.That(ClinicMarkerPresentation.CrowdedReception(first,new Vector2(179,305),viewport),Is.True);
+            Assert.That(ClinicMarkerPresentation.CrowdedReception(first,new Vector2(181,305),viewport),Is.False);
+            Assert.That(ClinicMarkerPresentation.CrowdedReception(new Vector2(-10,300),new Vector2(20,305),viewport),Is.False,
+                "An off-screen counter cannot force or shift the visible counter's badge.");
+        }
+        [TestCase(122,142)][TestCase(142,122)][TestCase(122,122)]
+        public void CoinOnlyReceptionTargetsSeparateWithoutDriftingOrReversing(float firstX,float secondX)
+        {
+            var first=new Vector2(firstX,300);var second=new Vector2(secondX,308);
+            ClinicMarkerPresentation.SeparateReception(first,second,out var a,out var b);
+            Assert.That(Mathf.Abs(a.x-b.x),Is.EqualTo(48));
+            Assert.That((a.x+b.x)/2,Is.EqualTo((firstX+secondX)/2));
+            Assert.That(a.y,Is.EqualTo(first.y));Assert.That(b.y,Is.EqualTo(second.y));
+            Assert.That(a.x<=b.x,Is.EqualTo(firstX<=secondX));
+            ClinicMarkerPresentation.SeparateReception(first,second,out var repeatA,out var repeatB);
+            Assert.That(repeatA,Is.EqualTo(a));Assert.That(repeatB,Is.EqualTo(b));
+            ClinicMarkerPresentation.SeparateReception(a,b,out var settledA,out var settledB);
+            Assert.That(settledA,Is.EqualTo(a));Assert.That(settledB,Is.EqualTo(b));
+        }
+        [Test]
+        public void AlreadySeparatedCounterBadgesStayAtTheirProjectedOrigins()
+        {
+            var first=new Vector2(100,300);var second=new Vector2(170,305);
+            ClinicMarkerPresentation.SeparateReception(first,second,out var a,out var b);
+            Assert.That(a,Is.EqualTo(first));Assert.That(b,Is.EqualTo(second));
+        }
+        [Test]
+        public void CoinOnlyCashRetainsFortyFourPointTargetsAndItsLiveAccessibleAmount()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                var amount=new Label("50");amount.AddToClassList("cash-amount");ax.Marker.Add(amount);
+                ax.Simulation.Advance(60);ax.UpdateValues();
+                ClinicMarkerPresentation.CashDetail(ax.Marker,true);
+                Assert.That(amount.style.display.value,Is.EqualTo(DisplayStyle.None));
+                Assert.That(ax.Marker.style.width.value.value,Is.EqualTo(44));
+                Assert.That(ax.Marker.style.height.value.value,Is.EqualTo(44));
+                Assert.That(ax.Node.value,Is.EqualTo("50 coins"));
+                ax.Simulation.Collect(0);ax.UpdateValues();
+                Assert.That(ax.Node.value,Is.EqualTo("0 coins"));
+                ClinicMarkerPresentation.CashDetail(ax.Marker,false);
+                Assert.That(amount.style.display.value,Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(ax.Marker.ClassListContains("compact-cash"),Is.False);
+            }
+        }
+        [Test]
+        public void WideProgressIndicatorsKeepActualProgressWhileRemovingLargeClockAndRingVisuals()
+        {
+            var construction=new VisualElement();var progress=new ClinicProgress(26){Progress=.4f};construction.Add(progress);
+            var clock=new Label("54s");clock.AddToClassList("construction-clock");construction.Add(clock);
+            ClinicMarkerPresentation.ConstructionDetail(construction,true);
+            Assert.That(clock.style.display.value,Is.EqualTo(DisplayStyle.None));
+            Assert.That(progress.Progress,Is.EqualTo(.4f));
+            var patient=new ClinicProgress(28){Progress=.6f};ClinicMarkerPresentation.PatientDetail(patient,true);
+            Assert.That(patient.style.scale.value.value.x,Is.EqualTo(18f/28).Within(.0001));
+            Assert.That(patient.Progress,Is.EqualTo(.6f));
+            ClinicMarkerPresentation.ConstructionDetail(construction,false);ClinicMarkerPresentation.PatientDetail(patient,false);
+            Assert.That(clock.style.display.value,Is.EqualTo(DisplayStyle.Flex));
+            Assert.That(patient.style.scale.value.value.x,Is.EqualTo(1));
+        }
+
+        [TestCase(ClinicPatientPhase.CheckingIn,true)]
+        [TestCase(ClinicPatientPhase.Treating,true)]
+        [TestCase(ClinicPatientPhase.UsingAmenity,true)]
+        [TestCase(ClinicPatientPhase.Seated,false)]
+        [TestCase(ClinicPatientPhase.WalkingToAmenity,false)]
+        public void ProgressRingsRepresentTimedServiceOnly(ClinicPatientPhase phase,bool visible)
+            =>Assert.That(ClinicServicePresentation.HasProgress(phase),Is.EqualTo(visible));
+
+        [TestCase(101,322)][TestCase(143,322)][TestCase(122,301)][TestCase(122,343)]
+        public void OrdinaryObjectTapsUseTheEntireFortyFourPointTarget(float x,float y)
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.Simulation.State.Tutorial=ClinicTutorialStep.Complete;
+                ax.AddObjectTarget(new ClinicHit(ClinicHitKind.Desk,0),new Rect(100,300,44,44));
+                var hit=ax.PickObject(new Vector2(x,y));
+                Assert.That(hit.HasValue,Is.True,"A tap near any target edge must not depend on the smaller 3D collider.");
+                Assert.That(hit.Value.Kind,Is.EqualTo(ClinicHitKind.Desk));Assert.That(hit.Value.Id,Is.Zero);
+                Assert.That(ax.PickObject(new Vector2(144.1f,322)).HasValue,Is.False,"Floor outside the target stays available.");
+                Assert.That(ax.Simulation.State.Wallet,Is.Zero,"Selection cannot purchase or collect.");
+            }
+        }
+        [Test]
+        public void OverlappingObjectTargetsChooseNearestCenterThenStableKindAndId()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.Simulation.State.Tutorial=ClinicTutorialStep.Complete;
+                ax.Simulation.State.ReceptionDesks.Add(new ReceptionDeskState{Id=1});
+                // Reverse registration deliberately: tie breaking must not use dictionary order.
+                ax.AddObjectTarget(new ClinicHit(ClinicHitKind.Desk,1),new Rect(120,300,44,44));
+                ax.AddObjectTarget(new ClinicHit(ClinicHitKind.Desk,0),new Rect(100,300,44,44));
+                Assert.That(ax.PickObject(new Vector2(138,322)).Value.Id,Is.EqualTo(1));
+                Assert.That(ax.PickObject(new Vector2(126,322)).Value.Id,Is.Zero);
+                Assert.That(ax.PickObject(new Vector2(132,322)).Value.Id,Is.Zero);
+            }
+        }
+        [Test]
+        public void ExpandedObjectTargetsRespectCashPriorityVisibilityAndTutorialGates()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                var marker=ax.AddObjectTarget(new ClinicHit(ClinicHitKind.Desk,0),new Rect(100,300,44,44));
+                var point=new Vector2(143,322);
+                Assert.That(ax.PickObject(point).HasValue,Is.False);
+                ax.Simulation.State.Tutorial=ClinicTutorialStep.Complete;
+                Assert.That(ax.PickObject(point).HasValue,Is.True);
+                ax.PlacePriorityMarker(0,new Rect(136,300,56,44));
+                Assert.That(ax.PickObject(point).HasValue,Is.False,"Cash wins even when it covers only the expanded target edge.");
+                ax.PlacePriorityMarker(0,new Rect(250,400,56,44));marker.style.display=DisplayStyle.None;
+                Assert.That(ax.PickObject(point).HasValue,Is.False);
+                marker.style.display=DisplayStyle.Flex;marker.SetEnabled(false);
+                Assert.That(ax.PickObject(point).HasValue,Is.False);
+                marker.SetEnabled(true);ax.CoverObject(new Rect(100,300,44,44));
+                Assert.That(ax.PickObject(point).HasValue,Is.False,"An opaque dock cannot expose an underlying object hit area.");
+            }
+        }
+        [Test]
+        public void RoomAccessibilityYieldsToTheExpandedPhysicalObjectTarget()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.Simulation.State.Tutorial=ClinicTutorialStep.Complete;
+                ax.ConfigureRoom(new Rect(121,300,44,44));
+                var target=ax.AddObjectTarget(new ClinicHit(ClinicHitKind.Desk,0),new Rect(100,300,44,44));
+                ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.False,"A room label cannot tap the edge of an expanded workstation target.");
+                Assert.That(ax.RoomNode.frame,Is.EqualTo(Rect.zero));
+                target.style.display=DisplayStyle.None;ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.True);
+            }
+        }
+        [Test]
+        public void WorkstationSelectionKeepsTheIndividualStationAndNeverBypassesOnboarding()
+        {
+            var state=ClinicSimulation.CreateNew().State;
+            var first=new ClinicHit(ClinicHitKind.Desk,0);
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,first),Is.False);
+            state.Tutorial=ClinicTutorialStep.Complete;
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,first),Is.True);
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.Desk,1)),Is.False);
+            state.ReceptionDesks.Add(new ReceptionDeskState{Id=1});
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.Desk,1)),Is.True);
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.Station,0)),Is.True);
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.Station,1)),Is.False);
+        }
+        [Test]
+        public void WaitingAmenitiesBecomeSelectableOnlyWhenTheWaitingRoomIsBuilt()
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Tutorial=ClinicTutorialStep.Complete;
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.Parking)),Is.True);
+            foreach(var kind in new[]{ClinicHitKind.Toilet,ClinicHitKind.Vending})
+                Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(kind)),Is.False);
+            state.Room(ClinicRoom.Waiting).Built=true;
+            foreach(var kind in new[]{ClinicHitKind.Toilet,ClinicHitKind.Vending})
+                Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(kind)),Is.True);
+            Assert.That(ClinicSelectionPolicy.CanSelectObject(state,new ClinicHit(ClinicHitKind.VendingCash)),Is.False,
+                "A cash hit must collect through the authoritative command, not open an upgrade panel.");
+        }
+        [Test]
+        public void IndividualUpgradeReadoutUsesAssignedStaffAndTheOwningRoomCap()
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Tutorial=ClinicTutorialStep.Complete;
+            state.ReceptionDesks.Add(new ReceptionDeskState{Id=1,EquipmentLevel=2});
+            state.Staff.Add(new ClinicStaffState{Id=7,Role=ClinicStaffRole.Receptionist,StationId=1,TrainingLevel=2});
+            var first=ClinicWorkstationReadout.Create(state,ClinicStaffRole.Receptionist,0);
+            var second=ClinicWorkstationReadout.Create(state,ClinicStaffRole.Receptionist,1);
+            Assert.That(first.EquipmentLevel,Is.EqualTo(1));Assert.That(first.EquipmentPrice,Is.EqualTo(90));
+            Assert.That(first.EquipmentCapped,Is.False);Assert.That(first.TrainingCapped,Is.False);
+            Assert.That(second.StaffId,Is.EqualTo(7));Assert.That(second.EquipmentCapped,Is.True);
+            Assert.That(second.TrainingCapped,Is.True);Assert.That(second.ServiceTicks,Is.LessThan(first.ServiceTicks));
+            Assert.That(first.NextEquipmentTicks,Is.LessThan(first.ServiceTicks));
+            Assert.That(first.NextTrainingTicks,Is.LessThan(first.ServiceTicks));
+            Assert.That(state.ReceptionDesks[0].EquipmentLevel,Is.EqualTo(1),"Reading the next timer cannot purchase an upgrade.");
+            Assert.That(state.Staff[0].TrainingLevel,Is.EqualTo(1));
+        }
+        [Test]
+        public void WorkstationDockBindsSecondDeskAndItsAssignedStaffControls()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                var state=ax.Simulation.State;state.Tutorial=ClinicTutorialStep.Complete;
+                state.Room(ClinicRoom.Reception).Tier=2;
+                state.ReceptionDesks.Add(new ReceptionDeskState{Id=1,EquipmentLevel=2});
+                state.Staff.Add(new ClinicStaffState{Id=7,Role=ClinicStaffRole.Receptionist,StationId=1,TrainingLevel=2});
+                var dock=ax.BuildObjectDock(new ClinicHit(ClinicHitKind.Desk,1));
+                Assert.That(dock.Q<Button>("station-equipment-Receptionist-1"),Is.Not.Null);
+                Assert.That(dock.Q<Button>("staff-training-7"),Is.Not.Null);
+                Assert.That(dock.Q<Button>("station-equipment-Receptionist-0"),Is.Null);
+                Assert.That(dock.Q<Button>("staff-training-0"),Is.Null);
+                Assert.That(dock.Q<Button>("station-equipment-Receptionist-1").tooltip,Does.Contain("162 coins"));
+                Assert.That(dock.Q<Button>("staff-training-7").tooltip,Does.Contain("144 coins"));
+                Assert.That(dock.Q<Button>("manage-reception"),Is.Not.Null,"Room-wide upgrades remain reachable.");
+            }
+        }
+        [Test]
+        public void RoomEquipmentPreviewIncludesTheExistingStationAndStaffImprovements()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                var state=ax.Simulation.State;
+                state.ReceptionDesks[0].EquipmentLevel=2;state.Staff[0].TrainingLevel=2;
+                Assert.That(ax.EquipmentBenefit(ClinicRoom.Reception),Is.EqualTo("10.3s"));
+                state.ReceptionDesks.Add(new ReceptionDeskState{Id=1});
+                Assert.That(ax.EquipmentBenefit(ClinicRoom.Reception),Is.EqualTo("10.3–12.2s"),"Both desks retain their individual service speeds.");
+                Assert.That(ax.EquipmentBenefit(ClinicRoom.Waiting),Is.EqualTo("1.8s"),"Preview uses the same tenth-second rounding as service.");
+                Assert.That(state.Room(ClinicRoom.Reception).EquipmentLevel,Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void VendingDockExposesRoomCapAndParkingKeepsItsIndependentUpgrade()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                var state=ax.Simulation.State;state.Tutorial=ClinicTutorialStep.Complete;
+                state.Room(ClinicRoom.Waiting).Built=true;state.Amenity(ClinicAmenity.Vending).Level=1;
+                var vending=ax.BuildObjectDock(new ClinicHit(ClinicHitKind.Vending));
+                Assert.That(vending.Q<Button>("upgrade-vending-machine"),Is.Null);
+                Assert.That(vending.Query<Label>().ToList().Any(l=>l.text=="Needs room 2"),Is.True);
+                Assert.That(vending.Q<Button>("collect-vending-tips"),Is.Not.Null);
+                var parking=ax.BuildObjectDock(new ClinicHit(ClinicHitKind.Parking));
+                Assert.That(parking.Q<Button>("build-car-park"),Is.Not.Null);
+                Assert.That(parking.Q<Button>("build-car-park").tooltip,Does.Contain("220 coins"));
+                Assert.That(parking.Query<Label>().ToList().Any(l=>l.text=="2 bays · 5 coins/car"),Is.True);
+            }
+        }
+        [Test]
+        public void VendingCashFlightRecognizesOnlyCollectedVendingMoney()
+        {
+            var tip=new ClinicEvent{Kind=ClinicEventKind.TipReceived,Amenity=ClinicAmenity.Vending,DeskId=-1,Amount=5};
+            Assert.That(ClinicCashPresentation.IsVendingCollection(tip),Is.False);
+            tip.Kind=ClinicEventKind.CashCollected;
+            Assert.That(ClinicCashPresentation.IsVendingCollection(tip),Is.True);
+            tip.DeskId=0;tip.Amenity=ClinicAmenity.Parking;
+            Assert.That(ClinicCashPresentation.IsVendingCollection(tip),Is.False);
+        }
+        [Test]
+        public void VendingCashPriorityHidesOverlappingRoomAccessibilityWithoutCollecting()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.ConfigureRoom(new Rect(128,447,44,44));
+                ax.PlacePriorityMarker(3,new Rect(128,447,88,44));ax.UpdateRoom();
+                Assert.That(ax.RoomNode.isActive,Is.False);
+                Assert.That(ax.RoomNode.state,Is.EqualTo(AccessibilityState.Disabled));
+                Assert.That(ax.RoomNode.frame,Is.EqualTo(Rect.zero));
+                Assert.That(ax.Simulation.State.Wallet,Is.Zero);
+            }
+        }
         [Test]
         public void HiddenCashNodeClearsItsPreviousHitFrameAndStaysZeroWhenUnityRefreshesFrames()
         {
@@ -111,6 +384,30 @@ namespace IdleClinic.Tests
             }
             private void Set(string field,object value)=>typeof(ClinicApp).GetField(field,Private).SetValue(app,value);
             private void Invoke(string method,params object[] args)=>typeof(ClinicApp).GetMethod(method,Private).Invoke(app,args);
+            public VisualElement AddObjectTarget(ClinicHit hit,Rect bounds)
+            {
+                Layout(root.panel.visualTree,new Rect(0,0,375,667));Layout(root,new Rect(0,0,375,667));Set("overlay",root);
+                var target=new VisualElement();root.Add(target);Layout(target,bounds);
+                var targets=(Dictionary<VisualElement,ClinicHit>)typeof(ClinicApp).GetField("objectHits",Private).GetValue(app);
+                targets.Add(target,hit);return target;
+            }
+            public ClinicHit? PickObject(Vector2 point)
+            {
+                var arguments=new object[]{point,default(ClinicHit)};
+                var found=(bool)typeof(ClinicApp).GetMethod("TryPickManagementTarget",Private).Invoke(app,arguments);
+                return found?(ClinicHit?)arguments[1]:null;
+            }
+            public void CoverObject(Rect bounds)
+            {
+                var cover=new VisualElement();root.Add(cover);Layout(cover,bounds);Set("dock",cover);
+            }
+            public string EquipmentBenefit(ClinicRoom room)=>(string)typeof(ClinicApp).GetMethod("NextBenefit",Private)
+                .Invoke(app,new object[]{Simulation.State.Room(room),UpgradeTrack.Equipment});
+            public VisualElement BuildObjectDock(ClinicHit hit)
+            {
+                var dock=new VisualElement();root.Add(dock);Set("dock",dock);Set("selectedObject",(ClinicHit?)hit);
+                Invoke("RebuildDock");return dock;
+            }
             public void UpdateValues()=>Invoke("UpdateAccessibilityValues");
             public void UpdateNode()=>Invoke("UpdateAccessibilityNode",Node,Marker);
             public void ReplaceSimulation(ClinicSimulation simulation){Simulation=simulation;Set("simulation",simulation);}
@@ -127,10 +424,11 @@ namespace IdleClinic.Tests
             public void PlacePriorityMarker(int index,Rect bounds)
             {
                 VisualElement marker;
-                if(index==2)
+                if(index>=2)
                 {
-                    marker=(VisualElement)typeof(ClinicApp).GetField("waitingMarker",Private).GetValue(app);
-                    if(marker==null){marker=new VisualElement();root.Add(marker);Set("waitingMarker",marker);}
+                    var field=index==2?"waitingMarker":"vendingCashMarker";
+                    marker=(VisualElement)typeof(ClinicApp).GetField(field,Private).GetValue(app);
+                    if(marker==null){marker=new VisualElement();root.Add(marker);Set(field,marker);}
                 }
                 else
                 {
@@ -178,6 +476,23 @@ namespace IdleClinic.Tests
                 Assert.That(ui.Arbiter.ActivePointers,Is.Empty);
             }
         }
+        [Test]
+        public void DraggingAnUpgradeControlAndReturningToItsStartCannotPurchase()
+        {
+            using(var ui=new CapturedTouchPanel())
+            {
+                ui.Begin(0,ui.Control,false);
+                foreach(var position in new[]{new Vector2(124,200),new Vector2(100,200)})
+                    using(var e=PointerMoveEvent.GetPooled(new Touch{fingerId=0,phase=TouchPhase.Moved,position=position}))
+                        ui.Root.SendEvent(e);
+                ui.End(0);
+                Assert.That(ui.ControlReleases,Is.Zero,"Dragging back onto an upgrade must not become a purchase.");
+                Assert.That(ui.Arbiter.ActivePointers,Is.Empty);
+                ui.Begin(0,ui.Control,false);ui.End(0);
+                Assert.That(ui.ControlReleases,Is.EqualTo(1),"A new deliberate tap is still usable.");
+            }
+        }
+
         [Test]
         public void CapturedControlReleaseDoesNotLeaveAStaleFingerForTheNextWorldTap()
         {

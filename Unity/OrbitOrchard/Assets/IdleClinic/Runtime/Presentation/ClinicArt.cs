@@ -39,7 +39,7 @@ namespace IdleClinic.Presentation
             result.transform.localPosition=position;result.transform.localScale=size;
             result.AddComponent<MeshFilter>().sharedMesh=mesh;result.AddComponent<MeshRenderer>().sharedMaterial=Material(role);return result;
         }
-        private Material Material(string role)
+        internal Material Material(string role)
         {
             if(materials.TryGetValue(role,out var material)) return material;
             material=new Material(Shader.Find(role=="Paper" ? "Unlit/Color" : "Standard")){name="Clinic "+role,enableInstancing=true};
@@ -65,6 +65,20 @@ namespace IdleClinic.Presentation
                 case "Clay":return new Color(.74f,.55f,.41f);
                 case "Leaf":return new Color(.31f,.49f,.30f);
                 case "Asphalt":return new Color(.53f,.57f,.52f);
+                case "Meadow":return new Color(.57f,.64f,.46f);
+                case "TileSage":return new Color(.67f,.73f,.60f);
+                case "TilePeach":return new Color(.79f,.65f,.49f);
+                case "TileBlue":return new Color(.59f,.70f,.67f);
+                case "SkinDeep":return new Color(.36f,.22f,.16f);
+                case "SkinBrown":return new Color(.55f,.36f,.24f);
+                case "SkinLight":return new Color(.91f,.72f,.55f);
+                case "SkinOlive":return new Color(.69f,.51f,.32f);
+                case "Rose":return new Color(.68f,.37f,.38f);
+                case "Mustard":return new Color(.71f,.55f,.24f);
+                case "Denim":return new Color(.30f,.42f,.51f);
+                case "HairSilver":return new Color(.69f,.70f,.64f);
+                case "HairChestnut":return new Color(.34f,.22f,.17f);
+                case "HairGold":return new Color(.66f,.48f,.25f);
                 default:return new Color(.86f,.84f,.77f);
             }
         }

@@ -14,6 +14,19 @@ namespace IdleClinic.App
     {
         // Clear floor between the desks and queue, away from both payment targets.
         public static Vector3 ReceptionFloorPoint=>new Vector3(-2.8f,.14f,-3.8f);
+        public static bool CanSelectObject(ClinicState state,ClinicHit hit)
+        {
+            if(state.Tutorial!=ClinicTutorialStep.Complete)return false;
+            switch(hit.Kind)
+            {
+                case ClinicHitKind.Desk:return state.ReceptionDesks.Any(d=>d.Id==hit.Id);
+                case ClinicHitKind.Station:return state.TreatmentStations.Any(s=>s.Id==hit.Id);
+                case ClinicHitKind.Parking:return true;
+                case ClinicHitKind.Toilet:
+                case ClinicHitKind.Vending:return state.Room(ClinicRoom.Waiting).Built;
+                default:return false;
+            }
+        }
         public static bool CanSelectRoom(ClinicTutorialStep tutorial,ClinicRoom room)
         {
             if(room!=ClinicRoom.Reception&&room!=ClinicRoom.FirstAid&&room!=ClinicRoom.Waiting)return false;
@@ -32,6 +45,8 @@ namespace IdleClinic.App
     public sealed class ClinicTouchArbiter
     {
         private readonly Dictionary<int,Vector2> pointers=new Dictionary<int,Vector2>();
+        private readonly Dictionary<int,Vector2> controlOrigins=new Dictionary<int,Vector2>();
+        private readonly HashSet<int> draggedControls=new HashSet<int>();
         private bool multipleTouches,worldParticipated;
         public bool BlocksControlActivations=>multipleTouches;
         public bool RoutesToWorld=>multipleTouches&&worldParticipated;
@@ -40,17 +55,24 @@ namespace IdleClinic.App
         {
             if(pointers.Count==0){multipleTouches=false;worldParticipated=false;}
             pointers[id]=position;worldParticipated|=beganOnWorld;
+            if(!beganOnWorld)controlOrigins[id]=position;
             if(pointers.Count>1)multipleTouches=true;
         }
-        public void Move(int id,Vector2 position){if(pointers.ContainsKey(id))pointers[id]=position;}
+        public void Move(int id,Vector2 position)
+        {
+            if(!pointers.ContainsKey(id))return;
+            pointers[id]=position;
+            if(controlOrigins.TryGetValue(id,out var origin)&&Vector2.Distance(origin,position)>=ClinicGesture.DragThreshold)
+                draggedControls.Add(id);
+        }
         public bool End(int id)
         {
-            var consume=multipleTouches&&pointers.ContainsKey(id);
-            pointers.Remove(id);
+            var consume=(multipleTouches||draggedControls.Contains(id))&&pointers.ContainsKey(id);
+            pointers.Remove(id);controlOrigins.Remove(id);draggedControls.Remove(id);
             if(pointers.Count==0){multipleTouches=false;worldParticipated=false;}
             return consume;
         }
-        public void Cancel(){pointers.Clear();multipleTouches=false;worldParticipated=false;}
+        public void Cancel(){pointers.Clear();controlOrigins.Clear();draggedControls.Clear();multipleTouches=false;worldParticipated=false;}
     }
 
     /// <summary>Observe releases at the capture target: Unity skips its ancestors during captured dispatch.</summary>
@@ -65,7 +87,9 @@ namespace IdleClinic.App
             },TrickleDown.TrickleDown);
             target.RegisterCallback<PointerUpEvent>(e=>
             {
-                if(e.pointerType!=PointerType.touch||!arbiter.End(e.pointerId))return;
+                if(e.pointerType!=PointerType.touch)return;
+                arbiter.Move(e.pointerId,e.position);
+                if(!arbiter.End(e.pointerId))return;
                 gesture.End(e.pointerId,e.position);
                 capturedPointers.Remove(e.pointerId);
                 (target.panel?.GetCapturingElement(e.pointerId) as VisualElement)?.ReleasePointer(e.pointerId);
@@ -130,6 +154,7 @@ namespace IdleClinic.App
         private readonly List<CoinFlight> flights=new List<CoinFlight>();
         private readonly Stack<ClinicIcon> coinPool=new Stack<ClinicIcon>();
         private double walletPulseUntil;
+        private bool wideWorldMarkers;
         private sealed class CoinFlight { public ClinicIcon Icon; public Vector2 Start; public float Age,Delay,Arc; }
 
         private void BindWorldInput()
@@ -225,11 +250,23 @@ namespace IdleClinic.App
         {
             foreach(var pair in cashMarkers)
                 if(pair.Value.style.display==DisplayStyle.Flex&&pair.Value.worldBound.Contains(panelPoint)){Collect(pair.Key);return;}
+            if(vendingCashMarker!=null&&vendingCashMarker.style.display==DisplayStyle.Flex&&vendingCashMarker.worldBound.Contains(panelPoint)){CollectVending();return;}
             if(waitingMarker!=null&&waitingMarker.style.display==DisplayStyle.Flex&&waitingMarker.worldBound.Contains(panelPoint)){Select(ClinicRoom.Waiting);return;}
             var hit=world.Pick(ToViewport(panelPoint));
+            if(hit.Kind!=ClinicHitKind.Cash&&hit.Kind!=ClinicHitKind.VendingCash
+                &&TryPickManagementTarget(panelPoint,out var expandedTarget))hit=expandedTarget;
             switch(hit.Kind)
             {
                 case ClinicHitKind.Cash:Collect(hit.Id);break;
+                case ClinicHitKind.VendingCash:CollectVending();break;
+                case ClinicHitKind.Desk:
+                case ClinicHitKind.Station:
+                    if(State.Tutorial==ClinicTutorialStep.HireFirstNurse&&hit.Kind==ClinicHitKind.Station)Select(ClinicRoom.FirstAid);
+                    else SelectObject(hit);
+                    break;
+                case ClinicHitKind.Parking:
+                case ClinicHitKind.Toilet:
+                case ClinicHitKind.Vending:SelectObject(hit);break;
                 case ClinicHitKind.Reception:Select(ClinicRoom.Reception);break;
                 case ClinicHitKind.Treatment:Select(ClinicRoom.FirstAid);break;
                 case ClinicHitKind.Waiting:
@@ -240,6 +277,7 @@ namespace IdleClinic.App
 
         private void UpdateWorldMarkers()
         {
+            wideWorldMarkers=ClinicMarkerPresentation.IsWide(world.SceneCamera.orthographicSize,wideWorldMarkers);
             foreach(var room in State.Rooms)
             {
                 if(!roomTargets.TryGetValue(room.Kind,out var target))
@@ -250,8 +288,10 @@ namespace IdleClinic.App
                 }
                 var anchor=room.Kind==ClinicRoom.Reception?"reception.progress":room.Kind==ClinicRoom.FirstAid?"firstaid.progress":"waiting.progress";
                 var point=room.Kind==ClinicRoom.Reception?ClinicSelectionPolicy.ReceptionFloorPoint:world.GetAnchorPoint(anchor);
-                PositionMarker(target,world.WorldToViewport(point),room.Built||State.WaitingRoomUnlocked);
+                PositionMarker(target,world.WorldToViewport(point),(room.Built||State.WaitingRoomUnlocked)
+                    &&ClinicSelectionPolicy.CanSelectRoom(State.Tutorial,room.Kind));
             }
+            var compactReception=wideWorldMarkers||ReceptionCashIsCrowded();
             foreach(var desk in State.ReceptionDesks)
             {
                 if(!cashMarkers.TryGetValue(desk.Id,out var marker))
@@ -262,17 +302,22 @@ namespace IdleClinic.App
                     RegisterCashAccessibility(marker,desk.Id);
                 }
                 marker.Q<Label>().text=Money(desk.Till);
-                PositionMarker(marker,world.WorldToViewport(world.GetCashPoint(desk.Id)),desk.Till>0,-30);
+                ClinicMarkerPresentation.CashDetail(marker,compactReception);
+                PositionMarker(marker,world.WorldToViewport(world.GetCashPoint(desk.Id)),desk.Till>0,-30,
+                    compactReception?new Vector2(44,44):(Vector2?)null);
             }
+            SeparateReceptionCashMarkers(compactReception);
+            UpdateManagementMarkers();
             var activeIds=new HashSet<int>();
             foreach(var patient in State.Patients)
             {
-                if(patient.Phase!=ClinicPatientPhase.CheckingIn&&patient.Phase!=ClinicPatientPhase.Treating)continue;
+                if(!ClinicServicePresentation.HasProgress(patient.Phase))continue;
                 activeIds.Add(patient.Id);
                 if(!patientRings.TryGetValue(patient.Id,out var ring))
                 {
                     ring=new ClinicProgress(28);ring.AddToClassList("patient-ring");overlay.Add(ring);patientRings.Add(patient.Id,ring);
                 }
+                ClinicMarkerPresentation.PatientDetail(ring,wideWorldMarkers);
                 var point=world.GetAnchorPoint(patient.ToAnchor)+Vector3.up*1.65f;
                 PositionMarker(ring,world.WorldToViewport(point),true);
                 ring.Progress=(State.Tick-patient.PhaseStartedTick)/(float)Math.Max(1,patient.PhaseEndsTick-patient.PhaseStartedTick);
@@ -288,7 +333,9 @@ namespace IdleClinic.App
                     marker.Add(new ClinicProgress(26));Text(marker,"","construction-clock",true);constructionMarkers.Add(job.Id,marker);
                 }
                 var anchor=job.Room==ClinicRoom.Reception?"reception.progress":job.Room==ClinicRoom.FirstAid?"firstaid.progress":"waiting.progress";
-                PositionMarker(marker,world.WorldToViewport(world.GetAnchorPoint(anchor)),true,-16);
+                ClinicMarkerPresentation.ConstructionDetail(marker,wideWorldMarkers);
+                PositionMarker(marker,world.WorldToViewport(world.GetAnchorPoint(anchor)),true,-16,
+                    wideWorldMarkers?new Vector2(26,26):(Vector2?)null);
                 marker.Q<ClinicProgress>().Progress=(State.Tick-job.StartedTick)/(float)Math.Max(1,job.EndsTick-job.StartedTick);
                 marker.Q<Label>().text=TimeLabel((job.EndsTick-State.Tick)/(double)ClinicRules.TicksPerSecond);
             }
@@ -305,23 +352,44 @@ namespace IdleClinic.App
                 State.WaitingRoomUnlocked&&!State.Room(ClinicRoom.Waiting).Built&&!State.Construction.Any(c=>c.Room==ClinicRoom.Waiting));
         }
 
-        private void PositionMarker(VisualElement marker,Vector2 uv,bool visible,float offsetY=0)
+        private bool ReceptionCashIsCrowded()
+        {
+            if(State.ReceptionDesks.Count<2||State.ReceptionDesks[0].Till<=0||State.ReceptionDesks[1].Till<=0)return false;
+            return ClinicMarkerPresentation.CrowdedReception(
+                OverlayPoint(world.WorldToViewport(world.GetCashPoint(0))),
+                OverlayPoint(world.WorldToViewport(world.GetCashPoint(1))),overlay.contentRect);
+        }
+        private void SeparateReceptionCashMarkers(bool compact)
+        {
+            if(!compact||!cashMarkers.TryGetValue(0,out var first)||!cashMarkers.TryGetValue(1,out var second)
+                ||first.style.display!=DisplayStyle.Flex||second.style.display!=DisplayStyle.Flex)return;
+            // Always start from projection, never the prior displaced marker bounds.
+            var firstPoint=OverlayPoint(world.WorldToViewport(world.GetCashPoint(0)));
+            var secondPoint=OverlayPoint(world.WorldToViewport(world.GetCashPoint(1)));
+            ClinicMarkerPresentation.SeparateReception(firstPoint,secondPoint,out var a,out var b);
+            first.style.left=a.x-ClinicMarkerPresentation.CashSize/2;
+            second.style.left=b.x-ClinicMarkerPresentation.CashSize/2;
+        }
+
+        private void PositionMarker(VisualElement marker,Vector2 uv,bool visible,float offsetY=0,Vector2? fixedSize=null)
         {
             visible&=uv.x>=0&&uv.x<=1&&uv.y>=0&&uv.y<=1;
             marker.style.display=visible?DisplayStyle.Flex:DisplayStyle.None;
             if(!visible)return;
             var p=OverlayPoint(uv);
-            var width=marker.resolvedStyle.width;var height=marker.resolvedStyle.height;
+            var width=fixedSize?.x??marker.resolvedStyle.width;var height=fixedSize?.y??marker.resolvedStyle.height;
             if(float.IsNaN(width))width=40;if(float.IsNaN(height))height=30;
             marker.style.left=p.x-width/2;marker.style.top=p.y-height/2+offsetY;
         }
 
         private void LaunchCoins(int deskId,long amount)
+            =>LaunchCoinsFrom(world.GetCashPoint(deskId));
+        private void LaunchCoinsFrom(Vector3 sourcePoint)
         {
             if(world==null||particles==null)return;
             walletPulseUntil=Time.unscaledTimeAsDouble+.65;
             if(ReducedMotion)return;
-            var source=OverlayPoint(world.WorldToViewport(world.GetCashPoint(deskId)));
+            var source=OverlayPoint(world.WorldToViewport(sourcePoint));
             var count=Math.Min(7,20-flights.Count);
             for(var i=0;i<count;i++)
             {

@@ -484,5 +484,185 @@ namespace IdleClinic.Tests
                 Assert.That(Mathf.Abs(point.y-paving.max.y),Is.LessThan(.005f));
             }
         }
+        [Test]
+        public void ClinicFloorAndNeighbourhoodHaveDesignedFurnishingsInsteadOfBlankGround()
+        {
+            foreach(var name in new[]{"Meadow ground","Reception welcome rug","Care floor inlay","Waiting woven rug",
+                "Reception notice board","Waiting notice board","Community notice board","Street bicycle rack","Bus shelter","Flower border"})
+                Assert.That(Find(name),Is.Not.Null,name);
+            Assert.That(Find("Paper ground"),Is.Null,"The world backdrop must be landscaped rather than blank paper.");
+        }
+
+        [Test]
+        public void NewAmenitiesHaveDistinctStableAnchorsOutsideOccupiedSeats()
+        {
+            var toilet=world.GetAnchorPoint("waiting.toilet.patient");var vending=world.GetAnchorPoint("waiting.vending.patient");
+            Assert.That(toilet.z,Is.GreaterThan(5));Assert.That(vending.z,Is.LessThan(-1));
+            for(int i=0;i<14;i++)
+            {
+                var seat=world.GetAnchorPoint("waiting.seat."+i);
+                Assert.That(Vector3.Distance(toilet,seat),Is.GreaterThan(.65f));
+                Assert.That(Vector3.Distance(vending,seat),Is.GreaterThan(.65f));
+            }
+            for(int bay=0;bay<6;bay++)Assert.That(world.GetAnchorPoint("parking.bay."+bay+".patient").x,Is.LessThan(-7));
+        }
+
+        [Test]
+        public void AmbientTrafficIsBoundedAndReducedMotionFreezesItsTravel()
+        {
+            var state=new ClinicState { Tick=30 };world.Render(state,.1f,true);
+            var car=Find("Traffic car 0");var pedestrian=Find("Street pedestrian 0");
+            Assert.That(car,Is.Not.Null);Assert.That(pedestrian,Is.Not.Null);
+            var carPosition=car.position;var personPosition=pedestrian.position;int count=host.GetComponentsInChildren<Transform>(true).Length;
+            state.Tick=900;world.Render(state,.1f,true);
+            Assert.That(car.position,Is.EqualTo(carPosition));Assert.That(pedestrian.position,Is.EqualTo(personPosition));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Length,Is.EqualTo(count));
+            world.Render(state,.1f,false);Assert.That(car.position,Is.Not.EqualTo(carPosition));
+        }
+
+        [Test]
+        public void RenovationScaffoldProgressReflectsActualJobAndDisappearsOnCompletion()
+        {
+            var state=new ClinicState { Tick=50 };state.Construction.Add(new ClinicConstructionState{Room=ClinicRoom.FirstAid,StartedTick=0,EndsTick=100});
+            world.Render(state,.1f,true);var scaffold=Find("FirstAid renovation scaffold");
+            Assert.That(scaffold,Is.Not.Null);Assert.That(scaffold.gameObject.activeInHierarchy,Is.True);
+            var progress=Find("FirstAid construction progress");Assert.That(progress.localScale.x,Is.EqualTo(.5f).Within(.001f));
+            state.Tick=75;world.Render(state,.1f,true);Assert.That(progress.localScale.x,Is.EqualTo(.75f).Within(.001f));
+            state.Construction.Clear();world.Render(state,.1f,true);Assert.That(scaffold.gameObject.activeSelf,Is.False);
+        }
+
+        [TestCase(ClinicAmenity.Parking,ClinicHitKind.Parking)]
+        [TestCase(ClinicAmenity.Toilet,ClinicHitKind.Toilet)]
+        [TestCase(ClinicAmenity.Vending,ClinicHitKind.Vending)]
+        public void AmenityBuildSitesAndTheirLevelsHaveMatchingPhysicalPickTargets(ClinicAmenity amenity,ClinicHitKind kind)
+        {
+            var state=ClinicSimulation.CreateNew().State;world.SetRenderSize(1000,700);world.Zoom(2,new Vector2(.5f,.5f));
+            for(int level=0;level<=3;level++)
+            {
+                state.Amenity(amenity).Level=level;world.Render(state,0,true);var uv=world.WorldToViewport(world.GetAmenityPoint(amenity));
+                var hit=world.Pick(uv);Assert.That(hit.Kind,Is.EqualTo(kind));Assert.That(hit.Id,Is.EqualTo((int)amenity));
+            }
+        }
+
+        [TestCase(0)][TestCase(1)]
+        public void IndividualEquipmentTargetsPickTheCorrectWorkstationWithoutMovingItsSockets(int id)
+        {
+            var state=ClinicSimulation.CreateNew().State;state.ReceptionDesks.Add(new ReceptionDeskState{Id=1});
+            state.Room(ClinicRoom.FirstAid).StationCount=2;state.TreatmentStations.Add(new TreatmentStationState{Id=1});
+            world.SetRenderSize(1000,700);world.Render(state,0,true);
+            var deskPoint=world.GetAnchorPoint("reception.desk."+id+".staff");
+            var stationPoint=world.GetAnchorPoint("firstaid.station."+id+".patient");
+            Assert.That(world.Pick(world.WorldToViewport(world.GetDeskPoint(id))).Kind,Is.EqualTo(ClinicHitKind.Desk));
+            Assert.That(world.Pick(world.WorldToViewport(world.GetStationPoint(id))).Kind,Is.EqualTo(ClinicHitKind.Station));
+            state.ReceptionDesks[id].EquipmentLevel=3;state.TreatmentStations[id].EquipmentLevel=3;world.Render(state,0,true);
+            Assert.That(Find("Desk "+id+" equipment 3").gameObject.activeInHierarchy,Is.True);
+            Assert.That(Find("Station "+id+" equipment 3").gameObject.activeInHierarchy,Is.True);
+            Assert.That(Find("Desk "+(1-id)+" equipment 3").gameObject.activeSelf,Is.False);
+            Assert.That(world.GetAnchorPoint("reception.desk."+id+".staff"),Is.EqualTo(deskPoint));
+            Assert.That(world.GetAnchorPoint("firstaid.station."+id+".patient"),Is.EqualTo(stationPoint));
+        }
+
+        [Test]
+        public void RoomSelectionPointsRemainRoomTargetsWithAmenitiesAndAllWorkstationsBuilt()
+        {
+            var state=ClinicSimulation.CreateNew().State;state.ReceptionDesks.Add(new ReceptionDeskState{Id=1,Till=55});state.ReceptionDesks[0].Till=50;
+            state.Room(ClinicRoom.FirstAid).StationCount=2;state.Room(ClinicRoom.Waiting).Built=true;
+            foreach(var amenity in state.Amenities)amenity.Level=3;world.SetRenderSize(1000,700);world.Render(state,0,true);
+            Assert.That(world.Pick(world.WorldToViewport(ClinicSelectionPolicy.ReceptionFloorPoint)).Kind,Is.EqualTo(ClinicHitKind.Reception));
+            Assert.That(world.Pick(world.WorldToViewport(world.GetAnchorPoint("firstaid.progress"))).Kind,Is.EqualTo(ClinicHitKind.Treatment));
+            Assert.That(world.Pick(world.WorldToViewport(world.GetAnchorPoint("waiting.progress"))).Kind,Is.EqualTo(ClinicHitKind.Waiting));
+        }
+
+        [Test]
+        public void DifferentVisitorsHaveDifferentSilhouettesAndReusedActorsResetTheirWardrobe()
+        {
+            var state=new ClinicState();state.Patients.Add(new ClinicPatientState{Id=1,AppearanceId=8,Phase=ClinicPatientPhase.ReceptionQueue,FromAnchor="reception.queue.0",ToAnchor="reception.queue.0"});
+            world.Render(state,0,true);var actor=Find("Patient 1");var scale=actor.localScale;
+            Assert.That(Find("Silver beard").gameObject.activeInHierarchy,Is.True);
+            state.Patients.Clear();world.Render(state,0,true);
+            state.Patients.Add(new ClinicPatientState{Id=2,AppearanceId=6,Phase=ClinicPatientPhase.ReceptionQueue,FromAnchor="reception.queue.0",ToAnchor="reception.queue.0"});world.Render(state,0,true);
+            Assert.That(Find("Patient 2"),Is.SameAs(actor));Assert.That(actor.localScale,Is.Not.EqualTo(scale));
+            Assert.That(Find("Silver beard").gameObject.activeInHierarchy,Is.False);Assert.That(Find("Visitor cap").gameObject.activeInHierarchy,Is.True);
+        }
+
+        [TestCase(0)][TestCase(1)][TestCase(2)][TestCase(3)][TestCase(4)][TestCase(5)]
+        [TestCase(6)][TestCase(7)][TestCase(8)][TestCase(9)][TestCase(10)][TestCase(11)]
+        public void VisitorHeightNeverChangesSeatedPelvisHeight(int appearance)
+        {
+            var state=new ClinicState();state.Rooms.Add(new ClinicRoomState{Kind=ClinicRoom.Waiting,Built=true});
+            var patient=new ClinicPatientState{Id=1,AppearanceId=0,Phase=ClinicPatientPhase.Seated,FromAnchor="waiting.seat.0",ToAnchor="waiting.seat.0"};state.Patients.Add(patient);
+            world.Render(state,0,true);var actor=Find("Patient 1");var pelvis=System.Array.Find(actor.GetComponentInChildren<SkinnedMeshRenderer>().bones,b=>b.name=="pelvis");
+            float expected=pelvis.position.y;patient.AppearanceId=appearance;world.Render(state,0,true);
+            Assert.That(pelvis.position.y,Is.EqualTo(expected).Within(.003f));
+        }
+
+        [TestCase("waiting.toilet.patient",ClinicAmenity.Toilet)][TestCase("waiting.vending.patient",ClinicAmenity.Vending)]
+        public void AmenityVisitorsFollowAnAisleAndReturnToTheSameReservedSeat(string anchor,ClinicAmenity amenity)
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Room(ClinicRoom.Waiting).Built=true;state.Amenity(amenity).Level=1;
+            var patient=new ClinicPatientState{Id=99,Phase=ClinicPatientPhase.WalkingToAmenity,VisitingAmenity=amenity,
+                FromAnchor="waiting.seat.13",ToAnchor=anchor,PhaseStartedTick=0,PhaseEndsTick=100,SeatId=13,HasAdmissionReservation=true};state.Patients.Add(patient);
+            world.Render(state,0,true);Assert.That(Find("Patient 99").position,Is.EqualTo(world.GetAnchorPoint("waiting.seat.13")));
+            state.Tick=100;world.Render(state,0,true);Assert.That(Vector3.Distance(Find("Patient 99").position,world.GetAnchorPoint(anchor)),Is.LessThan(.001f));
+            patient.Phase=ClinicPatientPhase.ReturningFromAmenity;patient.FromAnchor=anchor;patient.ToAnchor="waiting.seat.13";patient.PhaseStartedTick=100;patient.PhaseEndsTick=200;
+            state.Tick=200;world.Render(state,0,true);Assert.That(Vector3.Distance(Find("Patient 99").position,world.GetAnchorPoint("waiting.seat.13")),Is.LessThan(.001f));
+            Assert.That(patient.SeatId,Is.EqualTo(13));Assert.That(patient.HasAdmissionReservation,Is.True);
+        }
+
+        [Test]
+        public void OccupiedParkingBaysShowCarsAndVendingTipsNeverModifyMoneyWhileRendering()
+        {
+            var state=ClinicSimulation.CreateNew().State;state.Amenity(ClinicAmenity.Parking).Level=1;state.Amenity(ClinicAmenity.Vending).Level=1;state.Amenity(ClinicAmenity.Vending).Till=33;
+            state.Patients.Add(new ClinicPatientState{Id=2,ParkingBayId=1,Phase=ClinicPatientPhase.ReceptionQueue});world.Render(state,0,true);
+            Assert.That(Find("Parked patient car 1").gameObject.activeInHierarchy,Is.True);Assert.That(Find("Parked patient car 0").gameObject.activeSelf,Is.False);
+            Assert.That(Find("Parking bay 2").gameObject.activeSelf,Is.False);Assert.That(Find("Collectable vending tips").gameObject.activeInHierarchy,Is.True);
+            for(int i=0;i<20;i++){state.Tick++;world.Render(state,.1f);}
+            Assert.That(state.Wallet,Is.Zero);Assert.That(state.Amenity(ClinicAmenity.Vending).Till,Is.EqualTo(33));
+        }
+
+        [TestCase(375,667)][TestCase(1000,700)]
+        public void ZoomedOutCameraCannotPanAwayFromTheFurnishedNeighbourhood(int width,int height)
+        {
+            world.SetRenderSize(width,height);world.Zoom(10,new Vector2(.5f,.5f));
+            world.Pan(new Vector2(.1f,.1f),new Vector2(.95f,.95f));
+            for(int corner=0;corner<4;corner++)
+            {
+                Assert.That(world.TryViewportToGround(new Vector2(corner&1,(corner>>1)&1),out var point),Is.True);
+                Assert.That(point.x,Is.InRange(-25.01f,25.01f));Assert.That(point.z,Is.InRange(-22.01f,20.01f));
+            }
+        }
+
+        [TestCase(393,852)][TestCase(852,393)][TestCase(320,568)]
+        public void HomeIsAlreadyInsideCameraBoundsBeforeTheFirstGesture(int width,int height)
+        {
+            world.SetRenderSize(width,height);world.Home(true);
+            var position=world.SceneCamera.transform.position;var size=world.SceneCamera.orthographicSize;
+            world.Pan(new Vector2(.5f,.5f),new Vector2(.5f,.5f));
+            Assert.That(Vector3.Distance(world.SceneCamera.transform.position,position),Is.LessThan(.001f));
+            Assert.That(world.SceneCamera.orthographicSize,Is.EqualTo(size));
+        }
+
+        [TestCase(375,667,1.35f)][TestCase(375,667,3.2f)][TestCase(852,393,1.35f)]
+        public void IncrementalPinchKeepsItsTotalScaleAndDoesNotDriftAfterRelease(int width,int height,float scale)
+        {
+            world.SetRenderSize(width,height);world.Home(true);var state=ClinicSimulation.CreateNew().State;
+            var anchor=world.WorldToViewport(world.GetAnchorPoint("firstaid.progress"));
+            var center=new Vector2(anchor.x*width,(1-anchor.y)*height);float initialSize=world.SceneCamera.orthographicSize;
+            var gesture=new ClinicGesture();gesture.Begin(1,center+Vector2.left*22);gesture.Begin(2,center+Vector2.right*22);
+            for(int step=1;step<=64;step++)for(int finger=0;finger<2;finger++)
+            {
+                float distance=22*Mathf.Lerp(1,scale,step/64f);var point=center+Vector2.right*(finger==0?-distance:distance);
+                Assert.That(gesture.Move(finger+1,point,out var from,out var to,out float zoom),Is.True);
+                var fromViewport=new Vector2(from.x/width,1-from.y/height);var toViewport=new Vector2(to.x/width,1-to.y/height);
+                world.Pan(fromViewport,toViewport);world.Zoom(zoom,toViewport);world.Render(state,1f/60f);
+            }
+            Assert.That(world.SceneCamera.orthographicSize,Is.EqualTo(initialSize/scale).Within(.003f));
+            Assert.That(Vector2.Distance(world.WorldToViewport(world.GetAnchorPoint("firstaid.progress")),anchor),Is.LessThan(.002f));
+            gesture.End(1,center+Vector2.left*22*scale);gesture.End(2,center+Vector2.right*22*scale);
+            var finalPosition=world.SceneCamera.transform.position;float finalSize=world.SceneCamera.orthographicSize;
+            for(int frame=0;frame<60;frame++)world.Render(state,1f/60f);
+            Assert.That(world.SceneCamera.transform.position,Is.EqualTo(finalPosition));Assert.That(world.SceneCamera.orthographicSize,Is.EqualTo(finalSize));
+        }
+
     }
 }
