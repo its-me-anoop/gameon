@@ -1,46 +1,68 @@
 # Little Lifeline 3.2 (16) release
 
-**Release held:** native video review of `200b466` verified driving and articulated walking, but found opposing patients intersecting in the main corridor. A presentation correction and replacement builds are in progress. The source and artifacts below are the tested intermediate snapshot and must not be uploaded as the final fix.
+**Little Lifeline 3.2 (16) is available to Internal TestFlight testers**, independently confirmed at **12:16:16 UTC on 12 September 2026**. The build is valid and unexpired, with all three beta-text readbacks matching. [Final App Store Connect receipt](../build/qa-clinic-v2/passing-release/asc-final-live.json).
 
-The corrected clinic candidate is **built and statically verified**, and native simulator run **07b passed**. Promotion and independent App Store Connect/Internal TestFlight confirmation remain **PENDING**. This record concerns source `200b4668897d9537009b436aabcb2d2fbcd85f72`; earlier 3.2 artifacts are historical and must not be promoted in its place.
+Frozen source **`ea4b905ee230fa7435f3ac3c79816d058950a402`** passed **500/500 Unity tests** and **26/26 packaging tests**. The signed archive and simulator passed independent verification; native run 08 passed one test in 185.174 seconds, and sampled visual review found no actionable blocker. The corrected game also completed the bounded physical smoke check below.
 
-The candidate adds durable car entry/parking/exit, walking driven by travelled distance, joined walls and working doors, and the clinic expansion described in the [feature specification](idle-clinic-expansion.md). Parking scheduling is deterministic across frame-sized and offline updates. A persisted traffic pause offset keeps departures synchronized with crossings after the eight-hour earnings cap; construction retains the full elapsed clock. See the [QA record](qa/clinic-expansion.md) for evidence and limits, and the [metadata handoff](clinic32-metadata-handoff.md) for beta copy.
+The clinic expansion adds varied patients and street life, an upgradeable car park, toilets and vending tips, individual workstation upgrades, staff training, room construction, partitions and furnished surroundings. See the [feature specification](idle-clinic-expansion.md), [QA record](qa/clinic-expansion.md) and [beta metadata handoff](clinic32-metadata-handoff.md).
 
-## Candidate identity
+## Frozen candidate
 
-| Item | Verified value |
+| Item | Value |
 | --- | --- |
-| Source | `200b4668897d9537009b436aabcb2d2fbcd85f72` |
-| Unity Git tree | `ee7899f4cb446517746f20326fe655e85e2a2b35` |
-| Unity inventory | 442 files; SHA-256 `0b92db265285e918ad1287e6b64251602bebe5893cdb642d834a3e174926a7e6` |
+| Source | `ea4b905ee230fa7435f3ac3c79816d058950a402` |
+| Unity Git tree | `dd21888da7cf79acec0cd14ddaa3516ebc3f8ec4` |
+| Source inventory | 444 files; SHA-256 `b288a8f33da4ceb178dadbddb351cb5a1dc424b9f5bef783caff77910e74b0b1` |
 | Editor / scene | Unity 6000.3.24f1; `Assets/IdleClinic/Scenes/Clinic.unity` |
 | App | Little Lifeline; `com.flutterly.gravitile`; App Store Connect app `6786840477` |
 | Version / build | 3.2 (16) |
-| Full Unity report | 490 passed, zero failed/skipped/inconclusive; 12 September 2026, 10:56:10–10:56:45 UTC |
-| Test-report SHA-256 | `ff159414a8cebc75c2cc2e161844a8b87c8b820afac2f1a735cfabbdc616c9b3` |
+| Full Unity run | 500 passed; zero failed, skipped or inconclusive; 12 September 2026, 11:32:55–11:33:29 UTC |
+| Test-report SHA-256 | `30a79913c796e4ec91aadc6f41c8d1ca1edfc0db8792b7a72a64823f1db6b941` |
 
-[Candidate identity](../build/qa-clinic-v2/traffic-release/current-candidate.json) and [final test summary](../build/qa-clinic-v2/traffic-release/final-test-summary.json) bind the source and test evidence.
+The [reviewed identity](../build/qa-clinic-v2/passing-release/reviewed-identity.json), [source inventory](../build/qa-clinic-v2/passing-release/final-source.json) and [test summary](../build/qa-clinic-v2/passing-release/final-test-summary.json) bind these values. The complete run contains **352 clinic cases across twelve required suites**, including ten new passing-clearance cases. The packaging gate now requires the passing suite alongside the existing eleven clinic suites.
 
-## Verified artifacts and native input
+## Passing correction and replacement builds
 
-| Artifact | Build and verification |
+Recorded patients travelling in opposite directions previously intersected below the care doorway. Routes now use separate directional lanes through the shared corridor and waiting doorway; the waiting sliding door is **1.40 metres wide**. Workstation, seat and parking anchors and authoritative service times remain unchanged. Six regression cases failed before the correction; the final focused run passed **83/83**. Native run 08 and its sampled visual review now cover the corrected routes.
+
+| Build stage | Current evidence |
 | --- | --- |
-| Signed Device archive | [CI run 34689982012](https://github.com/its-me-anoop/gameon/actions/runs/34689982012) succeeded; upload job skipped. [Independent verification](../build/qa-clinic-v2/traffic-release/archive-run-34689982012/verification.json) passed |
-| Device export SHA-256 | `c196fe04c8ee3375a9261c259302e2d64ea5eb228506967ba62105bc54dff8d5` |
-| Sealed archive SHA-256 | `9ecef6cd247eb01f93c8520302b1a8c968b50c8745b3c977c1f2f6ad7f281df5` |
-| Simulator player | [CI run 34689923416](https://github.com/its-me-anoop/gameon/actions/runs/34689923416) succeeded. [Independent verification](../build/qa-clinic-v2/traffic-release/simulator-run-34689923416/verification.json) and [installed-binary/save-preservation receipt](../build/qa-clinic-v2/traffic-release/simulator-install.json) match |
-| Simulator export SHA-256 | `ac42f570736fabf95ba6d4bc2c70e123e5525d1c93b042e1269d4e3189707bbb` |
-| Sealed simulator app SHA-256 | `fe57c2c547461100c4b8cfb7eb9b6fb5720ba1517645877d66d56e8c2d46421f` |
-| Native simulator run 07b | Exactly one test passed in **242.096 seconds**, zero failures/skips/runtime warnings. [XCTest summary](../build/qa-clinic-v2/ios-smoke/07b-summary.json) and [raw log](../build/qa-clinic-v2/ios-smoke/07b-parking-walls-walking.log) |
+| Simulator export | SHA-256 `9b05f5b1a95f043a67064628dd5a36222e0370d5c4b97a466b3d2017f50ce43f` |
+| Simulator CI | [Run 34691595515](https://github.com/its-me-anoop/gameon/actions/runs/34691595515) succeeded; [static verification](../build/qa-clinic-v2/passing-release/simulator-run-34691595515/verification.json) and [installation/save-preservation receipt](../build/qa-clinic-v2/passing-release/simulator-install.json) passed. Native run 08 **PASS** |
+| Device export | SHA-256 `d8dbc22b8c2f8aaba166fffee2bb9804c2356b2fd2fd956074af3f8977078fcc` |
+| Signed archive | [Run 34691733820](https://github.com/its-me-anoop/gameon/actions/runs/34691733820) attempt 2 **PASS**, upload job skipped. [Independent verification](../build/qa-clinic-v2/passing-release/archive-run-34691733820/verification.json) confirms exact source/report, signature and intended-iPhone eligibility |
+| Promotion | [Run 34692759452](https://github.com/its-me-anoop/gameon/actions/runs/34692759452), attempt 2 **PASS**; the same sealed archive was uploaded without rebuilding. [Verification](../build/qa-clinic-v2/passing-release/promotion-run-34692759452-attempt-2/verification.json) |
+| TestFlight | Uploaded 12:12:34 UTC; processing `COMPLETE`, build `VALID`, unexpired, `IN_BETA_TESTING`, explicit Internal membership; no processing errors or warnings |
+| ASC build / Internal group | Build `4c8e6d64-88da-439f-9611-a1382946b4fe`; group `a1098f67-cfde-4eaa-8626-e250f881596a` |
 
-Both apps are arm64 and were built with released Xcode 26.6 (17F113) on macOS 26.6.2 (25G83). Static verification checked safe ZIP paths, wrapper/sealed digests, exact source/tree/version, all thirteen Apple bridge exports, and required privacy reasons. The Device archive is a non-development Unity build with a valid development signing profile, strict/deep signature verification, Game Center entitlement and confirmed eligibility for the intended iPhone. The simulator intentionally enables development diagnostics and is unsigned. The archive embeds the verified test-report digest; the simulator's test binding is the locally reviewed report plus exact source/tree, not an embedded report digest.
+[Current candidate status](../build/qa-clinic-v2/passing-release/current-candidate.json) tracks the replacement builds. Simulator verification checked exact source/tree, arm64 binaries, all thirteen bridge exports and required privacy reasons; installation retained all three save-file hashes. Its sealed ZIP SHA-256 is `9b99f390d9ce102ef7db5095406b054b26f6fee7ce49c737b4014c40a5fb13e2`. The signed archive SHA-256 is `500922d83cc07dd12c1279d977dfdbc2bd926652b0586f1ea2d4d5421b163a4a`. Both apps use released Xcode 26.6 (17F113) on macOS 26.6.2 (25G83). The Device app is a non-development Unity build with a valid development profile; the simulator is unsigned.
 
-The release packaging gate requires eleven clinic suites: simulation, profiles, world, HUD, performance, expansion, migration, parking flow, walking, architecture and parking world. **26 packaging tests** and **47 managed Core tests** passed. Run 07b used actual simulator input for camera gestures, separate 44-point cash targets, repeat taps, existing parking/amenity controls and background/relaunch. The [final native receipt](../build/qa-clinic-v2/parking-native07/native-verification.json) records 113 conserving save snapshots, six collections and one complete same-driver parking lifecycle. Observed exit waits reached **313.4 seconds** before eventual departure; no bay reservation was lost. Actual animation/video review remains **PENDING**; saved state alone cannot prove every frame.
+Archive attempt 1 failed at Apple's certificate limit ([failure receipt](../build/qa-clinic-v2/passing-release/archive-run-34691733820-attempt-1-failure/failure.json)). The task-created development certificate `WA87JY7K6N`, which signed only the discarded `200b466` CI archive in the available evidence, was retired: DELETE 204 and independent GET 404; every other certificate remained unchanged. [Retirement receipt](../build/qa-clinic-v2/passing-release/signing/retirement-result.json). That old archive's development profile is now invalid, so its backup is historical evidence and cannot be installed with the original profile. The unsigned simulator is unaffected. No earlier archive substitutes for this frozen source.
 
-## Delivery and remaining checks
+## Current runtime evidence
 
-- **PENDING:** promote this exact sealed archive, confirm App Store Connect processing, unexpired 3.2 (16), Internal group availability and exact testing-note readback. No upload or availability is claimed by this record.
-- **NOT RUN:** current-candidate physical iPhone check, blocked by the locked phone at the latest 11:19 UTC attempt. Physical FPS, frame times, GPU time and thermal behavior are **NOT ASSESSED**. Actual VoiceOver operation is **NOT ASSESSED**.
-- **NOT RERUN:** the zero-money opening and complete guided economy timing on this expansion candidate; native acceptance uses the existing clinic save.
+[Native run 08](../build/qa-clinic-v2/corridor-native08/native-verification.json) executed exactly one XCTest with no failures, checked camera gestures, separate 44-point collection targets and unchanged-wallet repeat taps, then verified save/relaunch. Fifty checksummed save observations passed their invariants. The 215.382-second [recording](../build/qa-clinic-v2/clinic32-corridor-passing.mp4) and [visual review](../build/qa-clinic-v2/corridor-native08/visual-review.md) show articulated walking, observed doorway clearance and a bay-to-street vehicle exit in the sampled windows. [Current gameplay still](../build/qa-clinic-v2/corridor-native08/final-parking-overview.png). This short follow-up did not observe a complete new same-driver parking lifecycle or every opposing doorway combination.
 
-Run 07 selected zero tests and is **NOT RUN**, not a pass. Older `0b60` native and 142-second physical smoke evidence is historical only. The [3.1 release](idle-clinic-release.md) remains separate. New monetisation and leaderboards remain deferred. Authorized TestFlight delivery does not include external beta or App Store review submission.
+The beta description/review notes were applied at 12:02:03 UTC and build testing notes at 12:15:47 UTC. The final 12:16:16 UTC readback confirms all three match the [metadata handoff](clinic32-metadata-handoff.md). [App-text receipt](../build/qa-clinic-v2/passing-release/asc-beta-text-applied.json), [build-notes receipt](../build/qa-clinic-v2/passing-release/asc-build-notes-applied.json). The corrected signed app completed a **122.218-second physical HUD smoke check** on A19 Pro / iOS 27.0. Four captures showed current 59.99 FPS, 16.67 ms frame interval and nominal thermal state; startup displayed a 30.25 FPS minimum. [Physical receipt](../build/qa-clinic-v2/physical-native08/physical-verification.json). The HUD was removed on normal relaunch. This short passive check does not establish sustained performance or physical gesture coverage.
+
+## Delivery identity
+
+| Beta field | Resource ID | Text SHA-256 |
+| --- | --- | --- |
+| Description | `3b4b5dbe-e68b-4298-ae55-e70c59c8a285` | `a6b7b7a326b3fb0fddbe29a067bad7279f713f429e11e61c3655fbdbc3945f3e` |
+| Review notes | App `6786840477` | `029b59c116b793a7be3f71b42cd50a3df93bf4c35996624df3ef53b96e9bd673` |
+| What to Test | `dc1d5488-9a85-42b7-861c-440fc0638ff4` | `5ef954696b7f18d828ed889e010b64761db683cbdd7aff25d954c81cd3824418` |
+
+Source provenance comes from the verified archive and promotion checks; App Store Connect does not return a source commit. Its independent readback establishes the exact app/version/build, processing, Internal membership and metadata. No external beta or App Store review submission was performed.
+
+## Historical evidence and remaining checks
+
+The previous `200b466` candidate completed native run 07b: **one test in 242.096 seconds**, with 113 conserving save observations and a complete same-driver parking journey. Video review confirmed articulated walking and vehicle movement but exposed the corridor overlap that prompted this replacement. Its Core simulation and parking presentation are unchanged in the new candidate; the earlier run does not establish that the new pedestrian routes render correctly. Observed exit waits reached **313.4 seconds** before eventual departure.
+
+Historical evidence remains available through the [native receipt](../build/qa-clinic-v2/parking-native07/native-verification.json), [visual review](../build/qa-clinic-v2/parking-native07/visual-review.md) and [overlap still](../build/qa-clinic-v2/parking-native07/visual-review-frames/video-237.880s.png). The full recording and old signed archive were backed up to an unpublished draft with exact hashes before local reclamation: [video restore manifest](../build/qa-clinic-v2/traffic-release/reversible-reclaim-200b/video200b/prepared-and-restore.json), [archive restore manifest](../build/qa-clinic-v2/traffic-release/reversible-reclaim-200b/archive200b/prepared-and-restore.json).
+
+- **DELIVERED:** the exact sealed archive is in Internal TestFlight; processing, availability and all beta text readbacks passed. Promotion attempt 1 failed with an Xcode format error; [its evidence](../build/qa-clinic-v2/passing-release/promotion-run-34692759452/verification.json) is preserved, and attempt 2 succeeded using the same archive.
+- **NOT ASSESSED:** sustained physical performance/thermal behavior, physical gesture coverage and actual VoiceOver operation. The short HUD sample is documented separately above.
+- **NOT RERUN:** the zero-money opening and complete guided economy timing on this expansion candidate; recent native checks use the existing clinic save.
+
+Historical run 07 selected zero tests and is **NOT RUN**. The older `0b60` physical smoke is not evidence for this candidate. The [3.1 release](idle-clinic-release.md) remains separate. New monetisation and leaderboards remain deferred; authorized TestFlight delivery does not include external beta or App Store review submission.
