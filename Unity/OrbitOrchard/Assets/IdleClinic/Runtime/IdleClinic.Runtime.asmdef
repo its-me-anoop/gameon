@@ -1,0 +1,6 @@
+{
+  "name": "IdleClinic.Runtime",
+  "rootNamespace": "IdleClinic",
+  "references": ["IdleClinic.Core", "OrbitOrchard.Runtime", "Unity.InputSystem"],
+  "autoReferenced": true
+}

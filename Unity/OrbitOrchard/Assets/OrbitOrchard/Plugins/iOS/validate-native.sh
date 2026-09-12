@@ -26,5 +26,12 @@ SDKROOT="$SDK_PATH" xcrun swiftc -emit-library -module-name UnityFramework -swif
   -sdk "$SDK_PATH" -target "$TARGET" -Xlinker -syslibroot -Xlinker "$SDK_PATH" -lc++ \
   "$SOURCE_DIR/OrchardStoreService.swift" "$SOURCE_DIR/OrchardGameCenterService.swift" "$SOURCE_DIR/OrchardAppleBridge.swift" \
   "$CHECK_DIR/OrchardApplePlugin.o" "$CHECK_DIR/UnityMessageStub.o" -o "$CHECK_DIR/OrchardAppleServices.dylib"
+symbols="$(xcrun nm -gU "$CHECK_DIR/OrchardAppleServices.dylib")"
+for symbol in Initialize LoadProducts Purchase RestorePurchases AuthenticateGameCenter ShowLeaderboard UseLifelineLeaderboards ShowWeeklyLeaderboard SubmitScore RetryScores Haptic ScreenWidthPoints ThermalState; do
+  if ! awk -v expected="_OO_$symbol" '$NF == expected { found = 1 } END { exit !found }' <<< "$symbols"; then
+    echo "Missing native export: OO_$symbol" >&2
+    exit 1
+  fi
+done
 xcrun nm -gU "$CHECK_DIR/OrchardAppleServices.dylib" | awk '/_OO_/ { print $NF }'
 echo "Native bridge compilation and linkage passed. Artifacts: $CHECK_DIR"

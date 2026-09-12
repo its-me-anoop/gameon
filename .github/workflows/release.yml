@@ -147,19 +147,23 @@ jobs:
           info = plistlib.loads((app / 'Info.plist').read_bytes())
           assert info['CFBundleIdentifier'] == 'com.flutterly.gravitile'
           assert info['CFBundleDisplayName'] == 'Little Lifeline', 'Wrong game display name.'
-          assert manifest.get('product') == 'little-lifeline', 'Wrong game product.'
-          assert manifest.get('scenePath') == 'Assets/LittleLifeline/Scenes/Lifeline.unity', 'Wrong Unity scene.'
+          assert manifest.get('product') == 'idle-clinic', 'Wrong game product.'
+          assert manifest.get('developmentBuild') is False, 'Development export cannot ship.'
+          assert manifest.get('iosSdk') == 'device' and info.get('DTPlatformName') == 'iphoneos', 'Wrong archived SDK.'
+          assert manifest.get('scenePath') == 'Assets/IdleClinic/Scenes/Clinic.unity', 'Wrong Unity scene.'
           assert str(info['CFBundleVersion']) == manifest['buildNumber'], 'Build number drift.'
           assert info['CFBundleShortVersionString'] == manifest['marketingVersion'], 'Version drift.'
           assert not re.search(r'[a-z]$', info['BuildMachineOSBuild']), 'Beta archive stamp.'
           framework = app / 'Frameworks/UnityFramework.framework/UnityFramework'
           assert framework.is_file(), 'This is not an embedded Unity player.'
           symbols = subprocess.check_output(['xcrun', 'nm', '-gU', str(framework)], text=True)
-          for symbol in ('Initialize', 'LoadProducts', 'Purchase', 'RestorePurchases', 'AuthenticateGameCenter', 'ShowLeaderboard', 'SubmitScore', 'RetryScores', 'Haptic', 'UseLifelineLeaderboards', 'ShowWeeklyLeaderboard'):
+          for symbol in ('Initialize', 'LoadProducts', 'Purchase', 'RestorePurchases', 'AuthenticateGameCenter', 'ShowLeaderboard', 'SubmitScore', 'RetryScores', 'Haptic', 'UseLifelineLeaderboards', 'ShowWeeklyLeaderboard', 'ScreenWidthPoints', 'ThermalState'):
               assert '_OO_' + symbol in symbols, 'Apple bridge export missing: ' + symbol
           privacy = plistlib.loads((app / 'PrivacyInfo.xcprivacy').read_bytes())
           reasons = [entry for entry in privacy['NSPrivacyAccessedAPITypes'] if entry['NSPrivacyAccessedAPIType'] == 'NSPrivacyAccessedAPICategoryUserDefaults']
           assert any('CA92.1' in entry['NSPrivacyAccessedAPITypeReasons'] for entry in reasons), 'App-local defaults privacy reason missing.'
+          files = [entry for entry in privacy['NSPrivacyAccessedAPITypes'] if entry['NSPrivacyAccessedAPIType'] == 'NSPrivacyAccessedAPICategoryFileTimestamp']
+          assert any('C617.1' in entry['NSPrivacyAccessedAPITypeReasons'] for entry in files), 'App-container file metadata privacy reason missing.'
           subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
           entitlements = subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL)
           assert plistlib.loads(entitlements)['com.apple.developer.game-center'], 'Game Center entitlement missing.'
@@ -233,8 +237,10 @@ jobs:
           from pathlib import Path
           metadata = json.loads(Path('transfer/archive-manifest.json').read_text())
           assert metadata['sourceCommit'] == os.environ['SOURCE_SHA'], 'Wrong source archive.'
-          assert metadata.get('product') == 'little-lifeline', 'Wrong game archive.'
-          assert metadata.get('scenePath') == 'Assets/LittleLifeline/Scenes/Lifeline.unity', 'Wrong archived Unity scene.'
+          assert metadata.get('product') == 'idle-clinic', 'Wrong game archive.'
+          assert metadata.get('developmentBuild') is False, 'Development archive cannot ship.'
+          assert metadata.get('iosSdk') == 'device', 'Wrong archived SDK.'
+          assert metadata.get('scenePath') == 'Assets/IdleClinic/Scenes/Clinic.unity', 'Wrong archived Unity scene.'
           digest = hashlib.file_digest(open('transfer/OrbitOrchard.xcarchive.zip', 'rb'), 'sha256').hexdigest()
           assert digest == metadata['archiveSha256'], 'Signed archive checksum mismatch.'
           subprocess.run(['ditto', '-x', '-k', 'transfer/OrbitOrchard.xcarchive.zip', 'build'], check=True)

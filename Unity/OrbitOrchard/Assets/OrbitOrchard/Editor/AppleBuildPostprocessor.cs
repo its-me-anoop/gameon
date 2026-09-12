@@ -66,7 +66,6 @@ namespace OrbitOrchard.Editor
         private static void AddAppPrivacyManifest(PBXProject project, string appTarget, string exportPath)
         {
             const string relativePath = "PrivacyInfo.xcprivacy";
-            const string category = "NSPrivacyAccessedAPICategoryUserDefaults";
             var path = Path.Combine(exportPath, relativePath);
             var privacy = new PlistDocument();
             if (File.Exists(path)) privacy.ReadFromFile(path);
@@ -76,28 +75,34 @@ namespace OrbitOrchard.Editor
             if (!privacy.root.values.ContainsKey("NSPrivacyCollectedDataTypes")) privacy.root.CreateArray("NSPrivacyCollectedDataTypes");
             var accessed = privacy.root.values.TryGetValue("NSPrivacyAccessedAPITypes", out var accessedValue)
                 ? accessedValue.AsArray() : privacy.root.CreateArray("NSPrivacyAccessedAPITypes");
-            PlistElementDict defaults = null;
-            foreach (var entry in accessed.values)
-            {
-                var dictionary = entry.AsDict();
-                if (dictionary.values.TryGetValue("NSPrivacyAccessedAPIType", out var type) && type.AsString() == category)
-                { defaults = dictionary; break; }
-            }
-            if (defaults == null)
-            {
-                defaults = accessed.AddDict();
-                defaults.SetString("NSPrivacyAccessedAPIType", category);
-            }
-            var reasons = defaults.values.TryGetValue("NSPrivacyAccessedAPITypeReasons", out var reasonValue)
-                ? reasonValue.AsArray() : defaults.CreateArray("NSPrivacyAccessedAPITypeReasons");
-            var hasReason = false;
-            foreach (var reason in reasons.values) if (reason.AsString() == "CA92.1") hasReason = true;
-            if (!hasReason) reasons.AddString("CA92.1");
+            EnsureReason(accessed, "NSPrivacyAccessedAPICategoryUserDefaults", "CA92.1");
+            // The clinic bounds reads using file size and persists snapshots in its app container.
+            EnsureReason(accessed, "NSPrivacyAccessedAPICategoryFileTimestamp", "C617.1");
             privacy.WriteToFile(path);
             var fileGuid = project.FindFileGuidByProjectPath(relativePath);
             if (string.IsNullOrEmpty(fileGuid)) fileGuid = project.AddFile(relativePath, relativePath, PBXSourceTree.Source);
             project.RemoveFileFromBuild(appTarget, fileGuid);
             project.AddFileToBuild(appTarget, fileGuid);
+        }
+
+        private static void EnsureReason(PlistElementArray accessed, string category, string reason)
+        {
+            PlistElementDict matching = null;
+            foreach (var entry in accessed.values)
+            {
+                var dictionary = entry.AsDict();
+                if (dictionary.values.TryGetValue("NSPrivacyAccessedAPIType", out var type) && type.AsString() == category)
+                { matching = dictionary; break; }
+            }
+            if (matching == null)
+            {
+                matching = accessed.AddDict();
+                matching.SetString("NSPrivacyAccessedAPIType", category);
+            }
+            var reasons = matching.values.TryGetValue("NSPrivacyAccessedAPITypeReasons", out var value)
+                ? value.AsArray() : matching.CreateArray("NSPrivacyAccessedAPITypeReasons");
+            foreach (var existing in reasons.values) if (existing.AsString() == reason) return;
+            reasons.AddString(reason);
         }
     }
 }

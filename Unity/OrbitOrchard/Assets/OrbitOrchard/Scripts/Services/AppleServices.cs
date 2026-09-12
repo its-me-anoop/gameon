@@ -48,6 +48,30 @@ namespace OrbitOrchard.Services
         public string DailyAvailability { get; private set; } = "";
         public IReadOnlyList<AppleProduct> Products => products;
         public bool IsAuthenticating => GameCenterState == "authenticating";
+        /// <summary>-1 unsupported; iOS 0 nominal, 1 fair, 2 serious, 3 critical.</summary>
+        public int ThermalState
+        {
+            get
+            {
+#if UNITY_IOS && !UNITY_EDITOR
+                return OO_ThermalState();
+#else
+                return -1;
+#endif
+            }
+        }
+        /// <summary>UIKit window width in points. Refresh when the viewport changes; no DPI guess.</summary>
+        public float ScreenWidthPoints
+        {
+            get
+            {
+#if UNITY_IOS && !UNITY_EDITOR
+                return OO_ScreenWidthPoints();
+#else
+                return Mathf.Max(1, Screen.width);
+#endif
+            }
+        }
 
         private AppleProduct[] products = Array.Empty<AppleProduct>();
         private bool initialized;
@@ -133,7 +157,7 @@ namespace OrbitOrchard.Services
 #endif
         }
 
-        /// <summary>The native bridge defaults to Lifeline before this explicit context call.</summary>
+        /// <summary>Explicit opt-in to the previous weekly feature. Clinic startup leaves its saved queues untouched.</summary>
         public void UseLifelineLeaderboards()
         {
 #if UNITY_IOS && !UNITY_EDITOR
@@ -252,6 +276,8 @@ namespace OrbitOrchard.Services
         }
 
 #if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")] private static extern float OO_ScreenWidthPoints();
+        [DllImport("__Internal")] private static extern int OO_ThermalState();
         [DllImport("__Internal")] private static extern void OO_Initialize();
         [DllImport("__Internal")] private static extern void OO_LoadProducts();
         [DllImport("__Internal")] private static extern void OO_Purchase(string productID);

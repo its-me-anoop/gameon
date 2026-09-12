@@ -1,0 +1,13 @@
+This build introduces a fixed 3D clinic with animated patients and staff.
+
+Start fresh and watch the first check-in. Tap the payment on the reception counter, hire the first nurse, then follow the first treatment. Check that cash moves to the wallet once, the nurse reaches the station, and the next patients arrive only when the introduction is complete.
+
+Drag to pan, pinch to zoom and use the home camera button. Tapping a room should open its controls without hiding the hospital. A drag or pinch must never collect money or buy an improvement by accident. Check small screens, safe areas and VoiceOver controls.
+
+Improve reception and first aid, add staff and a second treatment station when available, and construct the waiting room. Staff should stay beside furniture, patients should sit or lie correctly, and construction should finish once without charging again.
+
+Check the entrance doors and Little Lifeline sign, then explore the surrounding streets, trees and buildings. Adding the second desk or treatment station should reveal its privacy divider while leaving staff and patient routes clear.
+
+Background and relaunch during check-in, after collecting cash, after hiring, and midway through construction. Verify tutorial progress, room levels, wallet, reception tills and settings survive. Staffed offline income stops after eight hours; construction uses the full absence. Returning again must not award the same interval twice. Payments remain at reception until collected.
+
+Test sound, haptics and system Reduce Motion. Settings includes Restore existing purchases; check its result using an account with a previous purchase and an account without one. A new shop and leaderboards are not part of this clinic beta. Please report your device, iOS version and the steps needed to reproduce an issue.

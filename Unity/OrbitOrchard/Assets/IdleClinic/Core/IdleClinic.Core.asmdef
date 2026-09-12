@@ -1,0 +1,7 @@
+{
+  "name": "IdleClinic.Core",
+  "rootNamespace": "IdleClinic.Core",
+  "references": [],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

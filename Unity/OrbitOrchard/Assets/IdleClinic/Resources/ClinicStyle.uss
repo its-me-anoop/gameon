@@ -1,0 +1,86 @@
+/* Warm miniature clinic. Palette authored as ivory/sage/apricot/gold OKLCH tokens,
+   converted to sRGB for UI Toolkit's colour parser. */
+.clinic-root { flex-grow: 1; background-color: rgb(232,235,217); color: rgb(48,74,64); font-size: 16px; }
+.unity-label { margin: 0; padding: 0; }
+.world,.overlay { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+.header { position: absolute; left: 16px; right: 16px; flex-direction: row; justify-content: space-between; align-items: center; }
+.wallet { flex-direction: row; align-items: center; background-color: rgb(255,244,202); border-radius: 24px; padding: 8px 16px 8px 10px; min-height: 48px; border-bottom-width: 3px; border-bottom-color: rgb(218,196,133); }
+.wallet-value { font-size: 24px; margin-left: 8px; color: rgb(90,62,20); -unity-text-align: middle-left; }
+Button { margin: 0; padding: 0; color: rgb(48,74,64); border-width: 0; -unity-background-image-tint-color: rgb(248,247,233); background-image: none; }
+Button:hover { background-color: rgb(235,238,216); }
+Button:active { background-color: rgb(218,229,201); }
+Button:disabled { opacity: .48; }
+.round-control { width: 48px; height: 48px; min-width: 48px; min-height: 48px; justify-content: center; align-items: center; background-color: rgb(247,246,230); border-radius: 24px; border-bottom-width: 2px; border-bottom-color: rgb(197,210,189); }
+.camera-tools { position: absolute; left: 16px; height: 48px; flex-direction: row; }
+.camera-tools > Button { margin-right: 8px; }
+.tutorial-hint { position: absolute; left: 20px; right: 20px; align-items: center; }
+.hint-label { background-color: rgb(247,246,230); color: rgb(48,74,64); border-radius: 16px; padding: 8px 14px; font-size: 15px; -unity-text-align: middle-center; white-space: normal; }
+.context-dock { position: absolute; left: 12px; right: 12px; background-color: rgb(248,247,234); border-radius: 22px; padding: 10px 12px 12px 12px; border-bottom-width: 4px; border-bottom-color: rgb(200,214,189); }
+.dock-heading { flex-direction: row; align-items: center; justify-content: space-between; }
+.dock-title { font-size: 25px; flex-grow: 1; }
+.close-control { width: 44px; height: 44px; min-width: 44px; min-height: 44px; background-color: transparent; border-bottom-width: 0; }
+.room-detail { font-size: 14px; color: rgb(83,103,82); margin: 0 2px 8px 2px; white-space: normal; }
+.upgrades { flex-direction: row; justify-content: space-between; margin-bottom: 8px; }
+.upgrade-button { flex-grow: 1; flex-basis: 0; min-height: 80px; margin-right: 6px; padding: 6px 8px; background-color: rgb(235,239,218); border-radius: 12px; align-items: flex-start; }
+.upgrade-button:last-child { margin-right: 0; }
+.upgrade-top { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+.level { font-size: 14px; color: rgb(76,104,66); }
+.upgrade-label { font-size: 14px; margin-top: 3px; }
+.upgrade-price { font-size: 16px; margin-top: 2px; }
+.action-row { flex-direction: row; align-items: stretch; }
+.purchase-button { flex-direction: row; align-items: center; flex-grow: 1; flex-basis: 0; min-height: 52px; padding: 8px 10px; margin-right: 6px; border-radius: 12px; background-color: rgb(232,235,215); }
+.purchase-button:last-child { margin-right: 0; }
+.primary-action { background-color: rgb(190,218,156); }
+.minor-action { background-color: rgb(242,222,192); }
+.purchase-words { margin-left: 8px; flex-shrink: 1; }
+.purchase-detail { font-size: 14px; }
+.cost-row { flex-direction: row; align-items: center; margin-top: 2px; }
+.purchase-price { font-size: 17px; margin-left: 5px; }
+.construction-readout { flex-direction: row; align-items: center; flex-grow: 1; min-height: 48px; padding-left: 4px; }
+.construction-time { font-size: 15px; margin-left: 8px; }
+.max-room { font-size: 14px; align-self: center; margin: 8px; }
+.toast { position: absolute; align-self: center; max-width: 88%; padding: 9px 14px; background-color: rgb(54,79,63); color: rgb(248,247,228); border-radius: 16px; font-size: 14px; white-space: normal; -unity-text-align: middle-center; }
+.cash-marker { position: absolute; flex-direction: row; align-items: center; justify-content: center; min-width: 56px; min-height: 44px; padding: 4px 9px; background-color: rgb(255,226,139); border-radius: 18px; border-bottom-width: 3px; border-bottom-color: rgb(192,147,51); }
+.cash-amount { margin-left: 3px; font-size: 16px; color: rgb(91,60,18); }
+.patient-ring { position: absolute; }
+.construction-marker { position: absolute; flex-direction: row; align-items: center; padding: 5px 8px; background-color: rgb(246,239,218); border-radius: 18px; }
+.construction-clock { margin-left: 5px; font-size: 14px; }
+.waiting-marker { position: absolute; flex-direction: row; min-width: 76px; min-height: 48px; align-items: center; justify-content: center; background-color: rgb(204,226,175); border-radius: 18px; padding: 6px 10px; }
+.waiting-cost { font-size: 17px; margin-left: 7px; }
+.settings-row { flex-direction: row; }
+.preference { flex-grow: 1; flex-basis: 0; min-height: 86px; margin-right: 7px; background-color: rgb(233,235,218); border-radius: 12px; padding: 10px; align-items: center; }
+.preference-on { background-color: rgb(210,228,189); }
+.preference:last-child { margin-right: 0; }
+.preference-label { font-size: 14px; margin-top: 5px; }
+.preference-value { font-size: 14px; }
+.help-row { margin-top: 10px; }
+.help-text { font-size: 14px; white-space: normal; }
+.restore-button { flex-direction: row; align-items: center; margin-top: 8px; min-height: 44px; background-color: transparent; }
+.restore-label { font-size: 14px; margin-left: 8px; }
+.loading { flex-grow: 1; justify-content: center; align-items: center; }
+.loading-title { margin-top: 20px; font-size: 20px; }
+.loading ProgressBar { width: 180px; height: 8px; margin-top: 18px; }
+.compact .dock-title { font-size: 22px; }
+.compact .context-dock { left: 8px; right: 8px; padding-left: 10px; padding-right: 10px; }
+.compact .upgrade-button { padding-left: 6px; padding-right: 6px; }
+.compact .purchase-button { padding-left: 7px; padding-right: 7px; }
+
+/* Keep the management strip at 230 points even when font metrics or Button
+   defaults would otherwise expand its rows. All three upgrades remain visible. */
+.upgrade-dock { padding: 8px 10px; }
+.upgrade-dock .dock-heading { height: 44px; min-height: 44px; max-height: 44px; flex-shrink: 0; }
+.upgrade-dock .dock-title { height: 36px; -unity-text-align: middle-left; }
+.upgrade-dock .room-detail { height: 20px; min-height: 20px; max-height: 20px; margin: 0 2px 4px 2px; white-space: nowrap; }
+.upgrade-dock .upgrades { height: 80px; min-height: 80px; max-height: 80px; margin-bottom: 6px; flex-shrink: 0; }
+.upgrade-dock .upgrade-button { height: 80px; min-height: 80px; max-height: 80px; min-width: 0; padding: 6px; }
+.upgrade-dock .upgrade-top { height: 24px; min-height: 24px; flex-shrink: 0; }
+.upgrade-dock .upgrade-label { height: 18px; min-height: 18px; margin-top: 2px; white-space: nowrap; -unity-text-align: middle-left; }
+.upgrade-dock .upgrade-price { height: 20px; min-height: 20px; margin-top: 0; -unity-text-align: middle-left; }
+.upgrade-dock .action-row { height: 56px; min-height: 56px; max-height: 56px; flex-shrink: 0; }
+.upgrade-dock .purchase-button { height: 56px; min-height: 56px; max-height: 56px; min-width: 0; padding: 4px 8px; }
+.upgrade-dock .purchase-words { height: 44px; min-width: 0; justify-content: center; }
+.upgrade-dock .purchase-detail { height: 18px; margin: 0; white-space: nowrap; -unity-text-align: middle-left; }
+.upgrade-dock .cost-row { height: 22px; margin-top: 2px; }
+.upgrade-dock .purchase-price { height: 22px; -unity-text-align: middle-left; }
+.upgrade-dock .construction-readout { height: 56px; min-height: 56px; max-height: 56px; }
+.upgrade-dock .construction-time { font-size: 14px; white-space: normal; flex-shrink: 1; }

@@ -10,7 +10,9 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
     @objc public var eventHandler: ((String) -> Void)?
 
     private let store = OrchardStoreService(automaticallyLoad: false)
-    private let gameCenter = OrchardGameCenterService()
+    // The clinic has no ranked mode. Do not even read/prune previous-game queues
+    // until an explicit leaderboard feature activates its service.
+    private var gameCenter: OrchardGameCenterService?
     private let catchFeedback = UIImpactFeedbackGenerator(style: .light)
     private let bankFeedback = UIImpactFeedbackGenerator(style: .medium)
     private let missFeedback = UINotificationFeedbackGenerator()
@@ -19,7 +21,6 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
     private override init() {
         super.init()
         store.onChange = { [weak self] in self?.emit(source: "store") }
-        gameCenter.onChange = { [weak self] in self?.emit(source: "gameCenter") }
         NotificationCenter.default.addObserver(self, selector: #selector(accessibilityDidChange),
             name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
     }
@@ -65,13 +66,17 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
     }
 
     @objc public func authenticateGameCenter() {
-        gameCenter.authenticate()
+        activateGameCenter().authenticate()
         emit(source: "gameCenter")
     }
 
     @objc public func submitScore(_ score: Int32, mode: String, dayKey: String) {
         guard let scoreMode = OrchardScoreMode(rawValue: mode) else {
             emit(source: "gameCenter", message: "This game mode does not support leaderboard scores.")
+            return
+        }
+        guard let gameCenter else {
+            emit(source: "gameCenter", message: "Rankings are not active in this clinic.")
             return
         }
         gameCenter.submit(score: Int(score), mode: scoreMode, dayKey: dayKey.isEmpty ? nil : dayKey)
@@ -81,7 +86,7 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
     @objc public func retryScores() {
         Task {
             await store.refreshEntitlements()
-            await gameCenter.retryPendingScores()
+            await gameCenter?.retryPendingScores()
             emit(source: "gameCenter")
         }
     }
@@ -89,11 +94,23 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
     /// Kept as a compatibility entry point; this build never opens the old arcade boards.
     @objc public func showLeaderboard(_ daily: Bool) { showWeeklyLeaderboard() }
 
-    @objc public func useLifelineLeaderboards() { emit(source: "gameCenter") }
+    @objc public func useLifelineLeaderboards() {
+        _ = activateGameCenter()
+        emit(source: "gameCenter")
+    }
+
+    private func activateGameCenter() -> OrchardGameCenterService {
+        if let gameCenter { return gameCenter }
+        let service = OrchardGameCenterService()
+        service.onChange = { [weak self] in self?.emit(source: "gameCenter") }
+        gameCenter = service
+        return service
+    }
 
     @objc public func showWeeklyLeaderboard() {
+        let service = activateGameCenter()
         Task {
-            guard await gameCenter.currentWeeklyLeaderboard() != nil else {
+            guard await service.currentWeeklyLeaderboard() != nil else {
                 emit(source: "gameCenter")
                 return
             }
@@ -137,13 +154,13 @@ public final class OrchardAppleBridge: NSObject, @preconcurrency GKGameCenterCon
             "productState": String(describing: store.productState),
             "purchaseState": String(describing: store.purchaseState),
             "storeStatus": storeStatus,
-            "isGameCenterAuthenticated": gameCenter.isAuthenticated,
-            "gameCenterState": String(describing: gameCenter.authenticationState),
-            "playerDisplayName": gameCenter.playerDisplayName ?? "",
-            "gameCenterStatus": gameCenter.statusMessage,
-            "pendingScoreCount": gameCenter.queuedScoreCount,
+            "isGameCenterAuthenticated": gameCenter?.isAuthenticated ?? false,
+            "gameCenterState": gameCenter.map { String(describing: $0.authenticationState) } ?? "deferred",
+            "playerDisplayName": gameCenter?.playerDisplayName ?? "",
+            "gameCenterStatus": gameCenter?.statusMessage ?? "Rankings are not active in this clinic.",
+            "pendingScoreCount": gameCenter?.queuedScoreCount ?? 0,
             "dailyAvailability": "",
-            "status": message ?? (source == "store" ? storeStatus : gameCenter.statusMessage),
+            "status": message ?? (source == "store" ? storeStatus : (gameCenter?.statusMessage ?? "")),
             "products": products,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: snapshot),

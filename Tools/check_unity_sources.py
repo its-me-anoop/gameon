@@ -59,6 +59,7 @@ def main():
     project = repo / "Unity/OrbitOrchard"
     orchard = project / "Assets/OrbitOrchard"
     lifeline = project / "Assets/LittleLifeline"
+    clinic = project / "Assets/IdleClinic"
     scripting = args.unity_app / "Contents/Resources/Scripting"
     managed = scripting / "Managed/UnityEngine"
     mono = scripting / "MonoBleedingEdge/bin/mono"
@@ -88,7 +89,7 @@ def main():
     print(f"Imported Unity package references: {package_dir}", flush=True)
     shutil.copy2(nunit, output / nunit.name)
     compiler = [str(mono), str(csc), "-nologo", "-langversion:9"]
-    defines = "UNITY_EDITOR,UNITY_IOS,UNITY_6000_0_OR_NEWER,UNITY_INCLUDE_TESTS"
+    defines = "UNITY_EDITOR,UNITY_EDITOR_OSX,UNITY_IOS,UNITY_6000_0_OR_NEWER,UNITY_INCLUDE_TESTS"
     ios_defines = "UNITY_IOS,UNITY_6000_0_OR_NEWER"
     compiled = []
 
@@ -108,6 +109,7 @@ def main():
     engine_refs = sorted(managed.glob("UnityEngine*.dll")) + [netstandard] + packages
     orchard_core = compile_assembly("OrbitOrchard.Core", (orchard / "Scripts/Core").glob("*.cs"))
     lifeline_core = compile_assembly("LittleLifeline.Core", (lifeline / "Core").glob("*.cs"))
+    clinic_core = compile_assembly("IdleClinic.Core", (clinic / "Core").glob("*.cs"))
     orchard_sources = [p for p in (orchard / "Scripts").rglob("*.cs") if "Core" not in p.parts]
     lifeline_sources = list((lifeline / "Runtime").rglob("*.cs"))
     orchard_refs = engine_refs + [orchard_core]
@@ -117,7 +119,14 @@ def main():
     lifeline_runtime = compile_assembly("LittleLifeline.Runtime", lifeline_sources, lifeline_refs)
     compile_assembly("LittleLifeline.Runtime.iOS", lifeline_sources,
                      engine_refs + [orchard_core, lifeline_core, orchard_ios], ios_defines)
-    editor_refs = (lifeline_refs + [lifeline_runtime, xcode]
+    clinic_sources = list((clinic / "Runtime").rglob("*.cs"))
+    clinic_refs = engine_refs + [clinic_core, orchard_runtime]
+    clinic_runtime = compile_assembly("IdleClinic.Runtime", clinic_sources, clinic_refs)
+    compile_assembly("IdleClinic.Runtime.iOS", clinic_sources,
+                     engine_refs + [clinic_core, orchard_ios], ios_defines)
+    compile_assembly("IdleClinic.Runtime.iOS.Development", clinic_sources,
+                     engine_refs + [clinic_core, orchard_ios], ios_defines + ",DEVELOPMENT_BUILD")
+    editor_refs = (lifeline_refs + [lifeline_runtime, clinic_core, clinic_runtime, xcode]
                    + sorted(managed.glob("UnityEditor*.dll")))
     compile_assembly("OrbitOrchard.Editor", (orchard / "Editor").glob("*.cs"), editor_refs)
 
@@ -133,6 +142,13 @@ def main():
         (lifeline / "Tests/Profile").glob("*.cs"), lifeline_refs + [lifeline_runtime, nunit])
     compile_assembly("LittleLifeline.PresentationTests", (lifeline / "Tests/Editor").glob("*.cs"),
                      lifeline_refs + [lifeline_runtime, nunit])
+
+    clinic_core_tests = compile_assembly("IdleClinic.Core.Tests",
+        (clinic / "Tests/Core").glob("*.cs"), [clinic_core, nunit])
+    clinic_profile_tests = compile_assembly("IdleClinic.Profile.Tests",
+        (clinic / "Tests/Profile").glob("*.cs"), clinic_refs + [clinic_runtime, nunit])
+    compile_assembly("IdleClinic.PresentationTests",
+        (clinic / "Tests/Editor").glob("*.cs"), clinic_refs + [clinic_runtime, nunit])
 
     runner = output / "RunStandaloneTests.cs"
     runner.write_text(RUNNER, encoding="utf-8")
@@ -152,6 +168,7 @@ def main():
 
     run_tests(orchard_core_tests, "core-nunit-results.xml")
     run_tests(lifeline_core_tests, "lifeline-core-nunit-results.xml")
+    run_tests(clinic_core_tests, "clinic-core-nunit-results.xml")
     # Explicit allowlists: these rules use managed state and missing-file defaults.
     # Loading test assemblies is not permission to call Unity native JSON/UI APIs.
     orchard_profile_names = [
@@ -170,6 +187,11 @@ def main():
     ]
     run_tests(lifeline_profile_tests, "lifeline-profile-managed-nunit-results.xml",
         ["LittleLifeline.Tests.LifelineProfileTests." + name for name in lifeline_profile_names])
+    run_tests(clinic_profile_tests, "clinic-performance-nunit-results.xml",
+        ["IdleClinic.Tests.ClinicPerformanceTests." + name for name in (
+            "PercentilesUseRecordedFramesIncludingLongHitches",
+            "RollingWindowEvictsOnlyTheOldestFrames",
+            "InvalidSamplesDoNotPolluteResultsAndSummaryDoesNotConsumeFrames")])
     message = ("PASSED: standalone source compilation and explicitly selected managed tests.\n"
                f"Editor assemblies: {args.unity_app.resolve()}\n"
                f"Imported package assemblies: {package_dir}\n"

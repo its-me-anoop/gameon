@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/LittleLifeline/Scenes/Lifeline.unity
-    guid: 74834f5a99ac241e7ae40e30e7364b58
+    path: Assets/IdleClinic/Scenes/Clinic.unity
+    guid: 3a6cdc46bc8e443278caee550205a827
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

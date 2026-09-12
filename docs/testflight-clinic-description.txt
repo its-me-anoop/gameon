@@ -1,0 +1,7 @@
+Little Lifeline is a small 3D clinic that grows around the people working in it.
+
+Watch your first patient check in, collect the payment from reception and hire your first nurse. Improve reception and first aid, prepare a waiting room, and add staff and treatment space as your clinic earns enough to expand.
+
+Drag to explore the hospital, pinch to zoom and tap rooms for their available improvements. Payments stay on reception counters until you collect them. Staffed care earns while you are away for up to eight hours; construction uses the full time away. Progress is stored on this device.
+
+This beta focuses on the clinic, its animated people, progression and save reliability. A new shop and leaderboards are not included. Existing purchases can be restored in Settings; previous campaign saves and score data remain preserved separately.

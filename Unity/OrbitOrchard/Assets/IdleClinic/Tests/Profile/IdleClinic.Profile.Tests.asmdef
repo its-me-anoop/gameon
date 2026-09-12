@@ -1,0 +1,8 @@
+{
+  "name": "IdleClinic.Profile.Tests",
+  "rootNamespace": "IdleClinic.Tests",
+  "references": ["IdleClinic.Core", "IdleClinic.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

@@ -1,0 +1,9 @@
+Little Lifeline 3.1 (15) is a Unity 3D idle clinic. It uses the existing com.flutterly.gravitile app record. No app account or demo login is required.
+
+The first patient arrives automatically. Wait for check-in, tap the payment on the reception counter to collect 50 coins, then use the first-aid room's Hire nurse control. The nurse walks to the station and treats the patient. Further patients arrive after the introductory treatment. Room controls provide improvements and expansion, purchased only with earned in-game coins. These coins cannot be purchased with real money in this beta.
+
+Drag the world to pan and pinch to zoom; the home camera button returns to reception. Tap reception or first aid to inspect improvements. The waiting-room site becomes available as demand grows. Settings contains sound, haptics, reduced motion, help and Restore existing purchases.
+
+This clinic beta does not sell new content or expose leaderboards. The shared StoreKit bridge retains verified previous ownership and supports Restore using the existing product IDs; no local preference or save grants ownership. Old leaderboard queues and previous campaign saves remain stored separately and are not submitted or rewritten by clinic startup. Existing IAP metadata and pricing have not been changed for this beta.
+
+Offline income is limited to eight hours of staffed operations and is left in reception tills. Construction finishes according to the full elapsed interval. Save data, tutorial progress, tills and wallet are local to this device. The clinic requests no tracking permission and contains no advertising SDK.

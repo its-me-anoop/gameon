@@ -1,0 +1,6 @@
+{
+  "name": "IdleClinic.PresentationTests",
+  "references": ["IdleClinic.Runtime", "IdleClinic.Core"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

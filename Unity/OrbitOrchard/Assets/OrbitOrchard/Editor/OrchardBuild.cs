@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using LittleLifeline.App;
+using IdleClinic.App;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -14,13 +14,13 @@ namespace OrbitOrchard.Editor
 {
     public static class OrchardBuild
     {
-        private const string ScenePath = "Assets/LittleLifeline/Scenes/Lifeline.unity";
-        [MenuItem("Little Lifeline/Prepare project")]
+        private const string ScenePath = "Assets/IdleClinic/Scenes/Clinic.unity";
+        [MenuItem("Idle Clinic/Prepare project")]
         public static void Prepare()
         {
-            Directory.CreateDirectory("Assets/LittleLifeline/Scenes");
-            Directory.CreateDirectory("Assets/LittleLifeline/Resources");
-            var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/LittleLifeline/Resources/LifelinePanel.asset");
+            Directory.CreateDirectory("Assets/IdleClinic/Scenes");
+            Directory.CreateDirectory("Assets/IdleClinic/Resources");
+            var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/IdleClinic/Resources/ClinicPanel.asset");
             if (panel == null)
             {
                 panel = ScriptableObject.CreateInstance<PanelSettings>();
@@ -29,21 +29,21 @@ namespace OrbitOrchard.Editor
                 panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
                 panel.match = .5f;
                 panel.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>("Assets/OrbitOrchard/UI/OrchardTheme.tss");
-                AssetDatabase.CreateAsset(panel, "Assets/LittleLifeline/Resources/LifelinePanel.asset");
+                AssetDatabase.CreateAsset(panel, "Assets/IdleClinic/Resources/ClinicPanel.asset");
             }
             if (!File.Exists(ScenePath))
             {
                 var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
                 var app = new GameObject("Little Lifeline");
                 var doc = app.AddComponent<UIDocument>(); doc.panelSettings = panel;
-                app.AddComponent<LifelineApp>();
+                app.AddComponent<ClinicApp>();
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
             PlayerSettings.companyName = "Flutterly";
             PlayerSettings.productName = "Little Lifeline";
-            PlayerSettings.bundleVersion = "3.0";
+            PlayerSettings.bundleVersion = "3.1";
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.flutterly.gravitile");
-            PlayerSettings.iOS.buildNumber = "14";
+            PlayerSettings.iOS.buildNumber = "15";
             PlayerSettings.iOS.targetOSVersionString = "18.0";
             PlayerSettings.iOS.appleDeveloperTeamID = "K6623R3GP5";
             PlayerSettings.iOS.appleEnableAutomaticSigning = true;
@@ -58,7 +58,7 @@ namespace OrbitOrchard.Editor
             QualitySettings.shadowResolution = ShadowResolution.Medium;
             QualitySettings.shadowDistance = 24;
             IncludeRuntimeShaders();
-            const string iconPath = "Assets/LittleLifeline/Art/AppIcon.png";
+            const string iconPath = "Assets/IdleClinic/Art/AppIcon.png";
             var iconImporter = AssetImporter.GetAtPath(iconPath) as TextureImporter;
             if (iconImporter != null && (iconImporter.textureCompression != TextureImporterCompression.Uncompressed || iconImporter.mipmapEnabled))
             {
@@ -70,29 +70,40 @@ namespace OrbitOrchard.Editor
             if (icon != null) PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icon }, IconKind.Any);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets(); AssetDatabase.Refresh();
-            Debug.Log("Little Lifeline project prepared.");
+            Debug.Log("Idle Clinic project prepared.");
         }
-        [MenuItem("Little Lifeline/Build iOS")]
+        [MenuItem("Idle Clinic/Build iOS")]
         public static void BuildIOS()
         {
             Prepare();
             PlayerSettings.iOS.sdkVersion = iOSSdkVersion.DeviceSDK;
             var output = Environment.GetEnvironmentVariable("ORCHARD_IOS_EXPORT");
             if (string.IsNullOrEmpty(output)) output = "Builds/iOS";
+            WriteExportProvenance(output, false, "device", false);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes = new[] { ScenePath }, locationPathName = output, target = BuildTarget.iOS, options = BuildOptions.None });
-            if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Little Lifeline iOS export failed: " + report.summary.result);
-            File.WriteAllText(Path.Combine(output, "orbit-orchard-unity-build.json"), JsonUtility.ToJson(new ExportProvenance
-            {
-                product = "little-lifeline",
-                scenePath = ScenePath,
-                sourceCommit = Git("rev-parse HEAD"),
-                sourceDirty = !string.IsNullOrEmpty(Git("status --porcelain --untracked-files=all -- .")),
-                unityVersion = Application.unityVersion,
-                buildSucceeded = true
-            }, true));
-            Debug.Log("Little Lifeline iOS export succeeded: " + output);
+            if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Idle Clinic iOS export failed: " + report.summary.result);
+            WriteExportProvenance(output, false, "device", true);
+            Debug.Log("Idle Clinic iOS export succeeded: " + output);
         }
-        [MenuItem("Little Lifeline/Build iOS Simulator")]
+        [MenuItem("Idle Clinic/Build iOS Development diagnostics")]
+        public static void BuildIOSDevelopment()
+        {
+            Prepare();
+            PlayerSettings.iOS.sdkVersion = iOSSdkVersion.DeviceSDK;
+            var output = Environment.GetEnvironmentVariable("ORCHARD_IOS_EXPORT");
+            if (string.IsNullOrEmpty(output)) output = "Builds/iOSClinicDevelopment";
+            WriteExportProvenance(output, true, "device", false);
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath }, locationPathName = output,
+                target = BuildTarget.iOS, options = BuildOptions.Development
+            });
+            if (report.summary.result != BuildResult.Succeeded)
+                throw new BuildFailedException("Idle Clinic development export failed: " + report.summary.result);
+            WriteExportProvenance(output, true, "device", true);
+            Debug.Log("Idle Clinic development export succeeded (not for TestFlight): " + output);
+        }
+        [MenuItem("Idle Clinic/Build iOS Simulator")]
         public static void BuildIOSSimulator()
         {
             Prepare();
@@ -103,14 +114,16 @@ namespace OrbitOrchard.Editor
                 PlayerSettings.iOS.simulatorSdkArchitecture = AppleMobileArchitectureSimulator.ARM64;
                 var output = Environment.GetEnvironmentVariable("ORCHARD_IOS_EXPORT");
                 if (string.IsNullOrEmpty(output)) output = "Builds/iOSSimulator";
+                WriteExportProvenance(output, true, "simulator", false);
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
                     scenes = new[] { ScenePath }, locationPathName = output,
-                    target = BuildTarget.iOS, options = BuildOptions.None
+                    target = BuildTarget.iOS, options = BuildOptions.Development
                 });
                 if (report.summary.result != BuildResult.Succeeded)
-                    throw new BuildFailedException("Little Lifeline iOS simulator export failed: " + report.summary.result);
-                Debug.Log("Little Lifeline ARM64 iOS simulator export succeeded: " + output);
+                    throw new BuildFailedException("Idle Clinic iOS simulator export failed: " + report.summary.result);
+                WriteExportProvenance(output, true, "simulator", true);
+                Debug.Log("Idle Clinic ARM64 iOS simulator export succeeded: " + output);
             }
             finally
             {
@@ -121,8 +134,21 @@ namespace OrbitOrchard.Editor
         }
         [Serializable] private sealed class ExportProvenance
         {
-            public string product, scenePath, sourceCommit, unityVersion;
-            public bool sourceDirty, buildSucceeded;
+            public string product, scenePath, sourceCommit, unityVersion, iosSdk;
+            public bool sourceDirty, buildSucceeded, developmentBuild;
+        }
+        private static void WriteExportProvenance(string output, bool development, string sdk, bool succeeded)
+        {
+            // Invalidate any previous success before reusing an export directory.
+            Directory.CreateDirectory(output);
+            File.WriteAllText(Path.Combine(output, "orbit-orchard-unity-build.json"), JsonUtility.ToJson(new ExportProvenance
+            {
+                product = "idle-clinic", scenePath = ScenePath,
+                sourceCommit = Git("rev-parse HEAD"),
+                sourceDirty = !string.IsNullOrEmpty(Git("status --porcelain --untracked-files=all -- .")),
+                unityVersion = Application.unityVersion, iosSdk = sdk,
+                buildSucceeded = succeeded, developmentBuild = development
+            }, true));
         }
         private static string Git(string arguments)
         {
@@ -153,7 +179,7 @@ namespace OrbitOrchard.Editor
             if (instancing != null) instancing.intValue = 2; // Unity's InstancingStrippingMode.KeepAll.
             graphics.ApplyModifiedPropertiesWithoutUndo();
         }
-        [MenuItem("Little Lifeline/Open game scene")]
+        [MenuItem("Idle Clinic/Open game scene")]
         public static void OpenGame() { Prepare(); EditorSceneManager.OpenScene(ScenePath); }
     }
 }

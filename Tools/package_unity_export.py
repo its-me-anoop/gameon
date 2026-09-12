@@ -10,6 +10,7 @@ import json
 import os
 import platform
 import plistlib
+import re
 import shutil
 import stat
 import subprocess
@@ -21,9 +22,9 @@ from pathlib import Path, PurePosixPath
 
 REPO = Path(__file__).resolve().parent.parent
 MANIFEST = 'orbit-orchard-export.json'
-PRODUCT = 'little-lifeline'
+PRODUCT = 'idle-clinic'
 PRODUCT_NAME = 'Little Lifeline'
-SCENE = 'Assets/LittleLifeline/Scenes/Lifeline.unity'
+SCENE = 'Assets/IdleClinic/Scenes/Clinic.unity'
 MAX_ASSET_BYTES = 2 * 1024 ** 3
 CRITICAL_FILES = ['Unity-iPhone.xcodeproj/project.pbxproj', 'Info.plist', 'PrivacyInfo.xcprivacy',
                   'orbit-orchard-unity-build.json',
@@ -54,13 +55,18 @@ def read_tests(path):
     passed = int(result.get('passed', '0'))
     if total == 0 or failed != 0 or passed == 0:
         raise ValueError('The Unity test report must contain executed passing tests and zero failures.')
-    fixtures = ('LittleLifeline.Core.Tests.LifelineSimulationTests.',
-                'LittleLifeline.Tests.LifelineProfileTests.', 'LittleLifeline.Tests.LifelineWorldTests.')
+    if int(result.get('skipped', '0')) != 0 or passed != total:
+        raise ValueError('The final Unity report must pass every test with zero skipped or inconclusive cases.')
+    fixtures = ('IdleClinic.Tests.ClinicSimulationTests.',
+                'IdleClinic.Tests.ClinicProfileTests.', 'IdleClinic.Tests.ClinicWorldTests.',
+                'IdleClinic.Tests.ClinicHUDTests.', 'IdleClinic.Tests.ClinicPerformanceTests.')
     cases = list(result.iter('test-case'))
+    if len(cases) != total or any(case.get('result', '').lower() != 'passed' for case in cases):
+        raise ValueError('Every reported Unity case must be present and passed.')
     for fixture in fixtures:
         executed = [case for case in cases if case.get('fullname', '').startswith(fixture)]
         if not executed or any(case.get('result', '').lower() != 'passed' for case in executed):
-            raise ValueError('Unity report must execute all included Little Lifeline tests: ' + fixture)
+            raise ValueError('Unity report must execute all included Idle Clinic tests: ' + fixture)
     return {'total': total, 'passed': passed, 'failed': failed,
             'skipped': int(result.get('skipped', '0')), 'sha256': sha256(path)}
 
@@ -106,7 +112,11 @@ def unpack(archive, destination, expected_sha, expected_source):
             raise ValueError('Export provenance manifest is missing.')
         metadata = json.loads(package.read(MANIFEST))
         if metadata.get('product') != PRODUCT or metadata.get('scenePath') != SCENE:
-            raise ValueError('Expected the Little Lifeline product and scene; legacy exports cannot ship.')
+            raise ValueError('Expected the Idle Clinic product and scene; legacy exports cannot ship.')
+        if metadata.get('developmentBuild') is not False:
+            raise ValueError('Development or unclassified exports cannot ship to TestFlight.')
+        if metadata.get('iosSdk') != 'device':
+            raise ValueError('Only an explicit Device SDK export can ship to TestFlight.')
         if metadata['sourceCommit'] != expected_source:
             raise ValueError('Export source commit does not match the requested commit.')
         if metadata['unitySourceTree'] != git('rev-parse', expected_source + ':Unity/OrbitOrchard'):
@@ -141,6 +151,7 @@ def unpack(archive, destination, expected_sha, expected_source):
         info = plistlib.load(handle)
     provenance = json.loads((destination / 'orbit-orchard-unity-build.json').read_text())
     validate_product(info, provenance)
+    validate_project_sdk(destination)
     if read_tests(destination / 'orbit-orchard-unity-tests.xml') != metadata['unityTests']:
         raise ValueError('The packaged Unity test report does not match the provenance manifest.')
     print(json.dumps(metadata, indent=2))
@@ -150,7 +161,20 @@ def validate_product(info, provenance):
     if info.get('CFBundleDisplayName') != PRODUCT_NAME:
         raise ValueError('Export display name must be Little Lifeline.')
     if provenance.get('product') != PRODUCT or provenance.get('scenePath') != SCENE:
-        raise ValueError('Unity success provenance must identify the Little Lifeline scene.')
+        raise ValueError('Unity success provenance must identify the Idle Clinic scene.')
+    if provenance.get('developmentBuild') is not False:
+        raise ValueError('Development or unclassified exports cannot ship to TestFlight.')
+    if provenance.get('iosSdk') != 'device':
+        raise ValueError('Only an explicit Device SDK export can ship to TestFlight.')
+    if provenance.get('buildSucceeded') is not True:
+        raise ValueError('The Unity export did not complete successfully.')
+
+
+def validate_project_sdk(root):
+    project = (Path(root) / 'Unity-iPhone.xcodeproj/project.pbxproj').read_text()
+    sdks = set(re.findall(r'\bSDKROOT\s*=\s*"?([A-Za-z0-9.]+)"?\s*;', project))
+    if sdks != {'iphoneos'} or '--target-is-simulator' in project:
+        raise ValueError('The generated Xcode project must target only the Device SDK (iphoneos).')
 
 
 def ensure_new_output(output):
@@ -211,11 +235,12 @@ def main():
     version = next(line.split(':', 1)[1].strip() for line in version_file.read_text().splitlines() if line.startswith('m_EditorVersion:'))
     provenance = json.loads((root / 'orbit-orchard-unity-build.json').read_text())
     validate_product(info, provenance)
+    validate_project_sdk(root)
     if provenance.get('sourceCommit') != git('rev-parse', 'HEAD') or provenance.get('sourceDirty') is not False:
         raise ValueError('Export came from a dirty or different source commit. Re-export the committed candidate.')
     if provenance.get('buildSucceeded') is not True or provenance.get('unityVersion') != version:
         raise ValueError('Unity export success/version provenance is invalid.')
-    metadata = {'format': 1, 'product': PRODUCT, 'scenePath': SCENE, 'sourceCommit': git('rev-parse', 'HEAD'),
+    metadata = {'format': 1, 'product': PRODUCT, 'scenePath': SCENE, 'developmentBuild': False, 'iosSdk': 'device', 'sourceCommit': git('rev-parse', 'HEAD'),
                 'unitySourceTree': git('rev-parse', 'HEAD:Unity/OrbitOrchard'),
                 'unityVersion': version, 'hostArchitecture': platform.machine(),
                 'bundleIdentifier': 'com.flutterly.gravitile',

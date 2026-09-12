@@ -12,6 +12,7 @@ import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 SPEC = importlib.util.spec_from_file_location('package_unity_export', Path(__file__).resolve().parents[1] / 'package_unity_export.py')
 PACKAGE = importlib.util.module_from_spec(SPEC)
@@ -26,19 +27,22 @@ class ExportValidationTests(unittest.TestCase):
         self.source = 'a' * 40
         self.tree = 'b' * 40
         self.report = self.root / 'tests.xml'
-        self.report.write_text('<test-run result="Passed" total="3" passed="3" failed="0" skipped="0">'
-            '<test-case fullname="LittleLifeline.Core.Tests.LifelineSimulationTests.Example" result="Passed"/>'
-            '<test-case fullname="LittleLifeline.Tests.LifelineProfileTests.Example" result="Passed"/>'
-            '<test-case fullname="LittleLifeline.Tests.LifelineWorldTests.Example" result="Passed"/>'
+        self.report.write_text('<test-run result="Passed" total="5" passed="5" failed="0" skipped="0">'
+            '<test-case fullname="IdleClinic.Tests.ClinicSimulationTests.Example" result="Passed"/>'
+            '<test-case fullname="IdleClinic.Tests.ClinicProfileTests.Example" result="Passed"/>'
+            '<test-case fullname="IdleClinic.Tests.ClinicWorldTests.Example" result="Passed"/>'
+            '<test-case fullname="IdleClinic.Tests.ClinicHUDTests.Example" result="Passed"/>'
+            '<test-case fullname="IdleClinic.Tests.ClinicPerformanceTests.Example" result="Passed"/>'
             '</test-run>')
 
     def archive(self, *, extra=None, change=None):
         contents = {name: ('fixture:' + name).encode() for name in PACKAGE.CRITICAL_FILES}
+        contents['Unity-iPhone.xcodeproj/project.pbxproj'] = b'{ buildSettings = { SDKROOT = iphoneos; }; }'
         contents['Info.plist'] = plistlib.dumps({'CFBundleDisplayName': 'Little Lifeline'})
-        contents['orbit-orchard-unity-build.json'] = json.dumps({'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE}).encode()
+        contents['orbit-orchard-unity-build.json'] = json.dumps({'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE, 'developmentBuild': False, 'iosSdk': 'device', 'buildSucceeded': True}).encode()
         contents['orbit-orchard-unity-tests.xml'] = self.report.read_bytes()
         metadata = {
-            'format': 1, 'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE, 'sourceCommit': self.source, 'unitySourceTree': self.tree,
+            'format': 1, 'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE, 'developmentBuild': False, 'iosSdk': 'device', 'sourceCommit': self.source, 'unitySourceTree': self.tree,
             'bundleIdentifier': 'com.flutterly.gravitile', 'hostArchitecture': platform.machine(),
             'unityTests': PACKAGE.read_tests(self.report),
             'criticalFiles': {name: hashlib.sha256(contents[name]).hexdigest() for name in PACKAGE.CRITICAL_FILES},
@@ -55,7 +59,9 @@ class ExportValidationTests(unittest.TestCase):
         return archive
 
     def unpack(self, archive, **overrides):
-        with patch.object(PACKAGE, 'git', return_value=self.tree), contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(PACKAGE, 'git', return_value=self.tree), \
+             patch.object(PACKAGE.shutil, 'disk_usage', return_value=SimpleNamespace(free=overrides.get('free', 8 * 1024 ** 3))), \
+             contextlib.redirect_stdout(io.StringIO()):
             PACKAGE.unpack(archive, self.root / 'unpacked',
                            overrides.get('checksum', PACKAGE.sha256(archive)),
                            overrides.get('source', self.source))
@@ -66,6 +72,11 @@ class ExportValidationTests(unittest.TestCase):
         binary.external_attr = (stat.S_IFREG | 0o755) << 16
         self.unpack(self.archive(extra=(binary, b'fixture tool')))
         self.assertEqual(stat.S_IMODE((self.root / 'unpacked/tools/il2cpp').stat().st_mode), 0o755)
+
+    def test_insufficient_runner_space_rejected_before_extraction(self):
+        with self.assertRaisesRegex(ValueError, '4 GiB free'):
+            self.unpack(self.archive(), free=1024)
+        self.assertEqual(list((self.root / 'unpacked').iterdir()), [])
 
     def test_wrong_checksum_rejected_before_extraction(self):
         with self.assertRaisesRegex(ValueError, 'SHA256 mismatch'):
@@ -96,7 +107,7 @@ class ExportValidationTests(unittest.TestCase):
 
     def test_modified_test_report_rejected(self):
         def modify(metadata, contents):
-            contents['orbit-orchard-unity-tests.xml'] = contents['orbit-orchard-unity-tests.xml'].replace(b'total="3"', b'total="4"')
+            contents['orbit-orchard-unity-tests.xml'] = contents['orbit-orchard-unity-tests.xml'].replace(b'.Example', b'.Changed')
         with self.assertRaisesRegex(ValueError, 'test report does not match'):
             self.unpack(self.archive(change=modify))
 
@@ -108,7 +119,53 @@ class ExportValidationTests(unittest.TestCase):
     def test_previous_game_export_rejected(self):
         def modify(metadata, contents):
             metadata['product'] = 'orbit-orchard'
-        with self.assertRaisesRegex(ValueError, 'Little Lifeline product'):
+        with self.assertRaisesRegex(ValueError, 'Idle Clinic product'):
+            self.unpack(self.archive(change=modify))
+
+    def test_development_export_rejected_before_extraction(self):
+        def modify(metadata, contents):
+            metadata['developmentBuild'] = True
+        with self.assertRaisesRegex(ValueError, 'Development or unclassified'):
+            self.unpack(self.archive(change=modify))
+        self.assertEqual(list((self.root / 'unpacked').iterdir()), [])
+
+    def test_missing_release_provenance_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'Development or unclassified'):
+            PACKAGE.validate_product({'CFBundleDisplayName': 'Little Lifeline'},
+                                     {'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE})
+
+    def test_simulator_metadata_rejected_before_extraction(self):
+        def modify(metadata, contents):
+            metadata['iosSdk'] = 'simulator'
+        with self.assertRaisesRegex(ValueError, 'Device SDK'):
+            self.unpack(self.archive(change=modify))
+        self.assertEqual(list((self.root / 'unpacked').iterdir()), [])
+
+    def test_missing_sdk_provenance_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'Device SDK'):
+            PACKAGE.validate_product({'CFBundleDisplayName': 'Little Lifeline'},
+                {'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE, 'developmentBuild': False})
+
+    def test_failed_export_provenance_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'did not complete'):
+            PACKAGE.validate_product({'CFBundleDisplayName': 'Little Lifeline'},
+                {'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE, 'developmentBuild': False,
+                 'iosSdk': 'device', 'buildSucceeded': False})
+
+    def test_simulator_project_cannot_use_device_marker(self):
+        def modify(metadata, contents):
+            name = 'Unity-iPhone.xcodeproj/project.pbxproj'
+            contents[name] = b'{ buildSettings = { SDKROOT = iphonesimulator; }; }'
+            metadata['criticalFiles'][name] = hashlib.sha256(contents[name]).hexdigest()
+        with self.assertRaisesRegex(ValueError, 'generated Xcode project'):
+            self.unpack(self.archive(change=modify))
+
+    def test_simulator_il2cpp_flag_cannot_use_device_marker(self):
+        def modify(metadata, contents):
+            name = 'Unity-iPhone.xcodeproj/project.pbxproj'
+            contents[name] += b' shellScript = "--target-is-simulator";'
+            metadata['criticalFiles'][name] = hashlib.sha256(contents[name]).hexdigest()
+        with self.assertRaisesRegex(ValueError, 'generated Xcode project'):
             self.unpack(self.archive(change=modify))
 
     def test_wrong_game_display_name_rejected(self):
@@ -117,13 +174,36 @@ class ExportValidationTests(unittest.TestCase):
                                      {'product': PACKAGE.PRODUCT, 'scenePath': PACKAGE.SCENE})
 
     def test_wrong_scene_rejected(self):
-        with self.assertRaisesRegex(ValueError, 'Little Lifeline scene'):
+        with self.assertRaisesRegex(ValueError, 'Idle Clinic scene'):
             PACKAGE.validate_product({'CFBundleDisplayName': 'Little Lifeline'},
                                      {'product': PACKAGE.PRODUCT, 'scenePath': 'Assets/OldGame.unity'})
 
     def test_previous_game_tests_are_insufficient(self):
-        self.report.write_text('<test-run result="Passed" total="3" passed="3" failed="0"/>')
-        with self.assertRaisesRegex(ValueError, 'Little Lifeline tests'):
+        self.report.write_text('<test-run result="Passed" total="1" passed="1" failed="0">'
+                              '<test-case fullname="LittleLifeline.Tests.Example" result="Passed"/></test-run>')
+        with self.assertRaisesRegex(ValueError, 'Idle Clinic tests'):
+            PACKAGE.read_tests(self.report)
+
+    def test_hud_and_performance_fixtures_are_required(self):
+        original = self.report.read_text()
+        for fixture in ('ClinicHUDTests', 'ClinicPerformanceTests'):
+            with self.subTest(fixture=fixture):
+                self.report.write_text(original.replace('total="5"', 'total="4"').replace('passed="5"', 'passed="4"')
+                    .replace(f'<test-case fullname="IdleClinic.Tests.{fixture}.Example" result="Passed"/>', ''))
+                with self.assertRaisesRegex(ValueError, fixture):
+                    PACKAGE.read_tests(self.report)
+
+    def test_skipped_case_outside_required_fixtures_rejected(self):
+        self.report.write_text(self.report.read_text().replace('total="5"', 'total="6"')
+            .replace('skipped="0"', 'skipped="1"').replace('</test-run>',
+            '<test-case fullname="Other.Tests.Example" result="Skipped"/></test-run>'))
+        with self.assertRaisesRegex(ValueError, 'zero skipped'):
+            PACKAGE.read_tests(self.report)
+
+    def test_falsely_passed_summary_does_not_hide_skipped_case(self):
+        self.report.write_text(self.report.read_text().replace('total="5"', 'total="6"').replace('passed="5"', 'passed="6"')
+            .replace('</test-run>', '<test-case fullname="Other.Tests.Example" result="Skipped"/></test-run>'))
+        with self.assertRaisesRegex(ValueError, 'Every reported Unity case'):
             PACKAGE.read_tests(self.report)
 
     def test_existing_package_sidecars_are_preserved(self):
