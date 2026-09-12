@@ -12,11 +12,23 @@ The existing Plus non-consumable (`com.flutterly.gravitile.plus`) becomes the **
 
 ## Current release status — 12 September 2026
 
-The Unity player has built, installed and rendered on the iPhone 17 Pro / iOS 26.5 simulator. App-scoped XCTest actions and the actual checksummed save confirm opening the clinic, building Diagnostics, and assigning Ivo. The compact icon controls operate over the full-height 3D world. Scanner and recovery patient poses were observed corrected on simulator. Follow-up placement checks found staff intersecting equipment and the consultation resident at the wrong furniture; their bounded correction now passes the full suite and awaits a rebuilt visual check. Physical-device performance, real StoreKit transactions and live Game Center behavior remain unverified. See [the evidence record](qa/little-lifeline.md).
+**Little Lifeline 3.0 (14) is available in TestFlight to the existing Internal group.** The shipped source is `0c82dbf4b13db31812662f2d2b396e416066027e`, on `codex/orbit-orchard`.
 
-The latest complete Unity EditMode run passed **148/148** (`build/lifeline-tests-aisle.xml`), including imported-furniture checks for patients and stationary crew. The generated Swift-header import was subsequently corrected to the framework-qualified form and the actual simulator Xcode build passed. All eleven native bridge exports also compile and link in the independent bridge check. The renderer correction has a fresh passing test report; its simulator check follows the rebuild.
+The final Unity suite passed **148/148** with zero failures or skips. The exact player built and ran on the iPhone 17 Pro / iOS 26.5 simulator. Actual input and checksummed saves established building, staff assignments, relaunch/offline progress, and a complete four-minute weekly practice round. Root inspected the final icon-led overview and all three care departments. [Verification and beta limitations](qa/little-lifeline.md).
 
-**No Little Lifeline TestFlight build has been uploaded yet.** Source `241304b8082602745e5dc36df29a84344e5538e0` has a sealed Device SDK export and archive-only CI run [34657640594](https://github.com/its-me-anoop/gameon/actions/runs/34657640594). That archive passed all signing, native-symbol, product, privacy and entitlement gates, but was superseded and must not be promoted. The subsequent `3b4e901` run [34658491720](https://github.com/its-me-anoop/gameon/actions/runs/34658491720) was cancelled before upload for the stationary actor correction. The final corrected export is pending. The previous run [34657229754](https://github.com/its-me-anoop/gameon/actions/runs/34657229754) was cancelled after the native header problem was identified. Neither is delivery evidence.
+| Artifact | Exact identity |
+| --- | --- |
+| Device SDK export | `build/unity-transfer-aisle/orbit-orchard-ios.zip`, 206,881,027 bytes |
+| Export SHA-256 | `5caaa943d34847cf481f1eebc4ad51675ed2a685c6d342422ec28cea940f5aba` |
+| Archive run | [34659231780](https://github.com/its-me-anoop/gameon/actions/runs/34659231780), **SUCCESS** |
+| Archive SHA-256 | `22aed3213233d293f97775dc9131650a76358e39007729a91869acad48fb6e89` |
+| Released archive toolchain | Xcode **26.6 (17F113)**; build-machine OS **25G83** |
+| Upload run | [34659787504](https://github.com/its-me-anoop/gameon/actions/runs/34659787504), **SUCCESS**; same archive, no rebuild |
+| Apple build | `2ac69fe0-4b4b-47b3-8939-c35aeeb47d4d`; VALID, unexpired, IN_BETA_TESTING |
+| TestFlight readback | [Verified receipt](../build/lifeline-testflight-readback.json), 12 September 00:02:48 UTC; existing Internal group membership confirmed |
+| What to Test source | Committed `docs/testflight-lifeline-what-to-test.txt`, SHA-256 `e94f82ba0ad00154a5aae0b955429743c0781ffc0c32721e628df5d0abdd4999` |
+
+The archive verified the product/scene, bundle, version/build, all eleven native bridge exports, signature, Game Center entitlement and privacy reason. Credential cleanup passed in archive and upload jobs. Superseded runs `34657229754`, `34657640594` and `34658491720` were never promoted.
 
 ## Verified App Store Connect configuration
 
@@ -109,12 +121,6 @@ The isolated branch is `codex/orbit-orchard` at the public [gameon repository](h
 
 Local Xcode **27.0 (27A266a)** is a beta and is used only for simulator QA. Release CI selected **Xcode 26.6 (17F113)** on released macOS **25G83**. Successful local simulator compilation cannot substitute for the CI signed-device archive or TestFlight processing.
 
-Remaining order:
-
-1. Verify the final stationary actor correction in actual simulator play. Imported-geometry tests and prior-candidate relaunch/offline collection already pass.
-2. Commit the reviewed changes, run final Unity tests, export Device SDK from that clean source and package with the new passing report.
-3. Transfer through an unpublished draft, create the signed archive, and pass all identity, native export, privacy, signing and entitlement checks.
-4. Recheck build-number availability, promote that exact archive and wait for App Store Connect processing to become VALID and internally available. Attach the prepared per-build testing notes.
-5. Record physical iPhone, StoreKit and Game Center gaps explicitly. Do not claim live weekly score submission before September 14.
+The upload and Apple processing are complete. The exact build is **VALID**, **IN_BETA_TESTING** and present in the existing Internal group. The en-US testing notes exactly match the committed copy, verified 12 September at 00:02:48 UTC. [Release receipt](../build/lifeline-release-receipt.json). Physical-device performance, StoreKit transactions and live Game Center behavior remain beta verification gaps, not claims established by the simulator.
 
 The release authorization includes TestFlight upload. No app-review submission, external tester invitations, messages or agreement acceptance is included. An uncertain upload must be resolved by provider readback before retrying. A rejected binary needs a new build number and candidate. Retain exact run IDs, checksums and processing evidence in the QA record.

@@ -35,7 +35,7 @@ The [verification record](docs/qa/little-lifeline.md) separates compilation, tes
 
 ## Release
 
-The candidate is **3.0 (14)**, bundle `com.flutterly.gravitile`, minimum iOS 18. Export the committed Unity source, package its generated Xcode project with provenance and passing tests, then use the [release workflow](.github/workflows/release.yml). The unpublished transfer release carries the export; a hosted Mac creates the signed archive, which is promoted without rebuilding.
+**3.0 (14) is available to the existing Internal TestFlight group** as of 12 September 2026. The shipped Unity source is `0c82dbf4b13db31812662f2d2b396e416066027e`, bundle `com.flutterly.gravitile`, minimum iOS 18. Export the committed Unity source, package its generated Xcode project with provenance and passing tests, then use the [release workflow](.github/workflows/release.yml). The unpublished transfer release carries the export; a hosted Mac creates the signed archive, which is promoted without rebuilding.
 
 Follow the [Little Lifeline release runbook](docs/little-lifeline-release.md). A successful upload command is separate from a processed, available TestFlight build.
 
