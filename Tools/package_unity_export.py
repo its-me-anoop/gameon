@@ -29,6 +29,7 @@ MAX_ASSET_BYTES = 2 * 1024 ** 3
 CRITICAL_FILES = ['Unity-iPhone.xcodeproj/project.pbxproj', 'Info.plist', 'PrivacyInfo.xcprivacy',
                   'orbit-orchard-unity-build.json',
                   'Libraries/OrbitOrchardApple/OrchardApplePlugin.mm',
+                  'Libraries/OrbitOrchardApple/OrchardAppController.mm',
                   'Libraries/OrbitOrchardApple/OrchardAppleBridge.swift',
                   'Libraries/OrbitOrchardApple/OrchardStoreService.swift',
                   'Libraries/OrbitOrchardApple/OrchardGameCenterService.swift']

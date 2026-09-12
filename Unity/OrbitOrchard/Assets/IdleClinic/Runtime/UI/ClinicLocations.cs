@@ -42,27 +42,29 @@ namespace IdleClinic.App
         private void BuildLocationsDock()
         {
             dock.AddToClassList("locations-dock");
+            var body=new ScrollView(ScrollViewMode.Vertical){name="clinic-locations-content",horizontalScrollerVisibility=ScrollerVisibility.Hidden};
+            body.AddToClassList("bounded-dock-content");dock.Add(body);
+            BindTouchCaptureLifecycle(body.contentContainer);BindTouchCaptureLifecycle(body.contentViewport);
             var unlocked=profile.doctorsState!=null;
-            Text(dock,ClinicLocationReadout.Name(State.Location)+" · "+ClinicLocationReadout.Income(State.Location),"room-detail");
+            Text(body,ClinicLocationReadout.Name(State.Location)+" · "+ClinicLocationReadout.Income(State.Location),"room-detail");
             if(unlocked)
             {
-                var row=Box(dock,"location-destinations");
+                var row=Box(body,"location-destinations");
                 LocationDestination(row,ClinicLocation.StarterClinic,ClinicGlyph.Home);
                 LocationDestination(row,ClinicLocation.DoctorsClinic,ClinicGlyph.Doctor);
-                Text(dock,"Both clinics keep caring while you travel.","location-note");
+                Text(body,"Both clinics keep caring while you travel.","location-note");
                 return;
             }
             var starter=profile.state;
             var remaining=ClinicRules.StarterCompletion(starter).Count;
-            var top=Box(dock,"location-preview");top.Add(new ClinicIcon(ClinicGlyph.Doctor,30));
+            var top=Box(body,"location-preview");top.Add(new ClinicIcon(ClinicGlyph.Doctor,30));
             var words=Box(top,"location-preview-copy");
             Text(words,"Small Doctors Clinic","location-name",true);
             Text(words,"2× income · 4 doctors · pharmacy","location-note");
             if(remaining>0)
             {
-                Text(dock,remaining+" improvements left to unlock","location-progress",true);
-                var checklist=new ScrollView(ScrollViewMode.Vertical){name="clinic-unlock-checklist"};
-                checklist.AddToClassList("location-checklist");dock.Add(checklist);
+                Text(body,remaining+" improvements left to unlock","location-progress",true);
+                var checklist=Box(body,"location-checklist");checklist.name="clinic-unlock-checklist";
                 foreach(var room in starter.Rooms)
                 {
                     var kind=room.Kind;
@@ -92,8 +94,8 @@ namespace IdleClinic.App
                         ()=>{if(amenity==ClinicAmenity.Parking||starter.Room(ClinicRoom.Waiting).Built)SelectObject(AmenityHit(amenity));else Select(ClinicRoom.Waiting);});
                 }
             }
-            else Text(dock,"Everything is ready for your next clinic.","location-progress",true);
-            var open=IconButton(dock,ClinicGlyph.Locations,"Open doctors clinic for 100,000 coins",()=>TryOpenDoctorsClinic(),"location-open primary-action");
+            else Text(body,"Everything is ready for your next clinic.","location-progress",true);
+            var open=IconButton(body,ClinicGlyph.Locations,"Open doctors clinic for 100,000 coins",()=>TryOpenDoctorsClinic(),"location-open primary-action");
             open.name="open-doctors-clinic";
             var purchaseWords=Box(open,"location-purchase-copy");
             Text(purchaseWords,remaining==0?"Open doctors clinic":"Complete the starter clinic","purchase-detail");

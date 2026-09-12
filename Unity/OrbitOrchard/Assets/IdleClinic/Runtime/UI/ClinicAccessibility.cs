@@ -96,7 +96,17 @@ namespace IdleClinic.App
             for(var p=element.parent;p!=null;p=p.parent)
                 if(p.resolvedStyle.display==DisplayStyle.None||p.resolvedStyle.visibility==Visibility.Hidden)return false;
             var bounds=element.worldBound;
-            if(!FiniteRect(bounds)||bounds.width<=0||bounds.height<=0||!bounds.Overlaps(root.worldBound))return false;
+            if(!FiniteRect(bounds)||bounds.width<=0||bounds.height<=0||!FullyContains(root.worldBound,bounds))return false;
+            // A clipped scroll item must not expose a native tap over the fixed
+            // heading or the world. It becomes accessible once its whole target fits.
+            for(var p=element.parent;p!=null;p=p.parent)
+            {
+                // IResolvedStyle does not expose overflow in this Unity version.
+                // ScrollView's public viewport also covers clipping supplied by USS.
+                if(p is ScrollView scroll&&scroll.contentViewport.Contains(element)
+                    &&!FullyContains(scroll.contentViewport.worldBound,bounds))return false;
+                if(p.style.overflow.value==Overflow.Hidden&&!FullyContains(p.worldBound,bounds))return false;
+            }
             // These nodes represent world points, not floating UI controls. They
             // cannot be hit when an opaque control covers their actual tap center.
             if(overlay!=null&&overlay.Contains(element)&&WorldPointIsCovered(bounds.center))return false;
@@ -111,6 +121,9 @@ namespace IdleClinic.App
             }
             return true;
         }
+        private static bool FullyContains(Rect clip,Rect target)
+            =>FiniteRect(clip)&&target.xMin>=clip.xMin-.5f&&target.yMin>=clip.yMin-.5f
+                &&target.xMax<=clip.xMax+.5f&&target.yMax<=clip.yMax+.5f;
         private bool RoomPointHasHigherPriorityAction(Vector2 point)
         {
             foreach(var marker in cashMarkers.Values)if(CoversWorldPoint(marker,point))return true;

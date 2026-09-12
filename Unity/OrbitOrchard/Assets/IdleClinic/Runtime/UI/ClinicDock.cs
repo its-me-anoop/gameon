@@ -164,7 +164,7 @@ namespace IdleClinic.App
         private void BuildSettings()
         {
             var content=new ScrollView(ScrollViewMode.Vertical){name="clinic-settings-content",horizontalScrollerVisibility=ScrollerVisibility.Hidden};
-            content.AddToClassList("settings-content");dock.Add(content);
+            content.AddToClassList("bounded-dock-content");dock.Add(content);
             BindTouchCaptureLifecycle(content.contentContainer);BindTouchCaptureLifecycle(content.contentViewport);
             var row=Box(content,"settings-row");
             Preference(row,ClinicGlyph.Music,"Music",()=>profile.preferences.music,v=>{profile.preferences.music=v;RefreshAudioPreferences();});

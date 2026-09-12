@@ -261,8 +261,7 @@ namespace IdleClinic.App
             cameraTools.style.left=safe.xMin+16;
             dock.style.left=dockArea.xMin;dock.style.right=StyleKeyword.Auto;dock.style.width=dockArea.width;
             dock.style.bottom=bottom+12;
-            var settingsContent=dock.Q<ScrollView>("clinic-settings-content");
-            if(settingsContent!=null)settingsContent.style.maxHeight=Mathf.Max(44,dockArea.height-70);
+            LimitDockContent(dockArea.height);
             var dockHeight=dock.resolvedStyle.height;
             if(simulation!=null&&State.Tutorial==ClinicTutorialStep.Complete)
             {
@@ -277,6 +276,14 @@ namespace IdleClinic.App
             }
             toast.style.top=top+112;
             root.EnableInClassList("compact",w<370 || h<700);
+        }
+
+        private void LimitDockContent(float availableHeight)
+        {
+            // Heading, padding and border remain fixed while the one body scrolls.
+            const float fixedHeadingAndInsets=70;
+            dock.Query<ScrollView>(className:"bounded-dock-content").ForEach(body=>
+                body.style.maxHeight=Mathf.Max(44,availableHeight-fixedHeadingAndInsets));
         }
 
         private void Notify(string message,double seconds=4)

@@ -24,7 +24,7 @@ namespace OrbitOrchard.Editor
 
             // Native~ is ignored by Unity's asset importer. Copy explicitly so Swift is
             // compiled exactly once in UnityFramework, irrespective of importer version.
-            foreach (var name in new[] { "OrchardStoreService.swift", "OrchardGameCenterService.swift", "OrchardAppleBridge.swift", "OrchardApplePlugin.mm" })
+            foreach (var name in new[] { "OrchardStoreService.swift", "OrchardGameCenterService.swift", "OrchardAppleBridge.swift", "OrchardApplePlugin.mm", "OrchardAppController.mm" })
             {
                 var relative = relativeDirectory + "/" + name;
                 File.Copy(Path.Combine(source, name), Path.Combine(exportPath, relative), true);

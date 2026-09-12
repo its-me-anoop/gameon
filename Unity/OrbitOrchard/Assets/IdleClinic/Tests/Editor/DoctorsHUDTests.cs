@@ -133,12 +133,12 @@ namespace IdleClinic.Tests
                 ui.Profile.state.Tutorial=ClinicTutorialStep.Complete;
                 ui.ReplaceSimulation(starterSimulation);
                 var dock=ui.LocationsDock();
-                Assert.That(dock.Q<ScrollView>("clinic-unlock-checklist"),Is.Not.Null);
+                Assert.That(dock.Q("clinic-unlock-checklist"),Is.Not.Null);
                 Assert.That(dock.Q<Button>("open-doctors-clinic").enabledSelf,Is.False);
                 Assert.That(dock.Query<Button>().ToList().Count(b=>b.ClassListContains("unlock-requirement")),Is.EqualTo(10));
                 MaxedStarter(starterSimulation.State);ui.Profile.state.Wallet=100000;
                 dock=ui.LocationsDock();
-                Assert.That(dock.Q<ScrollView>("clinic-unlock-checklist"),Is.Null);
+                Assert.That(dock.Q("clinic-unlock-checklist"),Is.Null);
                 Assert.That(dock.Q<Button>("open-doctors-clinic").enabledSelf,Is.True);
             }
         }
@@ -152,6 +152,27 @@ namespace IdleClinic.Tests
                 Assert.That(dock.Q<Button>("travel-doctors-clinic").enabledSelf,Is.False);
                 Assert.That(dock.Q<Button>("open-doctors-clinic"),Is.Null);
                 Assert.That(dock.Query<Label>().ToList().Any(l=>l.text=="Here · 2× income"),Is.True);
+            }
+        }
+        [TestCase(667,375)]
+        [TestCase(375,667)]
+        [TestCase(1194,834)]
+        public void LockedLocationsKeepCloseOutsideOneBoundedScrollBodyContainingTheLastAction(int width,int height)
+        {
+            using(var ui=new DockFixture())
+            {
+                var starter=ClinicSimulation.CreateNew();starter.State.Tutorial=ClinicTutorialStep.Complete;
+                ui.Profile.doctorsState=null;ui.Profile.state=starter.State;ui.ReplaceSimulation(starter);
+                var dock=ui.LocationsDock();
+                var body=dock.Q<ScrollView>("clinic-locations-content");
+                Assert.That(body,Is.Not.Null);
+                Assert.That(dock.Query<ScrollView>().ToList().Count,Is.EqualTo(1),"A nested checklist would compete for the same drag.");
+                Assert.That(body.Contains(dock.Q<Button>("close-controls")),Is.False,"The close control must remain outside scrolling content.");
+                Assert.That(body.Contains(dock.Q<Button>("open-doctors-clinic")),Is.True,"The final action must be reachable in the same scrolling body.");
+                ui.LimitDockContent(ClinicViewportLayout.DockArea(new Rect(0,0,width,height)).height);
+                Assert.That(body.style.maxHeight.value.value+70,Is.LessThanOrEqualTo(height-144),
+                    "The fixed heading plus body must fit below the top controls, even in compact landscape.");
+                Assert.That(starter.State.Wallet,Is.Zero);
             }
         }
         [Test]
@@ -294,6 +315,7 @@ namespace IdleClinic.Tests
             public VisualElement RoomDock(ClinicRoom room)=>Build(room:room);
             public VisualElement LocationsDock()=>Build(locations:true);
             public VisualElement SettingsDock()=>Build(settings:true);
+            public void LimitDockContent(float height)=>typeof(ClinicApp).GetMethod("LimitDockContent",Private).Invoke(app,new object[]{height});
             private object AccessibleBinding(Button button)=>((System.Collections.IList)typeof(ClinicApp).GetField("accessible",Private).GetValue(app))
                 .Cast<object>().Single(binding=>(VisualElement)binding.GetType().GetField("Element").GetValue(binding)==button);
             public string AccessibleLabel(Button button)

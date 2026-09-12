@@ -324,6 +324,34 @@ namespace IdleClinic.Tests
                 Assert.That(ax.Node.value,Is.EqualTo("20,000 coins"),"Read the current simulation, without the visible label's K/M abbreviation.");
             }
         }
+        [TestCase(-20,false)]
+        [TestCase(0,true)]
+        [TestCase(56,true)]
+        [TestCase(57,false)]
+        [TestCase(120,false)]
+        public void ScrollViewportDoesNotExposeClippedControlsOverTheHeaderOrWorld(float localY,bool visible)
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.PlaceInClippedViewport(new Rect(40,200,200,100),new Rect(10,localY,56,44));
+                ax.UpdateNode();
+                Assert.That(ax.Node.isActive,Is.EqualTo(visible));
+                Assert.That(ax.Node.frameGetter(),visible?Is.Not.EqualTo(Rect.zero):Is.EqualTo(Rect.zero));
+            }
+        }
+        [Test]
+        public void ExplicitlyClippedContainerDoesNotExposeItsHiddenAction()
+        {
+            using(var ui=new CapturedTouchPanel())
+            using(var ax=new CashAccessibilityFixture(ui.Root))
+            {
+                ax.PlaceInClippedViewport(new Rect(40,200,200,100),new Rect(10,120,56,44),false);
+                ax.UpdateNode();
+                Assert.That(ax.Node.isActive,Is.False);
+                Assert.That(ax.Node.frameGetter(),Is.EqualTo(Rect.zero));
+            }
+        }
         [TestCase(0)][TestCase(1)][TestCase(2)]
         public void RoomAccessibilityYieldsToEitherCashDeskOrExpansionWhenProjectedMarkersOverlap(int priorityMarker)
         {
@@ -410,6 +438,21 @@ namespace IdleClinic.Tests
             }
             public void UpdateValues()=>Invoke("UpdateAccessibilityValues");
             public void UpdateNode()=>Invoke("UpdateAccessibilityNode",Node,Marker);
+            public void PlaceInClippedViewport(Rect viewportBounds,Rect markerBounds,bool useScrollView=true)
+            {
+                Layout(root.panel.visualTree,new Rect(0,0,375,667));Layout(root,new Rect(0,0,375,667));
+                if(useScrollView)
+                {
+                    var scroll=new ScrollView(ScrollViewMode.Vertical);root.Add(scroll);scroll.Add(Marker);
+                    Layout(scroll,viewportBounds);
+                    var localViewport=new Rect(0,0,viewportBounds.width,viewportBounds.height);
+                    Layout(scroll.contentViewport.parent,localViewport);Layout(scroll.contentViewport,localViewport);
+                    Layout(scroll.contentContainer,new Rect(0,0,viewportBounds.width,400));Layout(Marker,markerBounds);
+                    return;
+                }
+                var viewport=new VisualElement();viewport.style.overflow=Overflow.Hidden;root.Add(viewport);
+                Layout(viewport,viewportBounds);viewport.Add(Marker);Layout(Marker,markerBounds);
+            }
             public void ReplaceSimulation(ClinicSimulation simulation){Simulation=simulation;Set("simulation",simulation);}
             public void ConfigureRoom(Rect bounds)
             {

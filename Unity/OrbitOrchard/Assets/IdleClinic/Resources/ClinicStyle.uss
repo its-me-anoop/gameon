@@ -46,7 +46,7 @@ Button:disabled { opacity: .48; }
 .waiting-marker { position: absolute; flex-direction: row; min-width: 76px; min-height: 48px; align-items: center; justify-content: center; background-color: rgb(204,226,175); border-radius: 18px; padding: 6px 10px; }
 .waiting-cost { font-size: 17px; margin-left: 7px; }
 .settings-row { flex-direction: row; }
-.settings-content { flex-shrink: 1; }
+.bounded-dock-content { flex-shrink: 1; }
 .settings-links { flex-direction: row; margin-top: 8px; }
 .settings-link { flex-direction: row; flex-grow: 1; flex-basis: 0; min-width: 44px; min-height: 44px; align-items: center; background-color: transparent; padding: 4px; }
 .settings-link > ClinicIcon { width: 20px; height: 20px; min-width: 20px; flex-shrink: 0; }
@@ -113,7 +113,7 @@ Button:disabled { opacity: .48; }
 .location-name { font-size: 17px; white-space: normal; }
 .location-note { font-size: 14px; white-space: normal; margin-top: 3px; }
 .location-progress { font-size: 14px; margin: 4px 0 6px 0; white-space: normal; }
-.location-checklist { height: 150px; max-height: 150px; margin-bottom: 8px; }
+.location-checklist { margin-bottom: 8px; }
 .unlock-requirement { min-height: 44px; flex-direction: row; align-items: center; background-color: transparent; padding: 5px 4px; }
 .unlock-name { flex-grow: 1; flex-shrink: 1; font-size: 14px; margin-left: 8px; }
 .unlock-status { font-size: 14px; margin-left: 8px; }
