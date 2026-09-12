@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 
 namespace IdleClinic.Presentation
 {
-    public enum ClinicHitKind { None,Cash,Reception,Treatment,Waiting,Expansion,Desk,Station,Parking,Toilet,Vending,VendingCash }
+    public enum ClinicHitKind { None,Cash,Reception,Treatment,Waiting,Expansion,Desk,Station,Parking,Toilet,Vending,VendingCash,Consultation,Pharmacy,DoctorStation,PharmacyStation,Taxi }
     public readonly struct ClinicHit
     {
         public ClinicHitKind Kind { get; }
@@ -30,6 +30,11 @@ namespace IdleClinic.Presentation
         private static readonly string[] CashAnchors={"reception.desk.0.cash","reception.desk.1.cash"};
         private readonly ClinicRoomState[] roomState=new ClinicRoomState[3];
         private ClinicArt art;
+        private DoctorsClinicWorld doctors;
+        public ClinicLocation Location { get; private set; }
+        public int MovingActorCount=>actors==null?0:actors.MovingCount;
+        public int ActiveServiceCount { get; private set; }
+        public int DoorOpeningCount=>doctors!=null?doctors.DoorOpeningCount:(careDoor?.OpeningCount??0)+(entranceDoor?.OpeningCount??0)+(waitingDoor?.OpeningCount??0)+(refreshmentDoor?.OpeningCount??0);
         private ClinicActors actors;
         private ClinicUpgrades upgrades;
         private ClinicAmenities amenities;
@@ -46,6 +51,25 @@ namespace IdleClinic.Presentation
         public RenderTexture Texture { get; private set; }
         public RenderTexture SceneTexture=>Texture;
         public Vector3 CashPoint=>GetCashPoint(0);
+
+        public void Initialize(ClinicLocation location) { Initialize();ConfigureLocation(location); }
+        public void ConfigureLocation(ClinicLocation location)
+        {
+            Initialize();if(Location==location)return;
+            scene.gameObject.SetActive(false);ClinicArt.Destroy(scene.gameObject);anchors.Clear();Location=location;
+            scene=art.Group(location==ClinicLocation.DoctorsClinic?"Small doctors clinic":"Fixed hospital",transform);
+            doctors=null;
+            if(location==ClinicLocation.DoctorsClinic)doctors=new DoctorsClinicWorld(art,scene,this,Anchor,RegisterSockets);
+            else
+            {
+                BuildArchitecture();BuildFurniture();BuildAnchors();BuildPrivacy();ClinicSurroundings.Build(art,scene);ClinicFurnishings.Build(art,scene);
+                upgrades=new ClinicUpgrades(art,scene);amenities=new ClinicAmenities(art,scene);streetLife=new ClinicStreetLife(art,scene);construction=new ClinicConstruction(art,scene);
+                careDoor=new ClinicDoor(art,scene);entranceDoor=new ClinicDoor(art,scene,true);
+                waitingDoor=new ClinicDoor(art,scene,position:new Vector3(1.67f,Floor,.50f),yaw:90,openingWidth:1.40f,name:"Waiting corridor doorway");
+                refreshmentDoor=new ClinicDoor(art,scene,position:new Vector3(3.40f,Floor,-1.66f),openingWidth:1.30f,name:"Waiting refreshment doorway");
+            }
+            actors=new ClinicActors(art,scene,this);Home(true);
+        }
 
         public void Initialize()
         {
@@ -77,7 +101,13 @@ namespace IdleClinic.Presentation
 
         public void Render(ClinicState state,float deltaTime,bool reducedMotion=false)
         {
-            Initialize();if(state==null)return;
+            Initialize();if(state==null)return;ConfigureLocation(state.Location);
+            ActiveServiceCount=0;foreach(var patient in state.Patients)if(patient.Phase==ClinicPatientPhase.CheckingIn||patient.Phase==ClinicPatientPhase.Consulting||patient.Phase==ClinicPatientPhase.Treating||patient.Phase==ClinicPatientPhase.Dispensing)ActiveServiceCount++;
+            if(doctors!=null)
+            {
+                actors.Render(state,reducedMotion);doctors.Render(state,actors,deltaTime,reducedMotion);
+                UpdateHome(deltaTime,reducedMotion);return;
+            }
             for(int i=0;i<3;i++)roomState[i]=null;
             for(int i=0;i<state.Rooms.Count;i++)roomState[(int)state.Rooms[i].Kind]=state.Rooms[i];
             for(int i=0;i<2;i++)
@@ -102,6 +132,10 @@ namespace IdleClinic.Presentation
                 renovations[i].SetActive(building);
             }
             actors.Render(state,reducedMotion);upgrades.Render(state);amenities.Render(state,reducedMotion);streetLife.Render(state,reducedMotion);construction.Render(state,reducedMotion);careDoor.Render(actors,deltaTime,reducedMotion);entranceDoor.Render(actors,deltaTime,reducedMotion);waitingDoor.Render(actors,deltaTime,reducedMotion);refreshmentDoor.Render(actors,deltaTime,reducedMotion);
+            UpdateHome(deltaTime,reducedMotion);
+        }
+        private void UpdateHome(float deltaTime,bool reducedMotion)
+        {
             if(homing)
             {
                 if(reducedMotion) { center=homeTarget;size=homeSize; }
@@ -141,24 +175,32 @@ namespace IdleClinic.Presentation
         { var p=SceneCamera.WorldToViewportPoint(point);return p.z>0?new Vector2(p.x,p.y):new Vector2(-10,-10); }
         public bool TryGetAnchorViewport(string name,out Vector2 uv)
         { if(!anchors.TryGetValue(name,out var anchor)){uv=default;return false;}uv=WorldToViewport(anchor.position);return uv.x>=0&&uv.x<=1&&uv.y>=0&&uv.y<=1; }
-        public Vector3 GetCashPoint(int deskId)=>GetAnchorPoint(CashAnchors[Mathf.Clamp(deskId,0,1)]);
-        public Vector3 GetDeskPoint(int id)=>desks[Mathf.Clamp(id,0,1)].transform.position+new Vector3(-.40f,1.26f,.02f);
-        public Vector3 GetStationPoint(int id)=>stations[Mathf.Clamp(id,0,1)].transform.position+new Vector3(-.20f,.80f,.27f);
-        public Vector3 GetAmenityPoint(ClinicAmenity kind)=>kind==ClinicAmenity.Parking?ClinicAmenities.ParkingPoint:
+        public Vector3 GetCashPoint(int deskId)=>doctors!=null?GetAnchorPoint("reception.desk."+Mathf.Clamp(deskId,0,3)+".cash"):GetAnchorPoint(CashAnchors[Mathf.Clamp(deskId,0,1)]);
+        public Vector3 GetDeskPoint(int id)=>doctors!=null?doctors.WorkstationPoint(ClinicStaffRole.Receptionist,id):desks[Mathf.Clamp(id,0,1)].transform.position+new Vector3(-.40f,1.26f,.02f);
+        public Vector3 GetStationPoint(int id)=>doctors!=null?doctors.WorkstationPoint(ClinicStaffRole.Nurse,id):stations[Mathf.Clamp(id,0,1)].transform.position+new Vector3(-.20f,.80f,.27f);
+        public Vector3 GetWorkstationPoint(ClinicStaffRole role,int id)=>doctors!=null?doctors.WorkstationPoint(role,id):role==ClinicStaffRole.Receptionist?GetDeskPoint(id):GetStationPoint(id);
+        public Vector3 GetRoomPoint(ClinicRoom room)=>doctors!=null?doctors.RoomPoint(room):roomRoots[(int)room].position+Vector3.up;
+        public Vector3 GetAmenityPoint(ClinicAmenity kind)=>doctors!=null?doctors.AmenityPoint(kind):kind==ClinicAmenity.Parking?ClinicAmenities.ParkingPoint:
             kind==ClinicAmenity.Toilet?ClinicAmenities.ToiletPoint:ClinicAmenities.VendingPoint;
-        public Vector3 GetVendingCashPoint()=>ClinicAmenities.VendingCashPoint;
-        public Vector3 GetAnchorPoint(string name)=>anchors.TryGetValue(name??"",out var anchor)?anchor.position:new Vector3(.65f,Floor,-5.7f);
+        public Vector3 GetVendingCashPoint()=>doctors!=null?doctors.VendingCashPoint:ClinicAmenities.VendingCashPoint;
+        public Vector3 GetAnchorPoint(string name)
+        {
+            if(anchors.TryGetValue(name??"",out var anchor))return anchor.position;
+            if(doctors!=null)throw new ArgumentException("Missing doctors clinic anchor: "+name,nameof(name));
+            return new Vector3(.65f,Floor,-5.7f);
+        }
         internal Vector3 Facing(string name)=>anchors.TryGetValue(name??"",out var anchor)?anchor.forward:Vector3.forward;
         internal bool HasSeatAt(string name)
         {
             if(string.IsNullOrEmpty(name))return false;
-            bool chair=name.StartsWith("waiting.seat.",StringComparison.Ordinal)||
+            bool chair=name.StartsWith("consultation.station.",StringComparison.Ordinal)&&name.EndsWith(".patient",StringComparison.Ordinal)||name.StartsWith("waiting.seat.",StringComparison.Ordinal)||
                 name.StartsWith("firstaid.station.",StringComparison.Ordinal)&&name.EndsWith(".patient",StringComparison.Ordinal);
             return chair&&anchors.TryGetValue(name,out var anchor)&&anchor.gameObject.activeInHierarchy;
         }
         public ClinicHit Pick(Vector2 uv)
         {
             if(uv.x<0||uv.x>1||uv.y<0||uv.y>1)return default;
+            if(doctors!=null)return doctors.Pick(uv);
             var ray=SceneCamera.ViewportPointToRay(uv);
             for(int i=0;i<2;i++)if(tills[i]>0&&new Bounds(GetCashPoint(i),new Vector3(.65f,.65f,.55f)).IntersectRay(ray))return new ClinicHit(ClinicHitKind.Cash,i);
             if(amenities.VendingTill>0&&new Bounds(GetVendingCashPoint(),new Vector3(.40f,.42f,.36f)).IntersectRay(ray))return new ClinicHit(ClinicHitKind.VendingCash);
@@ -179,9 +221,10 @@ namespace IdleClinic.Presentation
             return default;
         }
         public void SelectRoom(ClinicRoom room)
-        { selection.gameObject.SetActive(true);selection.position=roomRoots[(int)room].position+new Vector3(0,.17f,0);selection.localScale=room==ClinicRoom.Waiting?new Vector3(4.4f,1,6.5f):new Vector3(5.35f,1,4.8f); }
+        { if(doctors!=null){doctors.Select(new ClinicHit(room==ClinicRoom.Reception?ClinicHitKind.Reception:room==ClinicRoom.FirstAid?ClinicHitKind.Treatment:room==ClinicRoom.Waiting?ClinicHitKind.Waiting:room==ClinicRoom.Consultation?ClinicHitKind.Consultation:ClinicHitKind.Pharmacy,(int)room));return;}selection.gameObject.SetActive(true);selection.position=roomRoots[(int)room].position+new Vector3(0,.17f,0);selection.localScale=room==ClinicRoom.Waiting?new Vector3(4.4f,1,6.5f):new Vector3(5.35f,1,4.8f); }
         public void SelectRoom(ClinicHit hit)
         {
+            if(doctors!=null){doctors.Select(hit);return;}
             if(hit.Kind==ClinicHitKind.None||hit.Kind==ClinicHitKind.Cash||hit.Kind==ClinicHitKind.VendingCash){selection.gameObject.SetActive(false);return;}
             if(hit.Kind==ClinicHitKind.Desk||hit.Kind==ClinicHitKind.Station)
             {
@@ -198,7 +241,8 @@ namespace IdleClinic.Presentation
         private float BoundedSize(float requested)
         {
             var coverage=GroundCoverage();float reference=Mathf.Max(.001f,SceneCamera.orthographicSize);
-            float limit=Mathf.Min(16,50f*reference/Mathf.Max(.001f,coverage.size.x),42f*reference/Mathf.Max(.001f,coverage.size.z));
+            float width=doctors!=null?80:50,depth=doctors!=null?66:42;
+            float limit=Mathf.Min(doctors!=null?24:16,width*reference/Mathf.Max(.001f,coverage.size.x),depth*reference/Mathf.Max(.001f,coverage.size.z));
             return Mathf.Clamp(requested,2.4f,Mathf.Max(2.4f,limit));
         }
         private Bounds GroundCoverage()
@@ -210,9 +254,9 @@ namespace IdleClinic.Presentation
         private void ClampCenter()
         {
             ApplyCamera();var coverage=GroundCoverage();
-            float minimum=-25-coverage.min.x,maximum=25-coverage.max.x;
+            float minimum=(doctors!=null?-40:-25)-coverage.min.x,maximum=(doctors!=null?40:25)-coverage.max.x;
             center.x+=minimum>maximum?(minimum+maximum)*.5f:Mathf.Clamp(0,minimum,maximum);
-            minimum=-22-coverage.min.z;maximum=20-coverage.max.z;
+            minimum=(doctors!=null?-32:-22)-coverage.min.z;maximum=(doctors!=null?34:20)-coverage.max.z;
             center.z+=minimum>maximum?(minimum+maximum)*.5f:Mathf.Clamp(0,minimum,maximum);center.y=0;
         }
         private void ApplyCamera() { SceneCamera.transform.position=center+CameraOffset;SceneCamera.orthographicSize=size; }
@@ -224,7 +268,7 @@ namespace IdleClinic.Presentation
             var minimum=new Vector2(float.MaxValue,float.MaxValue);var maximum=new Vector2(float.MinValue,float.MinValue);
             for(int corner=0;corner<8;corner++)
             {
-                var point=new Vector3((corner&1)==0?-5.75f:1.50f,(corner&2)==0?0:2.20f,(corner&4)==0?-6.75f:5.05f);
+                var point=doctors!=null?new Vector3((corner&1)==0?-12.35f:10.35f,(corner&2)==0?0:2.20f,(corner&4)==0?-10.9f:9.2f):new Vector3((corner&1)==0?-5.75f:1.50f,(corner&2)==0?0:2.20f,(corner&4)==0?-6.75f:5.05f);
                 var projected=new Vector2(Vector3.Dot(right,point),Vector3.Dot(up,point));minimum=Vector2.Min(minimum,projected);maximum=Vector2.Max(maximum,projected);
             }
             const float visibleWidth=.88f,visibleHeight=.64f,verticalCenter=.46f;

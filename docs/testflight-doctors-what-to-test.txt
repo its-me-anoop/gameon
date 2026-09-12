@@ -1,0 +1,15 @@
+Little Lifeline 3.3 — Doctors clinic and original audio
+
+Complete every starter-clinic room, workstation, staff-training and amenity upgrade, then collect 100,000 coins to open the new Doctors Clinic from Locations.
+
+The new location includes four receptionists, four nurses, four doctors in private consultation rooms, two pharmacists, larger waiting and toilet facilities, twelve parking spaces and a taxi stand. Staff and stations are hired and installed progressively. Rooms have six tiers and components have twelve levels, with doubled base income, prices and service/construction times.
+
+Please try:
+• Opening the new clinic, returning to the starter clinic and travelling back. The wallet follows you; each clinic keeps its own uncollected payments and patients.
+• Watching paid patients proceed through consultation, first aid and pharmacy, including car and taxi arrivals and departures.
+• Improving individual stations, training staff and renovating while the clinic remains open.
+• Panning, zooming and collecting from each reception desk without accidental purchases.
+• Listening to the original background score and action sounds. Music and Effects have separate switches in Settings; Less motion remains available.
+• Backgrounding or restarting during care and construction, then collecting the earnings waiting at reception.
+
+Please report unexpected backtracking, blocked doors or queues, overlapping vehicles or people, incorrect balances, missing sound, or music restarting/overlapping when travelling.

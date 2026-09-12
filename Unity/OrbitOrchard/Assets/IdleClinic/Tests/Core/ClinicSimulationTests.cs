@@ -413,7 +413,7 @@ namespace IdleClinic.Tests
             Earn(game, 160);
             for (var i = 0; i < 300 && !game.State.WaitingRoomUnlocked; i++) game.Advance(1);
             Assert.That(game.BuildWaitingRoom().Success, Is.True); game.Advance(20);
-            foreach (ClinicRoom kind in Enum.GetValues(typeof(ClinicRoom)))
+            foreach (ClinicRoom kind in new[] { ClinicRoom.Reception, ClinicRoom.FirstAid, ClinicRoom.Waiting })
             {
                 while (game.State.Room(kind).Tier < ClinicRules.MaximumRoomTier)
                 {

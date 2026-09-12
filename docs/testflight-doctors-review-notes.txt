@@ -1,0 +1,7 @@
+This internal TestFlight build expands Little Lifeline's Unity idle-clinic game. No login or account is needed.
+
+Existing starter-clinic progress migrates automatically. The doctors location is unlocked only after every starter room, component, workstation, staff-training and amenity upgrade is complete and the player spends 100,000 collected coins through Locations. The starter clinic remains available, and both clinics retain their individual patients, construction and uncollected cash. Collected wallet funds travel with the player.
+
+The doctors clinic starts with one receptionist, nurse, doctor and pharmacist, so it can operate with zero remaining coins. Additional staff and workstations are purchased through the room and individual workstation controls. Maximum staffing is four receptionists, four nurses, four doctors and two pharmacists.
+
+Settings includes independent Music and Effects controls, haptics and Less motion. Restore Purchases preserves previously verified ownership. New monetisation and leaderboard features remain deferred for this clinic review. No App Store review submission is requested by this internal TestFlight delivery.

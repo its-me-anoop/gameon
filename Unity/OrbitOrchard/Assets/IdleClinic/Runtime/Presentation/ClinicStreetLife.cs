@@ -6,12 +6,13 @@ namespace IdleClinic.Presentation
     /// <summary>Small fixed ambient pools. The crossing owns the road for its whole pedestrian interval.</summary>
     internal sealed class ClinicStreetLife
     {
+        private readonly Vector3 offset;private readonly float northPavementOffset,roadOffset;
         private readonly Transform[] cars=new Transform[4],pedestrians=new Transform[6],leftLegs=new Transform[6],rightLegs=new Transform[6];
         private readonly Transform[][] trafficWheels=new Transform[4][];
         private static readonly string[] CarColors={"Apricot","Sage","Blue","Mustard","Rose","Denim"};
-        internal ClinicStreetLife(ClinicArt art,Transform parent)
+        internal ClinicStreetLife(ClinicArt art,Transform parent,Vector3 offset=default,float northPavementOffset=0,float roadOffset=0)
         {
-            var root=art.Group("Neighbourhood street life",parent);
+            this.offset=offset;this.northPavementOffset=northPavementOffset;this.roadOffset=roadOffset;var root=art.Group("Neighbourhood street life",parent);
             for(int i=0;i<4;i++)
             {
                 cars[i]=Car(art,root,"Traffic car "+i,Vector3.zero,i).transform;
@@ -49,7 +50,7 @@ namespace IdleClinic.Presentation
             for(int i=0;i<4;i++)
             {
                 float x=west+i*4.5f;
-                cars[i].position=new Vector3(x,-.11f,-9.75f);cars[i].rotation=Quaternion.Euler(0,-90,0);
+                cars[i].position=new Vector3(x,-.11f,-9.75f+roadOffset)+offset;cars[i].rotation=Quaternion.Euler(0,-90,0);
                 var roll=Quaternion.Euler((55-x)/.175f*Mathf.Rad2Deg,0,0)*Quaternion.Euler(0,0,90);
                 for(int wheel=0;wheel<trafficWheels[i].Length;wheel++)trafficWheels[i][wheel].localRotation=roll;
             }
@@ -60,7 +61,8 @@ namespace IdleClinic.Presentation
                 {
                     float journey=(float)(seconds%80);float half=journey%40;bool returning=journey>=40;
                     float t=Mathf.Clamp01((half-11)/7);
-                    point=new Vector3(1.38f,.14f,Mathf.Lerp(returning?-6.97f:-11.08f,returning?-11.08f:-6.97f,t));
+                    float north=-6.97f+northPavementOffset,south=-11.08f+roadOffset;
+                    point=new Vector3(1.38f,.14f,Mathf.Lerp(returning?north:south,returning?south:north,t));
                     direction=returning?Vector3.back:Vector3.forward;
                     if(half>=18&&half<32)
                     {
@@ -75,9 +77,9 @@ namespace IdleClinic.Presentation
                     float lower=i%2==0?-12f:2.6f,span=11-lower;
                     float distance=(float)((seconds*.47+i*4.1)%(span*2));bool forward=distance<span;
                     float x=lower+(forward?distance:span*2-distance);
-                    point=new Vector3(x,.14f,i%2==0?-11.06f:-6.95f);direction=forward?Vector3.right:Vector3.left;
+                    point=new Vector3(x,.14f,i%2==0?-11.06f+roadOffset:-6.95f+northPavementOffset);direction=forward?Vector3.right:Vector3.left;
                 }
-                pedestrians[i].position=point;pedestrians[i].rotation=Quaternion.LookRotation(direction);
+                pedestrians[i].position=point+offset;pedestrians[i].rotation=Quaternion.LookRotation(direction);
                 float swing=reducedMotion?0:Mathf.Sin(step*5)*24;
                 if(i==0&&(cycle<11||cycle>=32))swing=0;
                 leftLegs[i].localRotation=Quaternion.Euler(swing,0,0);rightLegs[i].localRotation=Quaternion.Euler(-swing,0,0);

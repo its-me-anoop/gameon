@@ -98,3 +98,26 @@ Button:disabled { opacity: .48; }
 /* At neighbourhood scale, keep collection targets usable without covering rooms. */
 .compact-cash { padding: 0; border-radius: 22px; }
 .compact-construction { padding: 0; background-color: transparent; border-radius: 0; }
+
+/* Location travel remains a compact world control; requirements appear only on demand. */
+.location-control > ClinicIcon { margin-top: -6px; width: 22px; height: 22px; }
+.location-multiplier { position: absolute; bottom: 1px; font-size: 14px; color: rgb(48,74,64); }
+.locations-dock .room-detail { margin-bottom: 6px; }
+.location-preview { flex-direction: row; align-items: center; margin: 2px 0 8px 0; }
+.location-preview-copy { margin-left: 10px; flex-shrink: 1; }
+.location-name { font-size: 17px; white-space: normal; }
+.location-note { font-size: 14px; white-space: normal; margin-top: 3px; }
+.location-progress { font-size: 14px; margin: 4px 0 6px 0; white-space: normal; }
+.location-checklist { height: 150px; max-height: 150px; margin-bottom: 8px; }
+.unlock-requirement { min-height: 44px; flex-direction: row; align-items: center; background-color: transparent; padding: 5px 4px; }
+.unlock-name { flex-grow: 1; flex-shrink: 1; font-size: 14px; margin-left: 8px; }
+.unlock-status { font-size: 14px; margin-left: 8px; }
+.requirement-complete { color: rgb(79,103,72); }
+.location-open { min-height: 56px; flex-direction: row; align-items: center; border-radius: 12px; padding: 6px 12px; }
+.location-purchase-copy { margin-left: 12px; }
+.location-destinations { flex-direction: row; margin: 4px 0 6px 0; }
+.location-destination { flex-grow: 1; flex-basis: 0; min-height: 92px; padding: 8px; margin-right: 6px; align-items: flex-start; background-color: rgb(224,233,207); border-radius: 12px; }
+.location-destination .location-name { margin-top: 4px; }
+.settings-row .preference { min-width: 0; margin-right: 4px; padding: 8px 3px; }
+.settings-row .preference-label { font-size: 14px; white-space: normal; -unity-text-align: middle-center; }
+.upgrade-dock .dock-heading > .object-shortcut { margin-left: 2px; }

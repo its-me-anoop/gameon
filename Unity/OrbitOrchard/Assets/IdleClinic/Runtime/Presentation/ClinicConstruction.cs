@@ -6,14 +6,15 @@ namespace IdleClinic.Presentation
     /// <summary>Work appears only while the authoritative room job exists; its meter uses that job's ticks.</summary>
     internal sealed class ClinicConstruction
     {
-        private readonly GameObject[] roots=new GameObject[3];
-        private readonly Transform[] progress=new Transform[3],tool=new Transform[3];
-        internal ClinicConstruction(ClinicArt art,Transform parent)
+        private readonly GameObject[] roots;
+        private readonly Transform[] progress,tool;
+        internal ClinicConstruction(ClinicArt art,Transform parent,Vector3[] positions=null)
         {
-            for(int i=0;i<3;i++)
+            int count=positions?.Length??3;roots=new GameObject[count];progress=new Transform[count];tool=new Transform[count];
+            for(int i=0;i<count;i++)
             {
                 string room=((ClinicRoom)i).ToString();
-                var center=i==0?new Vector3(-5.96f,.14f,-2.35f):i==1?new Vector3(-5.96f,.14f,2.4f):new Vector3(6.07f,.14f,2.6f);
+                var center=positions!=null?positions[i]:i==0?new Vector3(-5.96f,.14f,-2.35f):i==1?new Vector3(-5.96f,.14f,2.4f):new Vector3(6.07f,.14f,2.6f);
                 var root=art.Group(room+" renovation scaffold",parent,center);roots[i]=root.gameObject;
                 for(int end=-1;end<=1;end+=2)
                 {
@@ -45,7 +46,7 @@ namespace IdleClinic.Presentation
         }
         internal void Render(ClinicState state,bool reducedMotion)
         {
-            for(int room=0;room<3;room++)
+            for(int room=0;room<roots.Length;room++)
             {
                 ClinicConstructionState job=null;
                 for(int i=0;i<state.Construction.Count;i++)if((int)state.Construction[i].Room==room){job=state.Construction[i];break;}

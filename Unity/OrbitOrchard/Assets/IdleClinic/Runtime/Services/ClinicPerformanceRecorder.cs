@@ -1,6 +1,7 @@
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Text;
 using OrbitOrchard.Services;
 using UnityEngine;
@@ -23,6 +24,8 @@ namespace IdleClinic.Services
         private long totalFrameCount, peakUnityAllocatedBytes, peakManagedUsedBytes;
         private double elapsedSeconds, nextReportSeconds = 30, nextThermalSeconds;
         private bool paused, skipNextFrame = true, reportedWriteFailure;
+        private readonly Queue<ClinicAudioSample> audioHistory = new Queue<ClinicAudioSample>();
+        private double nextAudioSeconds;
 
         private void OnEnable() { skipNextFrame = true; }
 
@@ -34,6 +37,11 @@ namespace IdleClinic.Services
             if (!frames.AddSeconds(delta)) return;
             totalFrameCount++;
             elapsedSeconds += delta;
+            if (elapsedSeconds >= nextAudioSeconds)
+            {
+                SampleAudio();
+                nextAudioSeconds = elapsedSeconds + .5;
+            }
             if (elapsedSeconds >= nextThermalSeconds)
             {
                 ReadThermalState();
@@ -71,7 +79,11 @@ namespace IdleClinic.Services
                 medianFrameMs = summary.medianFrameMs, p95FrameMs = summary.p95FrameMs,
                 maximumFrameMs = summary.maximumFrameMs,
                 unityAllocatedBytes = allocated, unityReservedBytes = reserved, managedUsedBytes = managed,
-                memoryCountersAvailable = allocated > 0, thermalState = ReadThermalState()
+                memoryCountersAvailable = allocated > 0, thermalState = ReadThermalState(),
+                musicPlaying = GetComponent<ClinicAudio>()?.MusicPlaying ?? false,
+                musicTime = GetComponent<ClinicAudio>()?.MusicTime ?? 0,
+                activeEffectVoices = GetComponent<ClinicAudio>()?.ActiveEffectVoices ?? 0,
+                audioOutputRms = ReadAudioRms()
             };
             history[historyNext] = sample;
             historyNext = (historyNext + 1) % HistoryCapacity;
@@ -88,7 +100,7 @@ namespace IdleClinic.Services
                 maximumThermalState = maximumThermalState,
                 peakSampledUnityAllocatedBytes = peakUnityAllocatedBytes,
                 peakSampledManagedUsedBytes = peakManagedUsedBytes,
-                latest = sample, samples = snapshots
+                latest = sample, samples = snapshots, audioSamples = audioHistory.ToArray()
             };
             try
             {
@@ -107,6 +119,30 @@ namespace IdleClinic.Services
                 if (!reportedWriteFailure) Debug.LogWarning("Clinic performance report could not be written: " + error.GetType().Name);
                 reportedWriteFailure = true;
             }
+        }
+
+        private void SampleAudio()
+        {
+            var audio = GetComponent<ClinicAudio>();
+            if (audio == null) return;
+            if (audioHistory.Count == 360) audioHistory.Dequeue();
+            audioHistory.Enqueue(new ClinicAudioSample
+            {
+                elapsedActiveSeconds = elapsedSeconds, musicEnabled = audio.MusicEnabled,
+                effectsEnabled = audio.EffectsEnabled, musicPlaying = audio.MusicPlaying,
+                musicTime = audio.MusicTime, musicStarts = audio.MusicStarts,
+                effectStarts = audio.EffectStarts, activeEffectVoices = audio.ActiveEffectVoices,
+                lastEffect = audio.LastEffect, outputRms = ReadAudioRms()
+            });
+        }
+
+        private readonly float[] audioSamples = new float[256];
+        private float ReadAudioRms()
+        {
+            AudioListener.GetOutputData(audioSamples, 0);
+            double energy = 0;
+            foreach (var value in audioSamples) energy += value * value;
+            return (float)Math.Sqrt(energy / audioSamples.Length);
         }
 
         private void OnApplicationPause(bool value)
@@ -166,8 +202,18 @@ namespace IdleClinic.Services
         public int windowFrameCount;
         public double windowElapsedSeconds, medianFrameMs, p95FrameMs, maximumFrameMs;
         public long unityAllocatedBytes, unityReservedBytes, managedUsedBytes;
-        public bool memoryCountersAvailable;
+        public bool memoryCountersAvailable, musicPlaying;
+        public float musicTime, audioOutputRms;
+        public int activeEffectVoices;
         public int thermalState;
+    }
+    [Serializable] public sealed class ClinicAudioSample
+    {
+        public double elapsedActiveSeconds;
+        public bool musicEnabled, effectsEnabled, musicPlaying;
+        public float musicTime, outputRms;
+        public int musicStarts, effectStarts, activeEffectVoices;
+        public string lastEffect;
     }
     [Serializable] public sealed class ClinicPerformanceReport
     {
@@ -178,6 +224,7 @@ namespace IdleClinic.Services
         public long peakSampledUnityAllocatedBytes, peakSampledManagedUsedBytes;
         public ClinicPerformanceSample latest;
         public ClinicPerformanceSample[] samples;
+        public ClinicAudioSample[] audioSamples;
     }
 }
 #endif

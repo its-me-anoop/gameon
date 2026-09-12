@@ -1,0 +1,107 @@
+{
+  "title": "Morning Rounds",
+  "author": "Original project composition",
+  "bpm": 80,
+  "bars": 16,
+  "source": "Tools/create_clinic_audio.py",
+  "assets": {
+    "morning-rounds": {
+      "seconds": 48.0,
+      "peak": 0.17492123251887615,
+      "rms": 0.03766785822228675,
+      "seamDelta": 0.0006885185565745381,
+      "sha256": "8740474262021c2da87773a79eef59af16e4e87df785e92203e44eeb2282c3cc"
+    },
+    "payment": {
+      "seconds": 0.66,
+      "peak": 0.3350861504816347,
+      "rms": 0.09217856300457432,
+      "seamDelta": 0.0,
+      "sha256": "b2ff95d4a73b848d15166baa93a20dac5cadd865d5e753823996148c19b9f894"
+    },
+    "collect": {
+      "seconds": 0.77,
+      "peak": 0.5395425807179663,
+      "rms": 0.1200426093359327,
+      "seamDelta": 0.0,
+      "sha256": "df76fc82784ca198f57a5c9c8e5230e09f1fca60ba5c71ef47aa6737c9adf32b"
+    },
+    "care": {
+      "seconds": 0.82,
+      "peak": 0.3174693833904778,
+      "rms": 0.07324840343977815,
+      "seamDelta": 0.0,
+      "sha256": "c5e82456a2e9e1385cf6ce42ea2d0ce034c03495be74084dcd7abebd81a412d9"
+    },
+    "consultation": {
+      "seconds": 0.82,
+      "peak": 0.2582673466757883,
+      "rms": 0.06261665545395766,
+      "seamDelta": 0.0,
+      "sha256": "5ed9d27cd02e8033afe60cba43e87fafc28360e33d4e85174185ce27974f147f"
+    },
+    "pharmacy": {
+      "seconds": 0.73,
+      "peak": 0.2479478878776279,
+      "rms": 0.05970683640419119,
+      "seamDelta": 0.0,
+      "sha256": "d46d919f5a8733bb1c47196ca34575e4b0aacf0a3e02a48fa81513e4a6b7ee74"
+    },
+    "upgrade": {
+      "seconds": 0.89,
+      "peak": 0.407278777821415,
+      "rms": 0.09992549323143206,
+      "seamDelta": 0.0,
+      "sha256": "ff71665590d94b89dd2fe2ae676e9fcd6c79e83579670e914349c45d2a3fb368"
+    },
+    "complete": {
+      "seconds": 1.05,
+      "peak": 0.43431518160980964,
+      "rms": 0.10256200705772262,
+      "seamDelta": 0.0,
+      "sha256": "ed3cc187f0d34c31675bfce29d4943e53fefbefd4a8866f3ee9782fc074ebc68"
+    },
+    "tap": {
+      "seconds": 0.615,
+      "peak": 0.09385571048510492,
+      "rms": 0.03380750195426902,
+      "seamDelta": 0.0,
+      "sha256": "9dbe26abf3e8b590c9af5dc3c78498266dc92b05ff29d4f04b91ebf2b4dcf50f"
+    },
+    "footstep": {
+      "seconds": 0.14,
+      "peak": 0.08095565221585209,
+      "rms": 0.015456637112803522,
+      "seamDelta": 5.8806603936372e-07,
+      "sha256": "beab7ba6c358dc9176482ef5e6f686fb70cd73f3281dd74f890c40b139f55727"
+    },
+    "door": {
+      "seconds": 0.48,
+      "peak": 0.10524963377665275,
+      "rms": 0.015707507868077144,
+      "seamDelta": 1.5699706496622425e-06,
+      "sha256": "f142ecb7352bf84f62c227cab945c6fd6a759c1eb1fb0365aecace35c82757f8"
+    },
+    "treatment": {
+      "seconds": 0.24,
+      "peak": 0.05754788342216281,
+      "rms": 0.010155234037010408,
+      "seamDelta": 2.6948948539405823e-06,
+      "sha256": "275c1a366c96383102df9398b3b15be984490eecf5c655d6aa3a797faeb991a7"
+    },
+    "construction": {
+      "seconds": 0.45,
+      "peak": 0.14867695261518002,
+      "rms": 0.022804066302454795,
+      "seamDelta": 1.726231982080208e-06,
+      "sha256": "b07ea879aa90bce2b035cbacce705b6b8d766923c5dcc07bea1d325962f3c1c2"
+    },
+    "taxi": {
+      "seconds": 0.65,
+      "peak": 0.07471705766842243,
+      "rms": 0.01402119156483561,
+      "seamDelta": 6.198845691862669e-07,
+      "sha256": "b5e27e37cd3d7d72b152ed8fd64fb547698b0f18fce033ef574780950a5c2916"
+    }
+  }
+}

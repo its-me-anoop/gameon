@@ -13,8 +13,8 @@ namespace IdleClinic.Tests
         [Test] public void NewClinicKeepsOpeningSpeedsAndAddsUnbuiltAmenities()
         {
             var game = ClinicSimulation.CreateNew();
-            Assert.That(game.State.SchemaVersion, Is.EqualTo(2));
-            Assert.That(game.State.RulesVersion, Is.EqualTo(2));
+            Assert.That(game.State.SchemaVersion, Is.EqualTo(3));
+            Assert.That(game.State.RulesVersion, Is.EqualTo(3));
             Assert.That(game.State.Amenities.Count, Is.EqualTo(3));
             Assert.That(game.State.Amenities.All(a => a.Level == 0 && a.Till == 0), Is.True);
             Assert.That(ClinicRules.ReceptionTicks(game.State, 0), Is.EqualTo(140));
@@ -246,7 +246,7 @@ namespace IdleClinic.Tests
         [Test] public void AllStationTrainingAndAmenityLevelsReachFiniteCapsWithValidOfflineAccounting()
         {
             var game = Amenities();
-            foreach (ClinicRoom room in Enum.GetValues(typeof(ClinicRoom)))
+            foreach (ClinicRoom room in new[] { ClinicRoom.Reception, ClinicRoom.FirstAid, ClinicRoom.Waiting })
             {
                 while (game.State.Room(room).Tier < 3)
                 { Earn(game, ClinicRules.RenovationCost(game.State.Room(room))); Assert.That(game.Renovate(room).Success, Is.True); game.Advance(180); }

@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace IdleClinic.App
 {
-    public enum ClinicGlyph { Coin, Nurse, Reception, Bed, Chair, Equipment, Facility, Plant, Upgrade, Clock, Home, Plus, Minus, Close, Check, Settings, Sound, Haptic, Motion, Help, Arrow, Restore, Parking, Toilet, Vending, Training, Room }
+    public enum ClinicGlyph { Coin, Nurse, Reception, Bed, Chair, Equipment, Facility, Plant, Upgrade, Clock, Home, Plus, Minus, Close, Check, Settings, Sound, Haptic, Motion, Help, Arrow, Restore, Parking, Toilet, Vending, Training, Room, Doctor, Pharmacy, Taxi, Music, Locations }
 
     public sealed class ClinicIcon : VisualElement
     {
@@ -33,6 +33,11 @@ namespace IdleClinic.App
             void Cross(float x,float y,float half) { Line(x-half,y,x+half,y);Line(x,y-half,x,y+half); }
             switch(glyph)
             {
+                case ClinicGlyph.Doctor: Circle(12,6,3);Line(4,22,4,17,8,12,16,12,20,17,20,22);Line(9,12,9,17,12,19,15,17,15,12);Circle(12,20,1.5f);break;
+                case ClinicGlyph.Pharmacy: Box(5,8,14,14);Box(8,2,8,6);Cross(12,15,3.5f);Line(8,5,16,5);break;
+                case ClinicGlyph.Taxi: Box(3,12,18,7);Line(5,12,7,7,17,7,19,12);Box(9,3,6,3);Circle(6,20,1.5f,true);Circle(18,20,1.5f,true);Line(6,15,8,15);Line(16,15,18,15);break;
+                case ClinicGlyph.Music: Line(9,17,9,5,20,2,20,14);Circle(6,18,3);Circle(17,15,3);Line(9,8,20,5);break;
+                case ClinicGlyph.Locations: Line(2,8,8,3,14,8);Box(4,8,8,10);Cross(8,12,2);Line(14,12,18,9,23,12);Box(16,12,6,9);Line(2,22,10,22,13,19,15,22);break;
                 case ClinicGlyph.Parking: Line(5,12,7,7,17,7,19,12);Box(3,12,18,7);Circle(6,20,1.5f,true);Circle(18,20,1.5f,true);Line(6,15,8,15);Line(16,15,18,15);Line(9,4,9,1,12,1,13,2.5f,12,4,9,4);break;
                 case ClinicGlyph.Toilet: Box(5,3,6,9);Line(4,13,20,13,18,17,13,19,13,22,7,22,8,17,5,15);Line(16,10,21,10);Circle(8,6,.7f,true);break;
                 case ClinicGlyph.Vending: Box(4,2,16,20);Box(7,5,7,9);Line(10.5f,5,10.5f,14);Line(7,9.5f,14,9.5f);Circle(17,7,.6f,true);Circle(17,11,.6f,true);Box(8,17,8,2);break;

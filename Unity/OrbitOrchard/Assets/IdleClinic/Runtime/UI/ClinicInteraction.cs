@@ -21,15 +21,20 @@ namespace IdleClinic.App
             {
                 case ClinicHitKind.Desk:return state.ReceptionDesks.Any(d=>d.Id==hit.Id);
                 case ClinicHitKind.Station:return state.TreatmentStations.Any(s=>s.Id==hit.Id);
+                case ClinicHitKind.DoctorStation:return state.ConsultationStations.Any(s=>s.Id==hit.Id);
+                case ClinicHitKind.PharmacyStation:return state.PharmacyStations.Any(s=>s.Id==hit.Id);
+                case ClinicHitKind.Taxi:return state.Location==ClinicLocation.DoctorsClinic;
                 case ClinicHitKind.Parking:return true;
                 case ClinicHitKind.Toilet:
                 case ClinicHitKind.Vending:return state.Room(ClinicRoom.Waiting).Built;
                 default:return false;
             }
         }
+        public static bool CanSelectRoom(ClinicState state,ClinicRoom room)
+            =>state!=null&&state.Room(room)!=null&&CanSelectRoom(state.Tutorial,room);
         public static bool CanSelectRoom(ClinicTutorialStep tutorial,ClinicRoom room)
         {
-            if(room!=ClinicRoom.Reception&&room!=ClinicRoom.FirstAid&&room!=ClinicRoom.Waiting)return false;
+            if(!Enum.IsDefined(typeof(ClinicRoom),room))return false;
             return tutorial==ClinicTutorialStep.Complete
                 ||tutorial==ClinicTutorialStep.HireFirstNurse&&room==ClinicRoom.FirstAid;
         }
@@ -261,14 +266,19 @@ namespace IdleClinic.App
                 case ClinicHitKind.VendingCash:CollectVending();break;
                 case ClinicHitKind.Desk:
                 case ClinicHitKind.Station:
+                case ClinicHitKind.DoctorStation:
+                case ClinicHitKind.PharmacyStation:
                     if(State.Tutorial==ClinicTutorialStep.HireFirstNurse&&hit.Kind==ClinicHitKind.Station)Select(ClinicRoom.FirstAid);
                     else SelectObject(hit);
                     break;
                 case ClinicHitKind.Parking:
                 case ClinicHitKind.Toilet:
-                case ClinicHitKind.Vending:SelectObject(hit);break;
+                case ClinicHitKind.Vending:
+                case ClinicHitKind.Taxi:SelectObject(hit);break;
                 case ClinicHitKind.Reception:Select(ClinicRoom.Reception);break;
                 case ClinicHitKind.Treatment:Select(ClinicRoom.FirstAid);break;
+                case ClinicHitKind.Consultation:Select(ClinicRoom.Consultation);break;
+                case ClinicHitKind.Pharmacy:Select(ClinicRoom.Pharmacy);break;
                 case ClinicHitKind.Waiting:
                 case ClinicHitKind.Expansion:Select(ClinicRoom.Waiting);break;
                 default:CloseContext();break;
@@ -286,10 +296,9 @@ namespace IdleClinic.App
                     target.style.width=44;target.style.height=44;overlay.Add(target);roomTargets.Add(room.Kind,target);
                     var kind=room.Kind;RegisterAccessibleButton(target,"Select "+RoomName(kind),()=>Select(kind));
                 }
-                var anchor=room.Kind==ClinicRoom.Reception?"reception.progress":room.Kind==ClinicRoom.FirstAid?"firstaid.progress":"waiting.progress";
-                var point=room.Kind==ClinicRoom.Reception?ClinicSelectionPolicy.ReceptionFloorPoint:world.GetAnchorPoint(anchor);
+                var point=room.Kind==ClinicRoom.Reception&&State.Location==ClinicLocation.StarterClinic?ClinicSelectionPolicy.ReceptionFloorPoint:world.GetRoomPoint(room.Kind);
                 PositionMarker(target,world.WorldToViewport(point),(room.Built||State.WaitingRoomUnlocked)
-                    &&ClinicSelectionPolicy.CanSelectRoom(State.Tutorial,room.Kind));
+                    &&ClinicSelectionPolicy.CanSelectRoom(State,room.Kind));
             }
             var compactReception=wideWorldMarkers||ReceptionCashIsCrowded();
             foreach(var desk in State.ReceptionDesks)
@@ -332,9 +341,8 @@ namespace IdleClinic.App
                     marker=Box(overlay,"construction-marker");marker.pickingMode=PickingMode.Ignore;
                     marker.Add(new ClinicProgress(26));Text(marker,"","construction-clock",true);constructionMarkers.Add(job.Id,marker);
                 }
-                var anchor=job.Room==ClinicRoom.Reception?"reception.progress":job.Room==ClinicRoom.FirstAid?"firstaid.progress":"waiting.progress";
                 ClinicMarkerPresentation.ConstructionDetail(marker,wideWorldMarkers);
-                PositionMarker(marker,world.WorldToViewport(world.GetAnchorPoint(anchor)),true,-16,
+                PositionMarker(marker,world.WorldToViewport(world.GetRoomPoint(job.Room)),true,-16,
                     wideWorldMarkers?new Vector2(26,26):(Vector2?)null);
                 marker.Q<ClinicProgress>().Progress=(State.Tick-job.StartedTick)/(float)Math.Max(1,job.EndsTick-job.StartedTick);
                 marker.Q<Label>().text=TimeLabel((job.EndsTick-State.Tick)/(double)ClinicRules.TicksPerSecond);
@@ -354,21 +362,26 @@ namespace IdleClinic.App
 
         private bool ReceptionCashIsCrowded()
         {
-            if(State.ReceptionDesks.Count<2||State.ReceptionDesks[0].Till<=0||State.ReceptionDesks[1].Till<=0)return false;
-            return ClinicMarkerPresentation.CrowdedReception(
-                OverlayPoint(world.WorldToViewport(world.GetCashPoint(0))),
-                OverlayPoint(world.WorldToViewport(world.GetCashPoint(1))),overlay.contentRect);
+            var points=State.ReceptionDesks.Where(d=>d.Till>0).Select(d=>OverlayPoint(world.WorldToViewport(world.GetCashPoint(d.Id))))
+                .Where(p=>overlay.contentRect.Contains(p)).ToArray();
+            for(var i=0;i<points.Length;i++)for(var j=i+1;j<points.Length;j++)
+                if(Mathf.Abs(points[i].x-points[j].x)<80&&Mathf.Abs(points[i].y-points[j].y)<48)return true;
+            return false;
         }
         private void SeparateReceptionCashMarkers(bool compact)
         {
-            if(!compact||!cashMarkers.TryGetValue(0,out var first)||!cashMarkers.TryGetValue(1,out var second)
-                ||first.style.display!=DisplayStyle.Flex||second.style.display!=DisplayStyle.Flex)return;
-            // Always start from projection, never the prior displaced marker bounds.
-            var firstPoint=OverlayPoint(world.WorldToViewport(world.GetCashPoint(0)));
-            var secondPoint=OverlayPoint(world.WorldToViewport(world.GetCashPoint(1)));
-            ClinicMarkerPresentation.SeparateReception(firstPoint,secondPoint,out var a,out var b);
-            first.style.left=a.x-ClinicMarkerPresentation.CashSize/2;
-            second.style.left=b.x-ClinicMarkerPresentation.CashSize/2;
+            if(!compact)return;
+            var desks=State.ReceptionDesks.Where(d=>cashMarkers.TryGetValue(d.Id,out var marker)&&marker.style.display==DisplayStyle.Flex)
+                .OrderBy(d=>d.Id).ToArray();
+            // Recompute from the real counters every frame. No previously displaced coordinate is reused.
+            var points=desks.Select(d=>OverlayPoint(world.WorldToViewport(world.GetCashPoint(d.Id)))+new Vector2(0,-30)).ToArray();
+            var placed=ClinicMarkerPresentation.SeparateCashTargets(points,overlay.contentRect);
+            for(var i=0;i<desks.Length;i++)
+            {
+                var marker=cashMarkers[desks[i].Id];
+                marker.style.left=placed[i].x-ClinicMarkerPresentation.CashSize/2;
+                marker.style.top=placed[i].y-ClinicMarkerPresentation.CashSize/2;
+            }
         }
 
         private void PositionMarker(VisualElement marker,Vector2 uv,bool visible,float offsetY=0,Vector2? fixedSize=null)
@@ -390,7 +403,8 @@ namespace IdleClinic.App
             walletPulseUntil=Time.unscaledTimeAsDouble+.65;
             if(ReducedMotion)return;
             var source=OverlayPoint(world.WorldToViewport(sourcePoint));
-            var count=Math.Min(7,20-flights.Count);
+            // Four reception tills plus vending may be collected within one flight window.
+            var count=Math.Min(7,35-flights.Count);
             for(var i=0;i<count;i++)
             {
                 var icon=coinPool.Count>0?coinPool.Pop():new ClinicIcon(ClinicGlyph.Coin,22,new Color(.67f,.42f,.06f));

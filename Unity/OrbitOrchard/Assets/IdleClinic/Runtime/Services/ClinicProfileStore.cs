@@ -21,6 +21,8 @@ namespace IdleClinic.Services
         private bool primaryWasUnreadable;
         private bool migrationPending;
         private string migrationSourcePath;
+        private int migrationSourceVersion;
+        private string migrationSourceSnapshot;
         private long pendingOfflineUtcTicks;
         public ClinicProfile Profile { get; private set; }
         public ClinicOfflineReport LastOfflineReport { get; private set; } = new ClinicOfflineReport();
@@ -44,12 +46,13 @@ namespace IdleClinic.Services
             primaryWasUnreadable = false;
             migrationPending = false;
             migrationSourcePath = null;
+            migrationSourceSnapshot = null;
             pendingOfflineUtcTicks = 0;
             string recovery = null;
             if (TryRead(path, out var saved, out var migrated))
             {
                 Profile = saved;
-                if (migrated) migrationSourcePath = path;
+                if (migrated) { migrationSourcePath = path; migrationSourceVersion = ReadSchema(path); }
             }
             else
             {
@@ -58,7 +61,7 @@ namespace IdleClinic.Services
                 if (TryRead(path + ".backup", out saved, out migrated))
                 {
                     Profile = saved;
-                    if (migrated) migrationSourcePath = path + ".backup";
+                    if (migrated) { migrationSourcePath = path + ".backup"; migrationSourceVersion = ReadSchema(migrationSourcePath); }
                     recovery = "Your clinic was recovered from its last good backup. The unreadable save is preserved.";
                 }
                 else
@@ -78,6 +81,7 @@ namespace IdleClinic.Services
             if (migrated)
             {
                 migrationPending = true;
+                migrationSourceSnapshot = JsonUtility.ToJson(Profile);
                 HasPendingOfflineProgress = true;
                 pendingOfflineUtcTicks = now.UtcDateTime.Ticks;
             }
@@ -107,6 +111,55 @@ namespace IdleClinic.Services
             return true;
         }
 
+        /// <summary>Publish travel only after both clinics and the shared wallet commit together.</summary>
+        public bool SelectLocation(ClinicLocation destination, DateTimeOffset now)
+        {
+            if (!CanChangeLocation()) return false;
+            if (!Enum.IsDefined(typeof(ClinicLocation), destination)) { Error = "Choose a clinic."; return false; }
+            if (destination == Profile.activeLocation) return true;
+            if (Profile.doctorsState == null) { Error = "The doctors’ clinic is still locked."; return false; }
+            var candidate = Copy(Profile);
+            var from = new ClinicSimulation(candidate.ActiveState);
+            var to = new ClinicSimulation(destination == ClinicLocation.StarterClinic ? candidate.state : candidate.doctorsState);
+            var transferred = from.TransferWalletTo(to);
+            if (!transferred.Success) { Error = transferred.Message; return false; }
+            candidate.activeLocation = destination;
+            return CommitTravel(candidate, now);
+        }
+
+        public bool OpenDoctorsClinic(DateTimeOffset now)
+        {
+            if (!CanChangeLocation()) return false;
+            if (Profile.doctorsState != null || Profile.activeLocation != ClinicLocation.StarterClinic)
+            { Error = "The doctors’ clinic is already open."; return false; }
+            var candidate = Copy(Profile);
+            var starter = new ClinicSimulation(candidate.state);
+            var unlocked = starter.UnlockDoctorsClinic();
+            if (!unlocked.Success) { Error = unlocked.Message; return false; }
+            var doctors = ClinicSimulation.CreateForLocation(ClinicLocation.DoctorsClinic, candidate.state.Seed);
+            var transferred = starter.TransferWalletTo(doctors);
+            if (!transferred.Success) { Error = transferred.Message; return false; }
+            candidate.doctorsState = doctors.State;
+            candidate.activeLocation = ClinicLocation.DoctorsClinic;
+            return CommitTravel(candidate, now);
+        }
+
+        private bool CanChangeLocation()
+        {
+            if (HasPendingOfflineProgress) { Error = "Saving your return first…"; return false; }
+            if (!IsValid(Profile)) { Error = "Your clinic could not be checked. The last good save is unchanged."; return false; }
+            return true;
+        }
+
+        private bool CommitTravel(ClinicProfile candidate, DateTimeOffset now)
+        {
+            candidate.lastAccountedUtcTicks = Math.Max(candidate.lastAccountedUtcTicks, now.UtcDateTime.Ticks);
+            candidate.revision = NextRevision(candidate.revision);
+            if (!WriteSnapshot(candidate)) return false;
+            Profile = candidate;
+            return true;
+        }
+
         /// <summary>Core caps earnings at eight hours and independently completes construction for the full gap.
         /// Rebind the simulation to Profile.state after success. Pause active ticks/actions while a commit is pending.</summary>
         public ClinicOfflineReport ApplyOffline(DateTimeOffset now)
@@ -124,6 +177,7 @@ namespace IdleClinic.Services
             }
             var candidate = Copy(Profile);
             var advanced = new ClinicSimulation(candidate.state).AdvanceOffline(elapsed);
+            var doctors = candidate.doctorsState == null ? null : new ClinicSimulation(candidate.doctorsState).AdvanceOffline(elapsed);
             candidate.lastAccountedUtcTicks = Math.Max(candidate.lastAccountedUtcTicks, targetTicks);
             candidate.revision = NextRevision(candidate.revision);
             if (!WriteSnapshot(candidate))
@@ -138,9 +192,9 @@ namespace IdleClinic.Services
             result.elapsedSeconds = elapsed;
             result.earningsSeconds = advanced.EarningsSeconds;
             result.constructionSeconds = advanced.ConstructionSeconds;
-            result.paymentsReceived = advanced.PaymentsReceived;
-            result.tillEarned = advanced.TillEarned;
-            result.treatmentsCompleted = advanced.TreatmentsCompleted;
+            result.paymentsReceived = AddReport(advanced.PaymentsReceived, doctors?.PaymentsReceived ?? 0);
+            result.tillEarned = AddReport(advanced.TillEarned, doctors?.TillEarned ?? 0);
+            result.treatmentsCompleted = AddReport(advanced.TreatmentsCompleted, doctors?.TreatmentsCompleted ?? 0);
             result.wasCapped = advanced.WasCapped;
             result.applied = true;
             LastOfflineReport = result;
@@ -158,6 +212,7 @@ namespace IdleClinic.Services
             Profile = candidate;
             migrationPending = false;
             migrationSourcePath = null;
+            migrationSourceSnapshot = null;
             HasPendingOfflineProgress = false;
             return true;
         }
@@ -167,10 +222,10 @@ namespace IdleClinic.Services
             try
             {
                 if (!TryRead(migrationSourcePath, out var source, out var isLegacy) || !isLegacy
-                    || source.revision != Profile.revision || JsonUtility.ToJson(source) != JsonUtility.ToJson(Profile))
+                    || source.revision != Profile.revision || JsonUtility.ToJson(source) != migrationSourceSnapshot)
                     throw new InvalidDataException("The legacy snapshot changed before migration.");
                 var original = File.ReadAllBytes(migrationSourcePath);
-                var archive = path + ".v1-before-migration-" + Profile.revision;
+                var archive = path + ".v" + migrationSourceVersion + "-before-migration-" + Profile.revision;
                 if (File.Exists(archive))
                 {
                     if (Convert.ToBase64String(File.ReadAllBytes(archive)) != Convert.ToBase64String(original))
@@ -234,10 +289,16 @@ namespace IdleClinic.Services
             {
                 var candidate = new ClinicProfile();
                 JsonUtility.FromJsonOverwrite(payload, candidate);
-                if (candidate.schemaVersion == 1)
+                if (candidate.schemaVersion == 1 || candidate.schemaVersion == 2)
                 {
-                    if (!IsValidHeader(candidate, 1) || !ClinicStateMigration.TryMigrateV1(candidate.state)) return false;
-                    candidate.schemaVersion = 2;
+                    var version = candidate.schemaVersion;
+                    if (!IsValidHeader(candidate, version) || candidate.doctorsState != null
+                        || candidate.activeLocation != ClinicLocation.StarterClinic) return false;
+                    if (!(version == 1 ? ClinicStateMigration.TryMigrateV1(candidate.state)
+                        : ClinicStateMigration.TryMigrateV2(candidate.state))) return false;
+                    candidate.Normalize();
+                    candidate.preferences.music = candidate.preferences.sound;
+                    candidate.schemaVersion = 3;
                     migrated = true;
                 }
                 if (!IsValid(candidate)) { migrated = false; return false; }
@@ -262,6 +323,7 @@ namespace IdleClinic.Services
                     return new ClinicPreferences
                     {
                         sound = legacy.preferences.sound,
+                        music = legacy.preferences.sound,
                         haptics = legacy.preferences.haptics,
                         reducedMotion = legacy.preferences.reducedMotion
                     };
@@ -292,7 +354,29 @@ namespace IdleClinic.Services
                 && profile.lastAccountedUtcTicks > 0 && profile.lastAccountedUtcTicks <= DateTime.MaxValue.Ticks && profile.state != null;
 
         private static bool IsValid(ClinicProfile profile)
-            => IsValidHeader(profile, 2) && ClinicSimulation.IsValidState(profile.state);
+        {
+            if (!IsValidHeader(profile, 3) || profile.additionalClinics == null || profile.additionalClinics.Count > 1
+                || (profile.additionalClinics.Count == 1 && profile.additionalClinics[0] == null)
+                || !ClinicSimulation.IsValidState(profile.state)
+                || profile.state.Location != ClinicLocation.StarterClinic
+                || !Enum.IsDefined(typeof(ClinicLocation), profile.activeLocation)) return false;
+            if (profile.doctorsState == null)
+                return !profile.state.DoctorsClinicUnlocked && profile.activeLocation == ClinicLocation.StarterClinic
+                    && profile.state.TotalTransferredIn == 0 && profile.state.TotalTransferredOut == 0;
+            var doctors = profile.doctorsState;
+            return profile.state.DoctorsClinicUnlocked && doctors.Location == ClinicLocation.DoctorsClinic
+                && ClinicSimulation.IsValidState(doctors)
+                && profile.state.TotalTransferredIn == doctors.TotalTransferredOut
+                && profile.state.TotalTransferredOut == doctors.TotalTransferredIn
+                && (profile.activeLocation == ClinicLocation.StarterClinic ? doctors.Wallet : profile.state.Wallet) == 0;
+        }
+
+        private static int ReadSchema(string file)
+        {
+            if (!TryPayload(file, out var payload)) return 0;
+            return JsonUtility.FromJson<ClinicProfile>(payload)?.schemaVersion ?? 0;
+        }
+        private static long AddReport(long left, long right) => left > long.MaxValue - right ? long.MaxValue : left + right;
 
         private static ClinicProfile Copy(ClinicProfile profile)
         {

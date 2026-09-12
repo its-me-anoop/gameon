@@ -4,7 +4,8 @@
   "references": [
     "OrbitOrchard.Runtime",
     "OrbitOrchard.Core",
-    "IdleClinic.Runtime"
+    "IdleClinic.Runtime",
+    "IdleClinic.Core"
   ],
   "includePlatforms": [
     "Editor"

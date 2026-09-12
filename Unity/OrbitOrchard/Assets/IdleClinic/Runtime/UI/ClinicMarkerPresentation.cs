@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -21,6 +22,32 @@ namespace IdleClinic.App
             var direction=second.x>=first.x?1:-1;
             var shift=(48-distance)/2;
             firstResult.x-=direction*shift;secondResult.x+=direction*shift;
+        }
+        /// <summary>Deterministic, bounded targets for every live till, including four overlapping projections.</summary>
+        public static Vector2[] SeparateCashTargets(IReadOnlyList<Vector2> projections,Rect viewport)
+        {
+            var result=new Vector2[projections.Count];
+            var half=CashSize/2;
+            var minX=viewport.xMin+half;var maxX=Mathf.Max(minX,viewport.xMax-half);
+            var minY=viewport.yMin+half;var maxY=Mathf.Max(minY,viewport.yMax-half);
+            for(var i=0;i<projections.Count;i++)
+            {
+                var origin=projections[i];var best=new Vector2(Mathf.Clamp(origin.x,minX,maxX),Mathf.Clamp(origin.y,minY,maxY));
+                var score=float.PositiveInfinity;
+                for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++)
+                {
+                    var candidate=new Vector2(Mathf.Clamp(origin.x+dx*48,minX,maxX),Mathf.Clamp(origin.y+dy*48,minY,maxY));
+                    var clear=true;
+                    for(var j=0;j<i;j++)
+                        if(Mathf.Abs(candidate.x-result[j].x)<48&&Mathf.Abs(candidate.y-result[j].y)<48){clear=false;break;}
+                    if(!clear)continue;
+                    var distance=(candidate-origin).sqrMagnitude;
+                    if(distance>=score)continue;
+                    best=candidate;score=distance;
+                }
+                result[i]=best;
+            }
+            return result;
         }
         public static void CashDetail(VisualElement marker,bool wide)
         {

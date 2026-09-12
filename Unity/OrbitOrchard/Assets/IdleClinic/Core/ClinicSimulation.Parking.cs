@@ -6,7 +6,7 @@ namespace IdleClinic.Core
     {
         private static bool IsMovingVehicle(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.DrivingToParking||phase==ClinicPatientPhase.DrivingFromParking;
         private static bool IsVehiclePhase(ClinicPatientPhase phase)=>IsMovingVehicle(phase)||phase==ClinicPatientPhase.WaitingToPark||phase==ClinicPatientPhase.WaitingToExit;
-        private static bool HasCompletedCare(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.Leaving||phase==ClinicPatientPhase.WaitingToExit||phase==ClinicPatientPhase.DrivingFromParking;
+        private static bool HasCompletedCare(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.Leaving||phase==ClinicPatientPhase.WaitingToExit||phase==ClinicPatientPhase.DrivingFromParking||phase==ClinicPatientPhase.WalkingToTaxi||phase==ClinicPatientPhase.WaitingForTaxi||phase==ClinicPatientPhase.TaxiPickingUp||phase==ClinicPatientPhase.TaxiDeparting;
         private bool CanCallPatientDuringVehicleMovement(ClinicPatientState patient)
         {
             if(patient.ParkingBayId<0)return true;
@@ -39,7 +39,7 @@ namespace IdleClinic.Core
         }
         private void DispatchParkingVehicles()
         {
-            if(State.Patients.Any(p=>IsMovingVehicle(p.Phase)||p.ParkingBayId>=0&&(p.Phase==ClinicPatientPhase.Arriving||p.Phase==ClinicPatientPhase.Leaving)))return;
+            if(TaxiRoadBusy||State.TaxiRides.Any(r=>r.Phase==ClinicTaxiPhase.WaitingToDepart)||State.Patients.Any(p=>IsMovingVehicle(p.Phase)||p.ParkingBayId>=0&&(p.Phase==ClinicPatientPhase.Arriving||p.Phase==ClinicPatientPhase.Leaving)))return;
             foreach(var patient in State.Patients.Where(p=>p.Phase==ClinicPatientPhase.WaitingToPark||p.Phase==ClinicPatientPhase.WaitingToExit)
                 .OrderBy(p=>p.PhaseStartedTick).ThenBy(p=>p.Id))
             {
@@ -55,8 +55,8 @@ namespace IdleClinic.Core
                     if(cycle>=ClinicRules.StreetCrossingStartsTick&&cycle<ClinicRules.StreetCrossingEndsTick||duration>=nextCrossing)continue;
                 }
                 long clears=State.Tick+duration;
-                bool crossingDue=State.Patients.Any(p=>p.ParkingBayId>=0&&(p.Phase==ClinicPatientPhase.Treating&&p.PhaseEndsTick<=clears
-                    ||p.Phase==ClinicPatientPhase.WalkingToTreatment&&p.PhaseEndsTick+ClinicRules.FastestTreatmentTicks<=clears));
+                bool crossingDue=State.Patients.Any(p=>p.ParkingBayId>=0&&((ClinicRules.IsDoctors(State)?p.Phase==ClinicPatientPhase.Dispensing:p.Phase==ClinicPatientPhase.Treating)&&p.PhaseEndsTick<=clears
+                    ||(ClinicRules.IsDoctors(State)?p.Phase==ClinicPatientPhase.WalkingToPharmacy:p.Phase==ClinicPatientPhase.WalkingToTreatment)&&p.PhaseEndsTick+(ClinicRules.IsDoctors(State)?48:ClinicRules.FastestTreatmentTicks)<=clears));
                 if(crossingDue)continue;
                 Phase(patient,entering?ClinicPatientPhase.DrivingToParking:ClinicPatientPhase.DrivingFromParking,patient.FromAnchor,patient.ToAnchor,duration);
                 return;

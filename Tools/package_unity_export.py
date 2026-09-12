@@ -63,7 +63,10 @@ def read_tests(path):
                 'IdleClinic.Tests.ClinicExpansionTests.', 'IdleClinic.Tests.ClinicMigrationTests.',
                 'IdleClinic.Tests.ClinicParkingFlowTests.', 'IdleClinic.Tests.ClinicWalkingTests.',
                 'IdleClinic.Tests.ClinicArchitectureTests.', 'IdleClinic.Tests.ClinicParkingWorldTests.',
-                'IdleClinic.Tests.ClinicPassingTests.')
+                'IdleClinic.Tests.ClinicPassingTests.', 'IdleClinic.Tests.ClinicDoctorsTests.',
+                'IdleClinic.Tests.DoctorsProfileTests.', 'IdleClinic.Tests.DoctorsHUDTests.',
+                'IdleClinic.Tests.DoctorsWorldTests.', 'IdleClinic.Tests.ClinicAudioTests.',
+                'IdleClinic.Tests.ClinicDoctorsNavigationTests.')
     cases = list(result.iter('test-case'))
     if len(cases) != total or any(case.get('result', '').lower() != 'passed' for case in cases):
         raise ValueError('Every reported Unity case must be present and passed.')

@@ -14,7 +14,7 @@ namespace IdleClinic.Core
             var kinds = new HashSet<ClinicAmenity>();
             foreach (var amenity in state.Amenities)
             {
-                if (amenity == null || !Defined(amenity.Kind) || !kinds.Add(amenity.Kind) || amenity.Level < 0 || amenity.Level > 3
+                if (amenity == null || !Defined(amenity.Kind) || (int)amenity.Kind > 2 || !kinds.Add(amenity.Kind) || amenity.Level < 0 || amenity.Level > 3
                     || amenity.Till < 0 || amenity.Till > state.TotalTips || amenity.Kind != ClinicAmenity.Vending && amenity.Till != 0
                     || amenity.Level == 0 && amenity.Till != 0 || amenity.Level > 0 && state.Tutorial != ClinicTutorialStep.Complete) return false;
                 if (amenity.Kind != ClinicAmenity.Parking && amenity.Level > 0

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using IdleClinic.Core;
 
 namespace IdleClinic.Services
@@ -7,6 +8,7 @@ namespace IdleClinic.Services
     public sealed class ClinicPreferences
     {
         public bool sound = true;
+        public bool music = true;
         public bool haptics = true;
         public bool reducedMotion;
     }
@@ -14,9 +16,19 @@ namespace IdleClinic.Services
     [Serializable]
     public sealed class ClinicProfile
     {
-        public int schemaVersion = 2;
+        public int schemaVersion = 3;
         public long revision;
         public ClinicState state;
+        // Unity's inline JSON serializer materializes null custom objects. An empty list
+        // explicitly represents a locked location without synthesizing an invalid clinic.
+        public List<ClinicState> additionalClinics = new List<ClinicState>();
+        public ClinicState doctorsState
+        {
+            get => additionalClinics != null && additionalClinics.Count == 1 ? additionalClinics[0] : null;
+            set { additionalClinics = value == null ? new List<ClinicState>() : new List<ClinicState> { value }; }
+        }
+        public ClinicLocation activeLocation;
+        public ClinicState ActiveState => activeLocation == ClinicLocation.DoctorsClinic ? doctorsState : state;
         public ClinicPreferences preferences = new ClinicPreferences();
         public long lastAccountedUtcTicks;
 

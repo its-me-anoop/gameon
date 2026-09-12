@@ -38,9 +38,9 @@ namespace IdleClinic.Tests
         {
             var store = new ClinicProfileStore(directory);
             var loaded = store.LoadClinic(savedAt);
-            Assert.That(loaded.schemaVersion, Is.EqualTo(2));
-            Assert.That(loaded.state.SchemaVersion, Is.EqualTo(2));
-            Assert.That(loaded.state.RulesVersion, Is.EqualTo(2));
+            Assert.That(loaded.schemaVersion, Is.EqualTo(3));
+            Assert.That(loaded.state.SchemaVersion, Is.EqualTo(3));
+            Assert.That(loaded.state.RulesVersion, Is.EqualTo(3));
             Assert.That(loaded.revision, Is.EqualTo(legacy.revision + 1));
             Assert.That(loaded.lastAccountedUtcTicks, Is.EqualTo(legacy.lastAccountedUtcTicks));
             Assert.That(loaded.state.Wallet, Is.EqualTo(3807));
@@ -51,7 +51,10 @@ namespace IdleClinic.Tests
             Assert.That(loaded.state.Tick, Is.EqualTo(legacy.state.Tick));
             Assert.That(loaded.state.SubTick, Is.EqualTo(legacy.state.SubTick));
             Assert.That(loaded.state.Tutorial, Is.EqualTo(legacy.state.Tutorial));
-            Assert.That(JsonUtility.ToJson(loaded.preferences), Is.EqualTo(JsonUtility.ToJson(legacy.preferences)));
+            Assert.That(loaded.preferences.sound, Is.EqualTo(legacy.preferences.sound));
+            Assert.That(loaded.preferences.music, Is.EqualTo(legacy.preferences.sound));
+            Assert.That(loaded.preferences.haptics, Is.EqualTo(legacy.preferences.haptics));
+            Assert.That(loaded.preferences.reducedMotion, Is.EqualTo(legacy.preferences.reducedMotion));
             Assert.That(loaded.state.Amenities.All(a => a.Level == 0 && a.Till == 0), Is.True);
             Assert.That(loaded.state.Staff.All(s => s.TrainingLevel == 1), Is.True);
             Assert.That(loaded.state.ReceptionDesks.All(d => d.EquipmentLevel == 1), Is.True);
@@ -119,7 +122,7 @@ namespace IdleClinic.Tests
             var store = new ClinicProfileStore(directory);
             var loaded = store.LoadClinic(savedAt);
             Assert.That(loaded.state.Wallet, Is.EqualTo(3807));
-            Assert.That(loaded.schemaVersion, Is.EqualTo(2));
+            Assert.That(loaded.schemaVersion, Is.EqualTo(3));
             Assert.That(store.Error, Does.Contain("backup"));
             Assert.That(Directory.GetFiles(directory, "*.unreadable-*").Any(f => File.ReadAllText(f) == changed), Is.True);
         }

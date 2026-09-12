@@ -3,32 +3,42 @@ using System.Collections.Generic;
 
 namespace IdleClinic.Core
 {
-    public enum ClinicRoom { Reception, FirstAid, Waiting }
+    public enum ClinicLocation { StarterClinic = 0, DoctorsClinic = 1 }
+    public enum ClinicRoom { Reception, FirstAid, Waiting, Consultation, Pharmacy }
     public enum UpgradeTrack { Equipment, Facilities, Decoration }
-    public enum ClinicStaffRole { Receptionist, Nurse }
-    public enum ClinicAmenity { Parking, Toilet, Vending }
+    public enum ClinicStaffRole { Receptionist, Nurse, Doctor, Pharmacist }
+    public enum ClinicAmenity { Parking, Toilet, Vending, Taxi }
     public enum ClinicTutorialStep { FirstArrival, CollectFirstPayment, HireFirstNurse, FirstTreatment, Complete }
     public enum ClinicPatientPhase
     {
         Arriving, ReceptionQueue, WalkingToReception, CheckingIn, WaitingForTreatment,
         WalkingToWaiting, Seated, WalkingToTreatment, Treating, Leaving,
         WalkingToAmenity, UsingAmenity, ReturningFromAmenity,
-        WaitingToPark, DrivingToParking, WaitingToExit, DrivingFromParking
+        WaitingToPark, DrivingToParking, WaitingToExit, DrivingFromParking,
+        WalkingToConsultation, Consulting, WalkingToPharmacy, Dispensing,
+        WaitingForTaxi, TaxiArriving, TaxiDroppingOff, WalkingToTaxi, TaxiPickingUp, TaxiDeparting
     }
+    public enum ClinicTaxiPhase { Approaching, Boarding, Departing, WaitingToDepart }
     public enum ClinicConstructionKind { WaitingRoom, RoomRenovation }
     public enum ClinicEventKind
     {
         PatientArrived, CheckInStarted, PaymentReceived, CashCollected, NurseHired,
         ReceptionistHired, TreatmentStarted, TreatmentCompleted, WaitingRoomUnlocked,
         ConstructionStarted, ConstructionCompleted, EquipmentUpgraded, StationAdded,
-        TutorialAdvanced, StationUpgraded, StaffTrained, AmenityUpgraded, AmenityVisitStarted, TipReceived
+        TutorialAdvanced, StationUpgraded, StaffTrained, AmenityUpgraded, AmenityVisitStarted, TipReceived,
+        DoctorHired, PharmacistHired, ConsultationStarted, ConsultationCompleted,
+        DispensingStarted, DispensingCompleted, DoctorsClinicUnlocked, TaxiArrived, TaxiDeparted
     }
 
     [Serializable]
     public sealed class ClinicState
     {
-        public int SchemaVersion = 2;
-        public int RulesVersion = 2;
+        public int SchemaVersion = 3;
+        public int RulesVersion = 3;
+        public ClinicLocation Location;
+        public bool DoctorsClinicUnlocked;
+        public long TotalTransferredIn;
+        public long TotalTransferredOut;
         public ulong Seed = 42;
         public long Tick;
         public long PausedTrafficTicks;
@@ -49,8 +59,11 @@ namespace IdleClinic.Core
         public List<ClinicRoomState> Rooms = new List<ClinicRoomState>();
         public List<ReceptionDeskState> ReceptionDesks = new List<ReceptionDeskState>();
         public List<TreatmentStationState> TreatmentStations = new List<TreatmentStationState>();
+        public List<TreatmentStationState> ConsultationStations = new List<TreatmentStationState>();
+        public List<TreatmentStationState> PharmacyStations = new List<TreatmentStationState>();
         public List<ClinicAmenityState> Amenities = new List<ClinicAmenityState>();
         public List<ClinicStaffState> Staff = new List<ClinicStaffState>();
+        public List<ClinicTaxiState> TaxiRides = new List<ClinicTaxiState>();
         public List<ClinicPatientState> Patients = new List<ClinicPatientState>();
         public List<ClinicConstructionState> Construction = new List<ClinicConstructionState>();
 
@@ -116,9 +129,19 @@ namespace IdleClinic.Core
     public sealed class ClinicPatientState
     {
         public int Id;
+        public List<ClinicMovementPoint> ArrivalPath = new List<ClinicMovementPoint>();
         public ClinicPatientPhase Phase;
         public int AppearanceId;
         public int ParkingBayId = -1;
+        public int TaxiDockId = -1;
+        public bool UsesTaxi;
+        public int ToiletCubicleId = -1;
+        public int ConsultationStationId = -1;
+        public int PharmacyStationId = -1;
+        public ClinicStaffRole NextService = ClinicStaffRole.Nurse;
+        public bool ConsultationComplete;
+        public bool FirstAidComplete;
+        public bool PharmacyComplete;
         public ClinicAmenity VisitingAmenity;
         public bool UsedToilet;
         public bool UsedVending;
@@ -135,6 +158,27 @@ namespace IdleClinic.Core
         public bool Paid;
         public long Payment;
         public bool HasAdmissionReservation;
+    }
+
+    [Serializable]
+    public sealed class ClinicMovementPoint
+    {
+        public float X;
+        public float Z;
+        public ClinicMovementPoint() { }
+        public ClinicMovementPoint(float x, float z) { X = x; Z = z; }
+    }
+
+    [Serializable]
+    public sealed class ClinicTaxiState
+    {
+        public long Id;
+        public int PatientId;
+        public int DockId;
+        public bool Pickup;
+        public ClinicTaxiPhase Phase;
+        public long PhaseStartedTick;
+        public long PhaseEndsTick;
     }
 
     [Serializable]

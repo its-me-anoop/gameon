@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using IdleClinic.Core;
 
 namespace IdleClinic.Presentation
 {
@@ -14,10 +15,10 @@ namespace IdleClinic.Presentation
         private readonly GameObject[] variants=new GameObject[12];
         private readonly Renderer skin;
         private readonly Material[][] materials=new Material[12][];
-        private readonly GameObject[] training=new GameObject[5];
+        private readonly GameObject[] training=new GameObject[11];
         private readonly bool patient;
         private int current=-1;
-        internal ClinicAppearance(ClinicArt art,Transform root,bool patient)
+        internal ClinicAppearance(ClinicArt art,Transform root,bool patient,ClinicStaffRole role=ClinicStaffRole.Nurse)
         {
             this.root=root;this.patient=patient;skin=root.GetComponentInChildren<SkinnedMeshRenderer>();
             var rig=skin as SkinnedMeshRenderer;if(rig!=null){head=Array.Find(rig.bones,b=>b.name=="head");chest=Array.Find(rig.bones,b=>b.name=="chest");}
@@ -29,7 +30,7 @@ namespace IdleClinic.Presentation
                 for(int slot=0;slot<originals.Length;slot++)
                 {
                     string name=originals[slot]==null?"":originals[slot].name;
-                    materials[appearance][slot]=name=="Clinic Skin"?art.Material(Skins[appearance]):patient&&name=="Clinic Apricot"?art.Material(Clothes[appearance]):originals[slot];
+                    materials[appearance][slot]=name=="Clinic Skin"?art.Material(Skins[appearance]):patient&&name=="Clinic Apricot"?art.Material(Clothes[appearance]):!patient&&(name=="Clinic Sage"||name=="Clinic Apricot"||name=="Clinic Blue")&&role==ClinicStaffRole.Doctor?art.Material("Linen"):!patient&&(name=="Clinic Sage"||name=="Clinic Apricot"||name=="Clinic Blue")&&role==ClinicStaffRole.Pharmacist?art.Material("SageDark"):originals[slot];
                 }
                 var variant=art.Group("Appearance silhouette "+appearance,headwear);variants[appearance]=variant.gameObject;
                 if(appearance==1||appearance==3||appearance==7)
@@ -76,7 +77,11 @@ namespace IdleClinic.Presentation
             }
             else
             {
-                for(int level=2;level<=6;level++)training[level-2]=art.Box("Staff training pin "+level,bodywear,new Vector3(-.14f+(level-2)*.047f,1.16f,.15f),new Vector3(.034f,.043f,.023f),"Gold");
+                for(int level=2;level<=12;level++)training[level-2]=art.Box("Staff training pin "+level,bodywear,new Vector3(-.14f+((level-2)%6)*.047f,1.16f-((level-2)/6)*.055f,.15f),new Vector3(.034f,.043f,.023f),"Gold");
+                if(role==ClinicStaffRole.Doctor)
+                {art.Box("Doctor coat lapel",bodywear,new Vector3(.09f,1.07f,.175f),new Vector3(.13f,.39f,.045f),"Linen");art.Orb("Doctor stethoscope diaphragm",bodywear,new Vector3(.15f,.90f,.19f),new Vector3(.09f,.09f,.035f),"Gold");art.Box("Doctor stethoscope tube",bodywear,new Vector3(.14f,1.10f,.18f),new Vector3(.022f,.33f,.025f),"Ink");}
+                if(role==ClinicStaffRole.Pharmacist)
+                {art.Box("Pharmacist name badge",bodywear,new Vector3(.13f,1.10f,.18f),new Vector3(.14f,.12f,.023f),"Linen");art.Box("Pharmacist badge cross",bodywear,new Vector3(.13f,1.10f,.195f),new Vector3(.085f,.025f,.012f),"Sage");art.Box("Pharmacist badge cross",bodywear,new Vector3(.13f,1.10f,.20f),new Vector3(.025f,.085f,.012f),"Sage");}
             }
         }
         internal void Apply(int appearance,int trainingLevel=1)

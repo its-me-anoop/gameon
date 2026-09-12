@@ -10,7 +10,8 @@ namespace IdleClinic.App
     public static class ClinicServicePresentation
     {
         public static bool HasProgress(ClinicPatientPhase phase)=>phase==ClinicPatientPhase.CheckingIn
-            ||phase==ClinicPatientPhase.Treating||phase==ClinicPatientPhase.UsingAmenity;
+            ||phase==ClinicPatientPhase.Treating||phase==ClinicPatientPhase.UsingAmenity
+            ||phase==ClinicPatientPhase.Consulting||phase==ClinicPatientPhase.Dispensing;
     }
 
     public static class ClinicCashPresentation
@@ -28,12 +29,12 @@ namespace IdleClinic.App
         public static ClinicWorkstationReadout Create(ClinicState state,ClinicStaffRole role,int stationId)
         {
             var staff=state.Staff.FirstOrDefault(s=>s.Role==role&&s.StationId==stationId);
-            var cap=ClinicRules.TrackCap(state.Room(role==ClinicStaffRole.Nurse?ClinicRoom.FirstAid:ClinicRoom.Reception).Tier);
+            var cap=ClinicRules.ComponentCap(state,ClinicRules.RoomForRole(role));
             var level=ClinicRules.StationLevel(state,role,stationId);
             return new ClinicWorkstationReadout
             {
                 EquipmentLevel=level,TrainingLevel=staff?.TrainingLevel??0,StaffId=staff?.Id??-1,
-                EquipmentPrice=ClinicRules.StationUpgradeCost(state,role,stationId),TrainingPrice=staff==null?0:ClinicRules.StaffTrainingCost(staff),
+                EquipmentPrice=ClinicRules.StationUpgradeCost(state,role,stationId),TrainingPrice=staff==null?0:ClinicRules.StaffTrainingCost(state,staff),
                 EquipmentCapped=level>=cap,TrainingCapped=staff!=null&&staff.TrainingLevel>=cap,
                 ServiceTicks=ClinicRules.StationServiceTicks(state,role,stationId),
                 NextEquipmentTicks=ClinicRules.StationServiceTicks(state,role,stationId,equipmentLevelsAdded:1),
@@ -45,36 +46,53 @@ namespace IdleClinic.App
     public sealed partial class ClinicApp
     {
         private static ClinicAmenity AmenityKind(ClinicHitKind kind)=>kind==ClinicHitKind.Parking?ClinicAmenity.Parking:
-            kind==ClinicHitKind.Toilet?ClinicAmenity.Toilet:ClinicAmenity.Vending;
+            kind==ClinicHitKind.Toilet?ClinicAmenity.Toilet:kind==ClinicHitKind.Taxi?ClinicAmenity.Taxi:ClinicAmenity.Vending;
         private static ClinicHit AmenityHit(ClinicAmenity kind)=>new ClinicHit(kind==ClinicAmenity.Parking?ClinicHitKind.Parking:
-            kind==ClinicAmenity.Toilet?ClinicHitKind.Toilet:ClinicHitKind.Vending,(int)kind);
+            kind==ClinicAmenity.Toilet?ClinicHitKind.Toilet:kind==ClinicAmenity.Taxi?ClinicHitKind.Taxi:ClinicHitKind.Vending,(int)kind);
         private static ClinicGlyph AmenityGlyph(ClinicAmenity kind)=>kind==ClinicAmenity.Parking?ClinicGlyph.Parking:
-            kind==ClinicAmenity.Toilet?ClinicGlyph.Toilet:ClinicGlyph.Vending;
+            kind==ClinicAmenity.Toilet?ClinicGlyph.Toilet:kind==ClinicAmenity.Taxi?ClinicGlyph.Taxi:ClinicGlyph.Vending;
+        private static bool IsWorkstation(ClinicHitKind kind)=>kind==ClinicHitKind.Desk||kind==ClinicHitKind.Station
+            ||kind==ClinicHitKind.DoctorStation||kind==ClinicHitKind.PharmacyStation;
+        private static ClinicStaffRole RoleForHit(ClinicHitKind kind)=>kind==ClinicHitKind.Desk?ClinicStaffRole.Receptionist:
+            kind==ClinicHitKind.DoctorStation?ClinicStaffRole.Doctor:kind==ClinicHitKind.PharmacyStation?ClinicStaffRole.Pharmacist:ClinicStaffRole.Nurse;
+        private static ClinicHit StationHit(ClinicStaffRole role,int id)=>new ClinicHit(role==ClinicStaffRole.Receptionist?ClinicHitKind.Desk:
+            role==ClinicStaffRole.Doctor?ClinicHitKind.DoctorStation:role==ClinicStaffRole.Pharmacist?ClinicHitKind.PharmacyStation:ClinicHitKind.Station,id);
+        private static ClinicGlyph RoleGlyph(ClinicStaffRole role)=>role==ClinicStaffRole.Receptionist?ClinicGlyph.Reception:
+            role==ClinicStaffRole.Doctor?ClinicGlyph.Doctor:role==ClinicStaffRole.Pharmacist?ClinicGlyph.Pharmacy:ClinicGlyph.Nurse;
+        private static string RoleName(ClinicStaffRole role)=>role==ClinicStaffRole.Receptionist?"receptionist":
+            role==ClinicStaffRole.Doctor?"doctor":role==ClinicStaffRole.Pharmacist?"pharmacist":"nurse";
         private static string ObjectName(ClinicHit hit)=>hit.Kind==ClinicHitKind.Desk?"Reception desk "+(hit.Id+1):
-            hit.Kind==ClinicHitKind.Station?"Nursing station "+(hit.Id+1):hit.Kind==ClinicHitKind.Parking?"Car park":
-            hit.Kind==ClinicHitKind.Toilet?"Waiting room toilet":"Vending machine";
+            hit.Kind==ClinicHitKind.Station?"Nursing station "+(hit.Id+1):hit.Kind==ClinicHitKind.DoctorStation?"Consultation "+(hit.Id+1):
+            hit.Kind==ClinicHitKind.PharmacyStation?"Pharmacy counter "+(hit.Id+1):hit.Kind==ClinicHitKind.Parking?"Car park":
+            hit.Kind==ClinicHitKind.Toilet?"Waiting room toilet":hit.Kind==ClinicHitKind.Taxi?"Taxi stand":"Vending machine";
+        private static int[] StationIds(ClinicState state,ClinicStaffRole role)=>role==ClinicStaffRole.Receptionist?state.ReceptionDesks.Select(s=>s.Id).ToArray():
+            role==ClinicStaffRole.Doctor?state.ConsultationStations.Select(s=>s.Id).ToArray():role==ClinicStaffRole.Pharmacist?
+            state.PharmacyStations.Select(s=>s.Id).ToArray():state.TreatmentStations.Select(s=>s.Id).ToArray();
+        private static ClinicStaffRole? RoomRole(ClinicRoom room)=>room==ClinicRoom.Reception?ClinicStaffRole.Receptionist:
+            room==ClinicRoom.FirstAid?ClinicStaffRole.Nurse:room==ClinicRoom.Consultation?ClinicStaffRole.Doctor:
+            room==ClinicRoom.Pharmacy?(ClinicStaffRole?)ClinicStaffRole.Pharmacist:null;
         private static string ServiceTime(int ticks)=>(ticks/(double)ClinicRules.TicksPerSecond)
             .ToString("0.#",System.Globalization.CultureInfo.InvariantCulture)+"s";
 
         private void SelectObject(ClinicHit hit)
         {
             if(!ClinicSelectionPolicy.CanSelectObject(State,hit))return;
-            settingsOpen=false;selectedRoom=null;selectedObject=hit;world.SelectRoom(hit);dockKey="";UpdateReadouts();
+            locationsOpen=false;settingsOpen=false;selectedRoom=null;selectedObject=hit;world.SelectRoom(hit);dockKey="";UpdateReadouts();
         }
         private void CollectVending()=>Run(()=>simulation.CollectVendingTips());
 
         private void BuildRoomShortcuts(VisualElement heading,ClinicRoom room)
         {
-            if(room==ClinicRoom.Reception)
-                foreach(var desk in State.ReceptionDesks)ObjectShortcut(heading,new ClinicHit(ClinicHitKind.Desk,desk.Id),ClinicGlyph.Reception,desk.Id+1);
-            else if(room==ClinicRoom.FirstAid)
-                foreach(var station in State.TreatmentStations)ObjectShortcut(heading,new ClinicHit(ClinicHitKind.Station,station.Id),ClinicGlyph.Bed,station.Id+1);
+            var role=RoomRole(room);
+            if(role.HasValue)
+                foreach(var id in StationIds(State,role.Value))ObjectShortcut(heading,StationHit(role.Value,id),RoleGlyph(role.Value),id+1);
             else if(State.Room(room).Built)
             {
                 ObjectShortcut(heading,AmenityHit(ClinicAmenity.Toilet),ClinicGlyph.Toilet);
                 ObjectShortcut(heading,AmenityHit(ClinicAmenity.Vending),ClinicGlyph.Vending);
             }
         }
+
         private void ObjectShortcut(VisualElement parent,ClinicHit hit,ClinicGlyph glyph,int number=0)
         {
             var button=IconButton(parent,glyph,"Manage "+ObjectName(hit),()=>SelectObject(hit),"object-shortcut");
@@ -84,13 +102,13 @@ namespace IdleClinic.App
         private void BuildManagementDock(ClinicHit hit)
         {
             dock.AddToClassList("upgrade-dock");dock.AddToClassList("management-dock");
-            if(hit.Kind==ClinicHitKind.Desk||hit.Kind==ClinicHitKind.Station)BuildWorkstationDock(hit);
+            if(IsWorkstation(hit.Kind))BuildWorkstationDock(hit);
             else BuildAmenityDock(AmenityKind(hit.Kind));
         }
         private void BuildWorkstationDock(ClinicHit hit)
         {
-            var role=hit.Kind==ClinicHitKind.Desk?ClinicStaffRole.Receptionist:ClinicStaffRole.Nurse;
-            var room=State.Room(role==ClinicStaffRole.Nurse?ClinicRoom.FirstAid:ClinicRoom.Reception);
+            var role=RoleForHit(hit.Kind);
+            var room=State.Room(ClinicRules.RoomForRole(role));
             var view=ClinicWorkstationReadout.Create(State,role,hit.Id);
             Text(dock,ServiceTime(view.ServiceTicks)+" per patient · Room "+room.Tier,"room-detail");
             var upgrades=Box(dock,"upgrades");
@@ -100,12 +118,12 @@ namespace IdleClinic.App
                 WorkstationUpgrade(upgrades,ClinicGlyph.Training,"Staff training",view.TrainingLevel,view.TrainingPrice,view.TrainingCapped,
                     view.NextTrainingTicks,room,()=>simulation.TrainStaff(view.StaffId),"staff-training-"+view.StaffId);
             else
-                Purchase(upgrades,ClinicGlyph.Nurse,"Hire nurse",ClinicRules.HireNurseCost(State.Staff.Count(s=>s.Role==ClinicStaffRole.Nurse)),
-                    ()=>true,()=>simulation.HireNurse(),"Staff this station","primary-action");
+                Purchase(upgrades,RoleGlyph(role),"Hire "+RoleName(role),ClinicRules.HireCost(State,role),
+                    ()=>true,()=>simulation.HireStaff(role,hit.Id),"Staff this station","primary-action");
             var actions=Box(dock,"action-row");
             RoomShortcut(actions,room.Kind);
-            var other=role==ClinicStaffRole.Nurse?State.TreatmentStations.Select(s=>s.Id):State.ReceptionDesks.Select(d=>d.Id);
-            foreach(var id in other.Where(id=>id!=hit.Id))ObjectShortcut(actions,new ClinicHit(hit.Kind,id),role==ClinicStaffRole.Nurse?ClinicGlyph.Bed:ClinicGlyph.Reception,id+1);
+            var other=StationIds(State,role);
+            foreach(var id in other.Where(id=>id!=hit.Id))ObjectShortcut(actions,new ClinicHit(hit.Kind,id),RoleGlyph(role),id+1);
         }
         private void WorkstationUpgrade(VisualElement parent,ClinicGlyph glyph,string label,int level,long price,bool capped,
             int nextTicks,ClinicRoomState room,Func<ClinicCommandResult> action,string controlName)
@@ -114,8 +132,8 @@ namespace IdleClinic.App
             var button=new Button(activate){name=controlName};button.AddToClassList("upgrade-button");
             var top=Box(button,"upgrade-top");top.Add(new ClinicIcon(glyph,24));Text(top,level.ToString(),"level",true);
             Text(button,capped?label:ServiceTime(nextTicks)+" / patient","upgrade-label");
-            Text(button,capped?(room.Tier<3?"Room "+(room.Tier+1):"Max"):Money(price),"upgrade-price",true);
-            button.tooltip=label+" level "+level+". "+(capped?(room.Tier<3?"Requires room "+(room.Tier+1):"Fully improved"):
+            Text(button,capped?(room.Tier<ClinicRules.MaximumTier(State)?"Room "+(room.Tier+1):"Max"):Money(price),"upgrade-price",true);
+            button.tooltip=label+" level "+level+". "+(capped?(room.Tier<ClinicRules.MaximumTier(State)?"Requires room "+(room.Tier+1):"Fully improved"):
                 Money(price)+" coins. Next service "+ServiceTime(nextTicks));
             parent.Add(button);readouts.Add(()=>button.SetEnabled(capped||State.Wallet>=price));
             RegisterAccessibleButton(button,button.tooltip,activate);
@@ -128,8 +146,9 @@ namespace IdleClinic.App
         private void BuildAmenityDock(ClinicAmenity kind)
         {
             var amenity=State.Amenity(kind);var level=amenity.Level;
-            var cap=kind==ClinicAmenity.Parking?3:State.Room(ClinicRoom.Waiting).Tier;
-            var maxed=level>=3;var capped=level>=cap;
+            var maximum=ClinicRules.MaximumAmenityLevel(State,kind);
+            var cap=ClinicRules.AmenityCap(State,kind);
+            var maxed=level>=maximum;var capped=level>=cap;
             Text(dock,level==0?"Make visits more comfortable":"Level "+level+" · "+AmenityBenefit(kind,level),"room-detail");
             var row=Box(dock,"action-row");
             if(capped)
@@ -144,7 +163,7 @@ namespace IdleClinic.App
                 }
             }
             else
-                Purchase(row,AmenityGlyph(kind),(level==0?"Build ":"Upgrade ")+AmenityName(kind),ClinicRules.AmenityUpgradeCost(kind,level),
+                Purchase(row,AmenityGlyph(kind),(level==0?"Build ":"Upgrade ")+AmenityName(kind),ClinicRules.AmenityUpgradeCost(State,kind),
                     ()=>true,()=>simulation.UpgradeAmenity(kind),AmenityBenefit(kind,level+1),"primary-action");
             if(kind==ClinicAmenity.Vending&&level>0)
             {
@@ -153,28 +172,31 @@ namespace IdleClinic.App
                 var label=Text(collect,"","purchase-price",true);
                 readouts.Add(()=>{label.text=Money(State.Amenity(ClinicAmenity.Vending).Till);collect.SetEnabled(State.Amenity(ClinicAmenity.Vending).Till>0);});
             }
-            if(kind!=ClinicAmenity.Parking)
+            if(kind!=ClinicAmenity.Parking&&kind!=ClinicAmenity.Taxi)
             {
                 var footer=Box(dock,"management-footer");RoomShortcut(footer,ClinicRoom.Waiting);
                 var other=kind==ClinicAmenity.Toilet?ClinicHitKind.Vending:ClinicHitKind.Toilet;
                 ObjectShortcut(footer,AmenityHit(AmenityKind(other)),kind==ClinicAmenity.Toilet?ClinicGlyph.Vending:ClinicGlyph.Toilet);
             }
         }
-        private static string AmenityName(ClinicAmenity kind)=>kind==ClinicAmenity.Parking?"car park":kind==ClinicAmenity.Toilet?"toilet":"vending machine";
-        private static string AmenityBenefit(ClinicAmenity kind,int level)=>kind==ClinicAmenity.Parking?(level*2)+" bays · "+(level*5)+" coins/car":
-            kind==ClinicAmenity.Vending?(level*5)+" coins/tip":"More comfort · better tips";
+        private static string AmenityName(ClinicAmenity kind)=>kind==ClinicAmenity.Parking?"car park":kind==ClinicAmenity.Toilet?"toilet":kind==ClinicAmenity.Taxi?"taxi stand":"vending machine";
+        private string AmenityBenefit(ClinicAmenity kind,int level)
+        {
+            var income=ClinicRules.LocationMultiplier(State);
+            return kind==ClinicAmenity.Parking?(level*2)+" bays · "+(level*5*income)+" coins/car":
+                kind==ClinicAmenity.Vending?(level*5*income)+" coins/tip":kind==ClinicAmenity.Taxi?"Faster taxi visits":"More comfort · better tips";
+        }
 
         private void UpdateManagementMarkers()
         {
             var unlocked=State.Tutorial==ClinicTutorialStep.Complete;
-            foreach(var desk in State.ReceptionDesks)
-                ManagementMarker(new ClinicHit(ClinicHitKind.Desk,desk.Id),world.GetDeskPoint(desk.Id),unlocked);
-            foreach(var station in State.TreatmentStations)
-                ManagementMarker(new ClinicHit(ClinicHitKind.Station,station.Id),world.GetStationPoint(station.Id),unlocked);
-            foreach(var kind in new[]{ClinicAmenity.Parking,ClinicAmenity.Toilet,ClinicAmenity.Vending})
+            foreach(var role in new[]{ClinicStaffRole.Receptionist,ClinicStaffRole.Nurse,ClinicStaffRole.Doctor,ClinicStaffRole.Pharmacist})
+                foreach(var id in StationIds(State,role))
+                    ManagementMarker(StationHit(role,id),world.GetWorkstationPoint(role,id),unlocked);
+            foreach(var kind in State.Amenities.Select(a=>a.Kind))
             {
                 var hit=AmenityHit(kind);
-                ManagementMarker(hit,world.GetAmenityPoint(kind),unlocked&&(kind==ClinicAmenity.Parking||State.Room(ClinicRoom.Waiting).Built));
+                ManagementMarker(hit,world.GetAmenityPoint(kind),unlocked&&(kind==ClinicAmenity.Parking||kind==ClinicAmenity.Taxi||State.Room(ClinicRoom.Waiting).Built));
             }
             if(vendingCashMarker==null)
             {

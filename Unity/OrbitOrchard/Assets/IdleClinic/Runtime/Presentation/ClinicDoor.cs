@@ -10,6 +10,7 @@ namespace IdleClinic.Presentation
         private readonly float halfPanel,slide;
         private float openness,hold;
         private bool rendered;
+        internal int OpeningCount { get; private set; }
         internal ClinicDoor(ClinicArt art,Transform parent,bool entrance=false,Vector3? position=null,float yaw=0,float openingWidth=1.65f,string name=null)
         {
             center=position??new Vector3(.675f,.14f,entrance?-5.13f:-.15f);
@@ -54,6 +55,7 @@ namespace IdleClinic.Presentation
         {
             if(actors.ApproachesDoor(center,1.20f,1.40f))hold=.45f;else hold=Mathf.Max(0,hold-Mathf.Max(0,deltaTime));
             float target=hold>0?1:0;
+            if(rendered&&target>0&&openness<=0)OpeningCount++;
             openness=reducedMotion||!rendered?target:Mathf.MoveTowards(openness,target,Mathf.Max(0,deltaTime)*(target>openness?8f:2.5f));rendered=true;
             left.localPosition=new Vector3(-halfPanel-slide*openness,0,0);right.localPosition=new Vector3(halfPanel+slide*openness,0,0);
         }

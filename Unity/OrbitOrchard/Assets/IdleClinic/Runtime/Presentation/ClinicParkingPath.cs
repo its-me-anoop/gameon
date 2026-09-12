@@ -42,20 +42,20 @@ namespace IdleClinic.Presentation
             direction=(points[segment]-points[segment-1]).normalized;
             return Vector3.Lerp(points[segment-1],points[segment],Mathf.InverseLerp(distances[segment-1],distances[segment],distance));
         }
-        internal static ClinicParkingPath Enter(int bay)
+        internal static ClinicParkingPath Enter(int bay,Vector3 offset=default,float roadShift=0)
         {
             Vector3 end=ClinicParkingLayout.BayCenter(bay);
-            return new ClinicParkingPath(P(-29,-8.2f),P(-11.35f,-8.2f),P(-11.35f,-6.05f),P(-10.6f,-4.8f),P(-10.6f,end.z),end);
+            return new ClinicParkingPath(P(-29,-8.2f+roadShift)+offset,P(-11.35f,-8.2f+roadShift)+offset,P(-11.35f,-6.05f)+offset,P(-10.6f,-4.8f)+offset,P(-10.6f,end.z)+offset,end+offset);
         }
-        internal static ClinicParkingPath Reverse(int bay)
+        internal static ClinicParkingPath Reverse(int bay,Vector3 offset=default)
         {
             Vector3 start=ClinicParkingLayout.BayCenter(bay);
-            return new ClinicParkingPath(start,P(-10.6f,start.z),P(-10.6f,start.z+1.15f));
+            return new ClinicParkingPath(start+offset,P(-10.6f,start.z)+offset,P(-10.6f,start.z+1.15f)+offset);
         }
-        internal static ClinicParkingPath Exit(int bay)
+        internal static ClinicParkingPath Exit(int bay,Vector3 offset=default,float roadShift=0)
         {
             float z=ClinicParkingLayout.BayCenter(bay).z;
-            return new ClinicParkingPath(P(-10.6f,z+1.15f),P(-10.6f,-4.8f),P(-8.7f,-5.55f),P(-8.7f,-8.2f),P(29,-8.2f));
+            return new ClinicParkingPath(P(-10.6f,z+1.15f)+offset,P(-10.6f,-4.8f)+offset,P(-8.7f,-5.55f)+offset,P(-8.7f,-8.2f+roadShift)+offset,P(29,-8.2f+roadShift)+offset);
         }
         private static Vector3 P(float x,float z)=>ClinicParkingLayout.Point(x,z);
     }

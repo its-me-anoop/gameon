@@ -31,6 +31,23 @@ namespace IdleClinic.Core
             state.TotalTips = 0;
             state.SchemaVersion = 2;
             state.RulesVersion = 2;
+            return TryMigrateV2(state);
+        }
+        public static bool TryMigrateV2(ClinicState state)
+        {
+            if (!ClinicSimulation.IsValidV2State(state)) return false;
+            state.SchemaVersion = 3;
+            state.RulesVersion = 3;
+            state.Location = ClinicLocation.StarterClinic;
+            state.TotalTransferredIn = state.TotalTransferredOut = 0;
+            state.DoctorsClinicUnlocked = false;
+            foreach (var patient in state.Patients)
+            {
+                patient.NextService = ClinicStaffRole.Nurse;
+                patient.FirstAidComplete = patient.Phase == ClinicPatientPhase.Leaving || patient.Phase == ClinicPatientPhase.WaitingToExit || patient.Phase == ClinicPatientPhase.DrivingFromParking;
+                patient.ToiletCubicleId = (patient.Phase == ClinicPatientPhase.WalkingToAmenity || patient.Phase == ClinicPatientPhase.UsingAmenity || patient.Phase == ClinicPatientPhase.ReturningFromAmenity)
+                    && patient.VisitingAmenity == ClinicAmenity.Toilet ? 0 : -1;
+            }
             return ClinicSimulation.IsValidState(state);
         }
     }

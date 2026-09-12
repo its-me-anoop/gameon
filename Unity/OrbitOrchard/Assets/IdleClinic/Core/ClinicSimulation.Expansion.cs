@@ -7,7 +7,7 @@ namespace IdleClinic.Core
         public ClinicCommandResult UpgradeStation(ClinicStaffRole role, int stationId)
         {
             if (!TutorialComplete() || !Defined(role)) return No("Finish the first treatment before upgrading.");
-            var room = role == ClinicStaffRole.Receptionist ? ClinicRoom.Reception : ClinicRoom.FirstAid;
+            var room = ClinicRules.RoomForRole(role);
             var level = ClinicRules.StationLevel(State, role, stationId);
             if (level < 1) return No("Build this workstation first.");
             if (level >= ClinicRules.TrackCap(State.Room(room).Tier)) return No("Upgrade the room tier for better workstations.");
@@ -15,9 +15,9 @@ namespace IdleClinic.Core
             if (!CanSpend(cost)) return No("Save " + cost + " coins for this workstation.");
             Spend(cost);
             if (role == ClinicStaffRole.Receptionist) State.ReceptionDesks.Find(d => d.Id == stationId).EquipmentLevel++;
-            else State.TreatmentStations.Find(s => s.Id == stationId).EquipmentLevel++;
+            else ClinicRules.Stations(State, role).Find(s => s.Id == stationId).EquipmentLevel++;
             Emit(ClinicEventKind.StationUpgraded, room, deskId: role == ClinicStaffRole.Receptionist ? stationId : -1,
-                amount: cost, source: role == ClinicStaffRole.Receptionist ? ClinicRules.DeskPatientAnchor(stationId) : ClinicRules.TreatmentPatientAnchor(stationId));
+                amount: cost, source: ClinicRules.StationPatientAnchor(role, stationId));
             return Yes("Workstation improved.", cost);
         }
 
@@ -26,9 +26,9 @@ namespace IdleClinic.Core
             if (!TutorialComplete()) return No("Finish the first treatment before training staff.");
             var staff = State.Staff.Find(s => s.Id == staffId);
             if (staff == null) return No("Hire this staff member first.");
-            var room = staff.Role == ClinicStaffRole.Receptionist ? ClinicRoom.Reception : ClinicRoom.FirstAid;
+            var room = ClinicRules.RoomForRole(staff.Role);
             if (staff.TrainingLevel >= ClinicRules.TrackCap(State.Room(room).Tier)) return No("Upgrade the room tier for further training.");
-            var cost = ClinicRules.StaffTrainingCost(staff);
+            var cost = ClinicRules.StaffTrainingCost(State, staff);
             if (!CanSpend(cost)) return No("Save " + cost + " coins for training.");
             Spend(cost);
             staff.TrainingLevel++;
@@ -41,15 +41,16 @@ namespace IdleClinic.Core
             if (!TutorialComplete() || !Defined(kind)) return No("Finish the first treatment before expanding.");
             var amenity = State.Amenity(kind);
             var waiting = State.Room(ClinicRoom.Waiting);
-            if (kind != ClinicAmenity.Parking && !waiting.Built) return No("Build the waiting room first.");
-            var cap = kind == ClinicAmenity.Parking ? 3 : waiting.Tier;
-            if (amenity.Level >= cap) return No(cap == 3 ? "Fully upgraded." : "Upgrade the waiting room for more improvements.");
-            var cost = ClinicRules.AmenityUpgradeCost(kind, amenity.Level);
+            if (amenity == null) return No("This amenity is unavailable at this location.");
+            if (kind != ClinicAmenity.Parking && kind != ClinicAmenity.Taxi && !waiting.Built) return No("Build the waiting room first.");
+            var cap = ClinicRules.AmenityCap(State, kind);
+            if (amenity.Level >= cap) return No(cap == ClinicRules.MaximumAmenityLevel(State, kind) ? "Fully upgraded." : "Upgrade the waiting room for more improvements.");
+            var cost = ClinicRules.AmenityUpgradeCost(State, kind);
             if (!CanSpend(cost)) return No("Save " + cost + " coins for this improvement.");
             Spend(cost);
             amenity.Level++;
             Emit(ClinicEventKind.AmenityUpgraded, ClinicRoom.Waiting, amount: cost,
-                source: kind == ClinicAmenity.Parking ? "parking.plot" : ClinicRules.AmenityPatientAnchor(kind), amenity: kind);
+                source: kind == ClinicAmenity.Parking ? "parking.plot" : kind == ClinicAmenity.Taxi ? "taxi.plot" : ClinicRules.AmenityPatientAnchor(kind), amenity: kind);
             return Yes("Amenity improved.", cost);
         }
 
@@ -81,12 +82,16 @@ namespace IdleClinic.Core
         }
 
         private bool AmenityAvailable(ClinicAmenity kind) => State.Amenity(kind).Level > 0
-            && !State.Patients.Any(p => IsVisitingAmenity(p) && p.VisitingAmenity == kind);
+            && State.Patients.Count(p => IsVisitingAmenity(p) && p.VisitingAmenity == kind) < (kind == ClinicAmenity.Toilet ? ClinicRules.ToiletCubicleCount(State) : 1);
 
         private void StartAmenityVisit(ClinicPatientState patient, ClinicAmenity kind)
         {
             patient.VisitingAmenity = kind;
-            Phase(patient, ClinicPatientPhase.WalkingToAmenity, patient.ToAnchor, ClinicRules.AmenityPatientAnchor(kind), 30);
+            if (kind == ClinicAmenity.Toilet)
+                patient.ToiletCubicleId = Enumerable.Range(0, ClinicRules.ToiletCubicleCount(State))
+                    .First(id => !State.Patients.Any(p => p.Id != patient.Id && IsVisitingAmenity(p) && p.VisitingAmenity == kind && p.ToiletCubicleId == id));
+            Phase(patient, ClinicPatientPhase.WalkingToAmenity, patient.ToAnchor,
+                kind == ClinicAmenity.Toilet ? ClinicRules.ToiletPatientAnchor(State, patient.ToiletCubicleId) : ClinicRules.AmenityPatientAnchor(kind), 30);
             Emit(ClinicEventKind.AmenityVisitStarted, ClinicRoom.Waiting, patient.Id, source: patient.ToAnchor, amenity: kind);
         }
 
