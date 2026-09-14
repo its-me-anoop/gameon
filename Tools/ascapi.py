@@ -2,12 +2,17 @@
 """Minimal App Store Connect API client for Gravitile publishing automation.
 
 Reads the team API key from ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8.
-No secrets live in this file. Usage: import from sibling scripts or run ad-hoc:
+On CI the same secrets used by .github/workflows/release.yml override the
+defaults: ASC_KEY_ID and ASC_ISSUER_ID select the key identity, and ASC_KEY_PATH
+points at an ephemeral .p8 written by the workflow (for example under
+$RUNNER_TEMP). No secrets live in this file. Usage: import from sibling scripts
+or run ad-hoc:
     python3 Tools/ascapi.py GET /v1/apps
 """
 import base64
 import hashlib
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -18,9 +23,10 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
-KEY_ID = "V9VT258MM6"
-ISSUER_ID = "2a885728-387b-4f10-9042-f8f089819dc8"
-KEY_PATH = Path.home() / ".appstoreconnect/private_keys" / f"AuthKey_{KEY_ID}.p8"
+KEY_ID = os.environ.get("ASC_KEY_ID") or "V9VT258MM6"
+ISSUER_ID = os.environ.get("ASC_ISSUER_ID") or "2a885728-387b-4f10-9042-f8f089819dc8"
+KEY_PATH = (Path(os.environ["ASC_KEY_PATH"]) if os.environ.get("ASC_KEY_PATH")
+            else Path.home() / ".appstoreconnect/private_keys" / f"AuthKey_{KEY_ID}.p8")
 BASE = "https://api.appstoreconnect.apple.com"
 
 APP_ID = "6786840477"          # Gravitile — Tumbling Merge
